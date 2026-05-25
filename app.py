@@ -93,10 +93,10 @@ class OnlineGameState:
     def spend_move(self, action_description):
         self.moves_left -= 1
         self.log.append(f"🎬 消耗动作：{action_description}（剩 {self.moves_left} 次动作）")
-        # 每次动作后立即检查胜利条件
         if self.check_win():
             return
-        if self.moves_left <= 0:
+        # 核心修复：如果还有悬而未决的交易、小偷选人、或批发商展示，暂时挂起，不结束回合
+        if self.moves_left <= 0 and not self.pending_trade and not self.thief_pending and not getattr(self, 'wholesaler_reveal', None):
             self.end_turn()
 
     def end_turn(self):
@@ -260,6 +260,8 @@ def resolve_trade(decision):
     if time.time() > t_data["expires_at"]:
         g.log.append(f"⏱️ 交易超时作废。")
         g.pending_trade = None
+        # 核心修复：超时后，如果发起人动作没了，才补发结束回合
+        if g.moves_left <= 0: g.end_turn()
         return redirect(url_for('index'))
 
     if my_name != t_data["to"]: return redirect(url_for('index'))
@@ -275,13 +277,15 @@ def resolve_trade(decision):
             p_from["hand"].append(t_data["want"])
             p_from["hand"].sort()
             p_to["hand"].sort()
-            g.log.append(f"🤝 交易成功！【{t_data['to']}】 接受了请求，双方完成了食材互换。")
+            g.log.append(f"🤝 交易成功！【{t_data['to']}】 接受了请求，完成了互换。")
         else:
-            g.log.append(f"❌ 交易破裂！【{t_data['to']}】 根本没有 [{t_data['want']}] 食材卡，这是一场骗局。")
+            g.log.append(f"❌ 交易破裂！【{t_data['to']}】 并没有 [{t_data['want']}]，这是一场骗局。")
     else:
         g.log.append(f"🚫 【{t_data['to']}】 无情地拒绝了交易请求。")
 
     g.pending_trade = None
+    # 核心修复：交易出结果后，如果发起人动作没了，补发结束回合
+    if g.moves_left <= 0: g.end_turn()
     return redirect(url_for('index'))
 
 # ================= 常规游戏操作 =================
