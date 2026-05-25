@@ -502,14 +502,20 @@
         {% if my_name %}
         <div class="quick-chat-bar">
             <span class="qc-label">我有：</span>
-            <button class="qc-btn" onclick="sendQuickChat('🥚')" title="我有鸡蛋">🥚</button>
-            <button class="qc-btn" onclick="sendQuickChat('🥒')" title="我有黄瓜">🥒</button>
-            <button class="qc-btn" onclick="sendQuickChat('🍚')" title="我有白饭">🍚</button>
-            <button class="qc-btn" onclick="sendQuickChat('🌶️')" title="我有Sambal">🌶️</button>
-            <button class="qc-btn" onclick="sendQuickChat('🥜')" title="我有花生">🥜</button>
-            <span class="qc-label" style="margin-left:4px;">|</span>
-            <button class="qc-btn" onclick="sendQuickChat('🙋')" title="举手（我有！）">🙋</button>
-            <button class="qc-btn urge" onclick="sendQuickChat('⏩')" title="快一点！">⏩</button>
+            <button class="qc-btn" onclick="sendQuickChat('🥚','have')" title="我有鸡蛋">🥚</button>
+            <button class="qc-btn" onclick="sendQuickChat('🥒','have')" title="我有黄瓜">🥒</button>
+            <button class="qc-btn" onclick="sendQuickChat('🍚','have')" title="我有白饭">🍚</button>
+            <button class="qc-btn" onclick="sendQuickChat('🌶️','have')" title="我有Sambal">🌶️</button>
+            <button class="qc-btn" onclick="sendQuickChat('🥜','have')" title="我有花生">🥜</button>
+            <span class="qc-label" style="margin-left:4px;border-left:1px solid #334155;padding-left:6px;">我要：</span>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥚','want')" title="我要鸡蛋">🥚</button>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥒','want')" title="我要黄瓜">🥒</button>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🍚','want')" title="我要白饭">🍚</button>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🌶️','want')" title="我要Sambal">🌶️</button>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥜','want')" title="我要花生">🥜</button>
+            <span class="qc-label" style="margin-left:4px;border-left:1px solid #334155;padding-left:6px;"></span>
+            <button class="qc-btn" onclick="sendQuickChat('🙋','special')" title="举手">🙋</button>
+            <button class="qc-btn urge" onclick="sendQuickChat('⏩','special')" title="快一点！">⏩</button>
         </div>
         {% endif %}
     </div>
@@ -815,20 +821,36 @@
     {% endif %}
 
     // ===== 快捷沟通 =====
-    const CHAT_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生','🙋':'我有！','⏩':'快点啦！'};
-    function sendQuickChat(msg) {
+    const ING_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'};
+    const SPECIAL_LABELS = {'🙋':'举手！','⏩':'快一点啦！'};
+    function sendQuickChat(msg, mode) {
         const fd = new FormData();
         fd.append('msg', msg);
+        fd.append('mode', mode || 'have');
         fetch('/quick_chat', {method:'POST', body:fd});
-        showLocalBubble('你', msg);
+        let text;
+        if(ING_LABELS[msg]) {
+            text = (mode === 'want' ? '我要 ' : '我有 ') + msg + ' ' + ING_LABELS[msg] + '！';
+        } else {
+            text = SPECIAL_LABELS[msg] || msg;
+        }
+        showLocalBubble('你', text);
+        // Also inject into center log immediately for local feedback
+        const logBody = document.getElementById('center-log-body');
+        if(logBody) {
+            const line = document.createElement('div');
+            line.className = 'center-log-line';
+            line.style.color = '#fbbf24';
+            line.textContent = '💬 【你】：' + text;
+            logBody.insertBefore(line, logBody.firstChild);
+        }
     }
-    function showLocalBubble(player, msg) {
+    function showLocalBubble(player, text) {
         const layer = document.getElementById('chat-bubble-layer');
         if(!layer) return;
         const b = document.createElement('div');
         b.className = 'chat-bubble';
-        const label = CHAT_LABELS[msg] || msg;
-        b.innerHTML = `<strong style="color:#38bdf8;">${player}</strong>：${msg} <span style="font-size:9px;color:#64748b;">${label}</span>`;
+        b.innerHTML = `<strong style="color:#38bdf8;">${player}</strong>：${text}`;
         layer.appendChild(b);
         setTimeout(() => b.remove(), 4000);
     }
@@ -843,8 +865,10 @@
         msgs.filter(m => now - m.ts < 4).slice(-3).forEach(m => {
             const b = document.createElement('div');
             b.className = 'chat-bubble';
-            const label = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生','🙋':'我有！','⏩':'快点啦！'}[m.msg] || m.msg;
-            b.innerHTML = `<strong style="color:#38bdf8;">${m.player}</strong>：${m.msg} <span style="font-size:9px;color:#64748b;">${label}</span>`;
+            const logLine = m.log_line || m.msg;
+            // Strip the 💬 【name】： prefix for bubble display
+            const display = logLine.replace(/^💬 【.*?】：/, '');
+            b.innerHTML = `<strong style="color:#38bdf8;">${m.player}</strong>：${display}`;
             layer.appendChild(b);
             const age = now - m.ts;
             setTimeout(() => b.remove(), Math.max(500, (4 - age) * 1000));
