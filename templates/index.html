@@ -165,6 +165,18 @@
     <p class="text-muted small">本游戏为横屏模式</p>
 </div>
 
+{% set latest_log = g.log[-1] if room.status == "PLAYING" and g and g.log else "" %}
+{% if "打包了一份标准" in latest_log or "使用大妈代工速成了" in latest_log %}
+<div id="nasi-toast" style="position:fixed; top:50px; left:50%; transform:translateX(-50%); background:rgba(34,197,94,0.95); color:white; padding:10px 25px; border-radius:30px; font-weight:bold; box-shadow:0 10px 25px rgba(0,0,0,0.5); z-index:100000; animation: popin 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, fadeout 0.5s 2.5s forwards; white-space:nowrap; border: 2px solid #bbf7d0;">
+    🎉 突发：【{{ latest_log.split('】')[0].split('【')[1] }}】成功包出了一份椰浆饭！
+</div>
+<style>
+    @keyframes popin { from { top: -50px; opacity: 0; } to { top: 50px; opacity: 1; } }
+    @keyframes fadeout { from { opacity: 1; } to { opacity: 0; display: none; } }
+</style>
+<script>setTimeout(() => { document.getElementById('nasi-toast')?.remove(); }, 3000);</script>
+{% endif %}
+
 <div id="game-wrapper">
 
     {% if error %}
@@ -366,7 +378,7 @@
 
         <div class="opponents-col">
             {% for idx, opp in opponents[mid:] %}
-            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }},'{{ opp.name }}',{{ opp.scored_cards|length }})">
+            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }}, this.getAttribute('data-flies'))" data-flies='{{ opp.flies | tojson }}">
                 <div class="mini-name">{{ opp.name }}</div>
                 <div class="mini-stats">
                     <span>🎴{{ opp.hand|length }}</span>
@@ -612,16 +624,29 @@
         document.getElementById('fan-target-list')?.classList.add('d-none');
     }
 
-    // ===== 攻击目标弹窗 =====
-    function openTargetModal(tIdx, name, foodCount) {
+// ===== 攻击目标弹窗（精准苍蝇雷达版） =====
+    function openTargetModal(tIdx, name, foodCount, fliesStr) {
         {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending %}
         document.getElementById('tm-name').innerText = name;
         document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
+        
         let fa = document.getElementById('fly-targets');
         fa.innerHTML = '';
-        if(foodCount > 0){
-            for(let i=0;i<foodCount;i++) fa.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger">砸第${i+1}包</a>`;
-        } else { fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>'; }
+        
+        if(foodCount > 0) {
+            let flies = JSON.parse(fliesStr || "[]");
+            for(let i=0; i<foodCount; i++) {
+                if(flies[i]) {
+                    // 如果这包饭已经有苍蝇，灰色锁定，并提示已有苍蝇
+                    fa.innerHTML += `<span class="btn btn-sm btn-secondary disabled" style="opacity:0.6;">第${i+1}包(已有🪰)</span>`;
+                } else {
+                    // 如果是干净的，显示红色可攻击按钮
+                    fa.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger shadow-sm">砸在第${i+1}包</a>`;
+                }
+            }
+        } else { 
+            fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>'; 
+        }
         document.getElementById('target-modal').style.display = 'flex';
         {% endif %}
     }
