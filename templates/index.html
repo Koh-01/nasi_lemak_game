@@ -21,9 +21,10 @@
         *, *::before, *::after { box-sizing: border-box; }
         html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1e293b; color: white; font-family: 'PingFang SC', 'Helvetica Neue', sans-serif; }
         
+        /* ===== 游戏框架：用 dvh 适配移动端地址栏 ===== */
         #game-wrapper { display: flex; flex-direction: column; width: 100vw; height: 100dvh; }
 
-        /* ===== 顶部栏 ===== */
+        /* ===== 顶部栏：固定高度 ===== */
         .top-bar {
             flex: 0 0 36px; height: 36px;
             background: linear-gradient(180deg, #0f172a 60%, transparent);
@@ -32,14 +33,14 @@
             padding: 0 8px;
         }
         .turn-indicator { color: #f59e0b; font-size: 13px; margin: 0 8px; white-space: nowrap; }
-        .top-btns { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: flex; gap: 6px; }
-        .restart-btn, .chat-btn {
-            background: rgba(15,23,42,0.8); border-radius: 5px; padding: 2px 8px; font-size: 10px; font-weight: bold; cursor: pointer; white-space: nowrap; border: 1px solid #475569; color: #e2e8f0;
+        .restart-btn {
+            position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+            background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444;
+            border-radius: 5px; padding: 1px 7px; font-size: 10px; font-weight: bold;
+            cursor: pointer; white-space: nowrap;
         }
-        .restart-btn:hover { background: #7f1d1d; color: #fca5a5; border-color: #ef4444; }
-        .chat-btn:hover { background: #0369a1; color: #bae6fd; border-color: #38bdf8; }
 
-        /* ===== 战场区 ===== */
+        /* ===== 战场区：自动填满剩余高度 ===== */
         .battlefield {
             flex: 1 1 0; min-height: 0;
             display: flex; justify-content: space-between; align-items: stretch;
@@ -57,31 +58,22 @@
         .mini-name { font-size: 11px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #38bdf8; margin-bottom: 3px; border-bottom: 1px solid #334155; padding-bottom: 2px; }
         .mini-stats { display: flex; justify-content: space-around; font-size: 10px; }
 
-        /* ===== 中央牌堆与日志 ===== */
-        .center-decks { flex: 1; display: flex; justify-content: center; align-items: center; gap: clamp(6px, 1.5vw, 15px); }
+        /* ===== 中央牌堆 ===== */
+        .center-decks { flex: 1; display: flex; justify-content: center; align-items: center; gap: clamp(10px, 3vw, 40px); }
         .deck {
-            width: clamp(60px, 7vw, 85px); height: clamp(90px, 11vh, 120px);
+            width: clamp(65px, 8vw, 90px); height: clamp(95px, 12vh, 130px);
             border-radius: 10px; display: flex; flex-direction: column;
             justify-content: center; align-items: center; font-weight: bold;
             font-size: 11px; cursor: pointer; transition: .2s; text-decoration: none;
-            box-shadow: -3px 4px 10px rgba(0,0,0,.5); flex-shrink: 0;
+            box-shadow: -3px 4px 10px rgba(0,0,0,.5);
         }
         .deck:hover { transform: scale(1.05) translateY(-4px); }
         .gold-deck { background: linear-gradient(135deg,#d4af37,#996515); color: white; border: 3px solid #fde047; }
         .main-deck { background: linear-gradient(135deg,#22c55e,#14532d); color: white; border: 3px solid #86efac; }
-        .deck span:first-child { font-size: clamp(16px, 2vw, 22px); }
+        .deck span:first-child { font-size: clamp(18px, 2.5vw, 24px); }
         .deck-badge { background: rgba(0,0,0,.6); padding: 1px 5px; border-radius: 8px; font-size: 9px; margin-top: 4px; }
 
-        /* 中间微缩滚动日志 */
-        .center-log {
-            width: clamp(110px, 20vw, 180px); height: clamp(90px, 15vh, 130px);
-            background: rgba(15,23,42,0.7); border: 1px solid #334155; border-radius: 8px;
-            padding: 6px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px;
-        }
-        .center-log-item { font-size: 9px; line-height: 1.3; color: #cbd5e1; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 2px; }
-        .center-log-item.chat { color: #fcd34d; font-weight: bold; }
-
-        /* ===== 底部控制台 ===== */
+        /* ===== 底部控制台：固定比例 ===== */
         .bottom-console {
             flex: 0 0 auto;
             height: clamp(140px, 28dvh, 185px);
@@ -91,6 +83,7 @@
             z-index: 10;
         }
 
+        /* ===== 已打包的饭 ===== */
         .my-stall-zone { display: flex; gap: 6px; margin-bottom: 5px; align-items: center; flex-wrap: wrap; justify-content: center; max-height: 38px; overflow: hidden; }
         .my-nasi {
             background: #d4af37; color: #000; font-weight: bold;
@@ -100,12 +93,15 @@
         }
         .my-nasi.infected { background: #475569; color: #ef4444; border-color: #ef4444; }
 
+        /* ===== 手牌（斗地主交叠） ===== */
         .poker-hand {
             display: flex; justify-content: center; align-items: flex-end;
-            height: clamp(90px, 18dvh, 125px); padding: 0 10px;
+            height: clamp(90px, 18dvh, 125px);
+            padding: 0 10px;
         }
         .poker-card {
-            width: clamp(55px, 7vw, 80px); height: clamp(85px, 17dvh, 120px);
+            width: clamp(55px, 7vw, 80px);
+            height: clamp(85px, 17dvh, 120px);
             border-radius: 7px; margin-left: clamp(-45px, -4vw, -28px);
             background: white; border: 1px solid #cbd5e1;
             box-shadow: -2px 0 6px rgba(0,0,0,.4);
@@ -126,15 +122,23 @@
         /* ===== 弹窗 ===== */
         .action-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 9999; justify-content: center; align-items: center; }
         .modal-box { background: #1e293b; border: 2px solid #38bdf8; border-radius: 12px; padding: 16px; width: min(320px, 90vw); text-align: center; max-height: 90dvh; overflow-y: auto; }
+
+        /* ===== 批发商公示弹窗 ===== */
         .card-reveal { display: inline-flex; flex-direction: column; align-items: center; background: white; color: #1e293b; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: bold; min-width: 52px; }
         .card-reveal.kept { border: 2px solid #22c55e; }
         .card-reveal.gone { border: 2px solid #94a3b8; opacity: .5; text-decoration: line-through; }
+
+        /* ===== 小偷选人弹窗 ===== */
         .thief-target-btn { cursor: pointer; transition: .15s; }
         .thief-target-btn.selected { border-color: #f59e0b !important; background: rgba(245,158,11,.15) !important; }
 
+        /* ===== 重启确认 ===== */
         #restart-confirm-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 99998; justify-content: center; align-items: center; }
         .restart-modal-box { background: linear-gradient(135deg,#1e293b,#0f172a); border: 2px solid #ef4444; border-radius: 14px; padding: 20px 24px; text-align: center; width: min(280px, 85vw); box-shadow: 0 0 28px rgba(239,68,68,.3); }
+        .restart-modal-box h5 { color: #ef4444; margin-bottom: 8px; }
+        .restart-modal-box p { color: #94a3b8; font-size: 11px; margin-bottom: 14px; }
 
+        /* ===== 大厅 ===== */
         .lobby-screen { background: #0f172a; height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow-y: auto; padding: 16px; }
         a.disabled-card { pointer-events: none; opacity: .7; }
         .lobby-restart-btn { margin-top: 10px; background: transparent; color: #64748b; border: 1px solid #334155; border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer; transition: .2s; width: 100%; }
@@ -145,8 +149,8 @@
 
 <div id="restart-confirm-modal">
     <div class="restart-modal-box">
-        <h5 style="color:#ef4444;margin-bottom:8px;">⚠️ 强制重启确认</h5>
-        <p style="color:#94a3b8;font-size:11px;margin-bottom:14px;">将<strong style="color:#ef4444;">立即终止</strong>当前对局并清空所有数据。此操作不可撤销。</p>
+        <h5>⚠️ 强制重启确认</h5>
+        <p>将<strong style="color:#ef4444;">立即终止</strong>当前对局并清空所有数据。此操作不可撤销。</p>
         <div class="d-flex gap-2 justify-content-center">
             <a href="/reset" class="btn btn-danger btn-sm px-3">💥 确认重启</a>
             <button onclick="closeRestartModal()" class="btn btn-secondary btn-sm px-3">取消</button>
@@ -219,10 +223,78 @@
 
     {% if g.game_over %}
     <div style="position:fixed;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a5f,#0f172a);z-index:10000;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:20px 10px;">
-        <div style="text-align:center;margin-bottom:20px;"><div style="font-size:52px;animation:bounce 0.6s infinite alternate;">👑</div><h2 style="color:#fde047;font-size:clamp(18px,4vw,28px);margin:6px 0 2px;text-shadow:0 0 20px #fde047;">🎉 【{{ g.winner }}】 赢得胜利！</h2></div>
-        <a href="/reset" class="btn btn-warning fw-bold px-5" style="font-size:14px;">🔄 房间解散，再来一局</a>
+
+        <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:52px;animation:bounce 0.6s infinite alternate;">👑</div>
+            <h2 style="color:#fde047;font-size:clamp(18px,4vw,28px);margin:6px 0 2px;text-shadow:0 0 20px #fde047;">
+                🎉 【{{ g.winner }}】 赢得胜利！
+            </h2>
+            <p style="color:#94a3b8;font-size:12px;">椰浆饭大作战已结束</p>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;width:100%;max-width:900px;margin-bottom:20px;">
+            {% for p in g.players %}
+            {% set net = [] %}
+            {% for idx in range(p.scored_cards|length) %}
+                {% if not p.flies[idx] %}{% set _ = net.append(p.scored_cards[idx]) %}{% endif %}
+            {% endfor %}
+            {% set is_winner = (p.name == g.winner) %}
+            <div style="background:{% if is_winner %}linear-gradient(135deg,rgba(253,224,71,0.15),rgba(234,179,8,0.08)){% else %}rgba(30,41,59,0.9){% endif %};
+                        border:2px solid {% if is_winner %}#fde047{% else %}#334155{% endif %};
+                        border-radius:12px;padding:14px;min-width:160px;flex:1;max-width:220px;text-align:center;">
+                {% if is_winner %}<div style="font-size:20px;margin-bottom:4px;">👑</div>{% endif %}
+                <div style="font-weight:bold;color:{% if is_winner %}#fde047{% else %}#38bdf8{% endif %};font-size:14px;margin-bottom:8px;">
+                    {{ p.name }}
+                </div>
+
+                <div style="margin-bottom:8px;">
+                    <div style="font-size:10px;color:#64748b;margin-bottom:4px;">椰浆饭</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center;">
+                        {% for idx in range(p.scored_cards|length) %}
+                        <span style="background:{% if p.flies[idx] %}#374151{% else %}#d4af37{% endif %};
+                                     color:{% if p.flies[idx] %}#ef4444{% else %}#000{% endif %};
+                                     border-radius:4px;padding:1px 6px;font-size:11px;font-weight:bold;
+                                     border:1px solid {% if p.flies[idx] %}#ef4444{% else %}#fff{% endif %};">
+                            📦{{ p.scored_cards[idx] }}包{% if p.flies[idx] %} 🪰{% endif %}
+                        </span>
+                        {% else %}
+                        <span style="font-size:11px;color:#475569;">（无）</span>
+                        {% endfor %}
+                    </div>
+                    <div style="font-size:12px;color:#22c55e;margin-top:4px;font-weight:bold;">
+                        净计：{{ net|sum }} 包
+                    </div>
+                </div>
+
+                <div>
+                    <div style="font-size:10px;color:#64748b;margin-bottom:4px;">剩余手牌 ({{ p.hand|length }}张)</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;">
+                        {% set emoji_map = {"Rice":"🍚","Egg":"🥚","Peanuts":"🥜","Sambal":"🌶️","Cucumber":"🥒","Wholesaler":"🏪","Thief":"🥷","Supplier":"📣","Mak Cik":"🧑‍🍳","Officer":"👮","Fly":"🪰","Fly Swatter":"💥","Fan":"🪭"} %}
+                        {% for card in p.hand %}
+                        <span style="background:#1e293b;border:1px solid #334155;border-radius:3px;padding:1px 4px;font-size:10px;">
+                            {{ emoji_map.get(card,'?') }}{{ card }}
+                        </span>
+                        {% endfor %}
+                        {% if not p.hand %}<span style="font-size:11px;color:#475569;">（空手）</span>{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div style="width:100%;max-width:700px;background:rgba(15,23,42,0.8);border:1px solid #334155;border-radius:10px;padding:12px;margin-bottom:20px;">
+            <div style="font-size:11px;color:#64748b;margin-bottom:6px;">📜 对局记录（最近10条）</div>
+            {% for line in g.log[-10:]|reverse %}
+            <div style="font-size:11px;color:#94a3b8;padding:2px 0;border-bottom:1px solid #1e293b;">{{ line }}</div>
+            {% endfor %}
+        </div>
+
+        <a href="/reset" class="btn btn-warning fw-bold px-5" style="font-size:14px;">🔄 再来一局</a>
     </div>
-    <style>@keyframes bounce { from{transform:translateY(0)} to{transform:translateY(-8px)} }</style>
+
+    <style>
+    @keyframes bounce { from{transform:translateY(0)} to{transform:translateY(-8px)} }
+    </style>
 
     {% else %}
     <div class="top-bar">
@@ -232,30 +304,21 @@
             {% else %}⏳ 等待【{{ g.current_player().name }}】{% endif %}
         </span>
         <a href="/action/end_turn_manual" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2" style="font-size:10px;">结束回合</a>
-        
-        <div class="top-btns">
-            <button onclick="document.getElementById('chat-modal').style.display='flex'" class="chat-btn">💬 喊话</button>
-            <button onclick="openRestartModal()" class="restart-btn">⚡重启</button>
-        </div>
+        <button onclick="openRestartModal()" class="restart-btn">⚡重启</button>
     </div>
 
     {% if g.pending_trade %}
     {% set t = g.pending_trade %}
-    <div id="trade-banner" style="background:linear-gradient(90deg,#0f172a,#1e3a5f,#0f172a);border-top:2px solid #38bdf8;border-bottom:2px solid #38bdf8;padding:6px 12px;display:flex;align-items:center;justify-content:center;gap:12px;flex-shrink:0;z-index:20;box-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-        <span style="font-size:13px;font-weight:bold;">
-            🤝 交易发起：<strong class="text-info">【{{ t.from }}】</strong> 用 <strong class="text-warning">{{ t.offer }}</strong> 换 <strong class="text-info">【{{ t.to }}】</strong> 的 <strong class="text-danger">{{ t.want }}</strong>
-        </span>
+    <div id="trade-banner" style="background:linear-gradient(90deg,#1e3a5f,#1e293b);border-top:2px solid #38bdf8;border-bottom:2px solid #38bdf8;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;z-index:20;">
+        <span style="font-size:12px;">🤝 <strong class="text-info">{{ t.from }}</strong> 要用 <strong class="text-warning">{{ t.offer }}</strong> 换你的 <strong class="text-danger">{{ t.want }}</strong></span>
         {% if my_name == t.to %}
         <div class="d-flex gap-2 align-items-center">
-            <span id="trade-timer" class="text-warning" style="font-size:14px;font-weight:bold;min-width:35px;"></span>
-            <a href="/resolve_trade/accept" class="btn btn-success btn-sm py-0 px-3 fw-bold" style="font-size:12px;">✅ 接受</a>
-            <a href="/resolve_trade/decline" class="btn btn-danger btn-sm py-0 px-3 fw-bold" style="font-size:12px;">❌ 拒绝</a>
+            <span id="trade-timer" class="text-warning" style="font-size:12px;font-weight:bold;min-width:30px;"></span>
+            <a href="/resolve_trade/accept" class="btn btn-success btn-sm py-0 px-2" style="font-size:11px;">✅ 接受</a>
+            <a href="/resolve_trade/decline" class="btn btn-danger btn-sm py-0 px-2" style="font-size:11px;">❌ 拒绝</a>
         </div>
         {% else %}
-        <div class="d-flex gap-2 align-items-center">
-            <span id="trade-timer" class="text-warning" style="font-size:14px;font-weight:bold;min-width:35px;"></span>
-            <span class="text-muted" style="font-size:11px;">(等待回应中…)</span>
-        </div>
+        <span class="text-muted" style="font-size:11px;">等待 {{ t.to }} 回应…</span>
         {% endif %}
     </div>
     {% endif %}
@@ -267,7 +330,7 @@
 
         <div class="opponents-col">
             {% for idx, opp in opponents[:mid] %}
-            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }},'{{ opp.name }}',{{ opp.hand|length }},{{ opp.scored_cards|length }}, this.getAttribute('data-flies'))" data-flies='{{ opp.flies | tojson }}'>
+            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }},'{{ opp.name }}',{{ opp.scored_cards|length }}, this.getAttribute('data-flies'))" data-flies='{{ opp.flies | tojson }}'>
                 <div class="mini-name">{{ opp.name }}</div>
                 <div class="mini-stats">
                     <span>🎴{{ opp.hand|length }}</span>
@@ -279,22 +342,11 @@
         </div>
 
         <div class="center-decks">
-            {% if g.turn_idx == my_p_idx and not g.pending_trade %}
+            {% if g.turn_idx == my_p_idx %}
                 <a href="/action/pack_standard" class="deck gold-deck">
                     <span>📦</span><span>打包标配</span>
                     <span class="deck-badge">剩{{ g.gold_deck|length }}</span>
                 </a>
-            {% else %}
-                <div class="deck gold-deck disabled-card"><span>📦</span><span>Nasi Lemak</span><span class="deck-badge">剩{{ g.gold_deck|length }}</span></div>
-            {% endif %}
-
-            <div class="center-log" id="center-log-box">
-                {% for line in g.log[-20:] %}
-                <div class="center-log-item {% if '💬' in line %}chat{% endif %}">{{ line }}</div>
-                {% endfor %}
-            </div>
-
-            {% if g.turn_idx == my_p_idx and not g.pending_trade %}
                 {% if not g.has_drawn %}
                 <a href="/draw" class="deck main-deck" style="box-shadow:0 0 16px #22c55e;">
                     <span>📥</span><span>摸2张牌</span>
@@ -306,13 +358,14 @@
                 </div>
                 {% endif %}
             {% else %}
+                <div class="deck gold-deck disabled-card"><span>📦</span><span>Nasi Lemak</span></div>
                 <div class="deck main-deck disabled-card"><span>🎴</span><span>抽牌堆</span></div>
             {% endif %}
         </div>
 
         <div class="opponents-col">
             {% for idx, opp in opponents[mid:] %}
-            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }}, '{{ opp.name }}',{{ opp.hand|length }}, {{ opp.scored_cards|length }}, this.getAttribute('data-flies'))" data-flies='{{ opp.flies | tojson }}'>
+            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }}, this.getAttribute('data-flies'))" data-flies='{{ opp.flies | tojson }}'>
                 <div class="mini-name">{{ opp.name }}</div>
                 <div class="mini-stats">
                     <span>🎴{{ opp.hand|length }}</span>
@@ -355,7 +408,7 @@
                         "Wholesaler":("批发商","🏪"),"Thief":("小偷","🥷"),"Supplier":("供应商","📣"),"Mak Cik":("大妈","🧑‍🍳"),
                         "Officer":("官员","👮"),"Fly":("苍蝇","🪰"),"Fly Swatter":("蝇拍","💥"),"Fan":("风扇","🪭")
                     } %}
-                    {% set is_my_turn = (g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending and not g.pending_trade) %}
+                    {% set is_my_turn = (g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending) %}
 
                     {% if is_my_turn and card == 'Thief' %}
                         <a href="javascript:void(0);" onclick="openThiefModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
@@ -381,35 +434,14 @@
         </div>
     </div>
 
-    <div id="chat-modal" class="action-modal">
-        <div class="modal-box">
-            <h5 class="text-info mb-3">💬 快捷喊话</h5>
-            <div class="d-flex flex-wrap gap-2 justify-content-center mb-3">
-                <a href="/chat/ask_rice" class="btn btn-sm btn-outline-light">求 🍚白饭</a>
-                <a href="/chat/ask_egg" class="btn btn-sm btn-outline-light">求 🥚水煮蛋</a>
-                <a href="/chat/ask_peanuts" class="btn btn-sm btn-outline-light">求 🥜炸花生</a>
-                <a href="/chat/ask_sambal" class="btn btn-sm btn-outline-light">求 🌶️三巴酱</a>
-                <a href="/chat/ask_cucumber" class="btn btn-sm btn-outline-light">求 🥒黄瓜片</a>
-            </div>
-            <div class="d-flex gap-2">
-                <a href="/chat/raise_hand" class="btn btn-sm btn-success flex-grow-1">🙋 我有！</a>
-                <a href="/chat/hurry" class="btn btn-sm btn-danger flex-grow-1">⏱️ 快点啦！</a>
-            </div>
-            <button class="btn btn-sm btn-secondary w-100 mt-3" onclick="closeModals()">关闭</button>
-        </div>
-    </div>
-
     <div id="target-modal" class="action-modal">
         <div class="modal-box">
-            <h5 class="text-warning mb-1">🎯 情报：<span id="tm-name"></span></h5>
-            <div id="tm-stats" class="text-muted small mb-3"></div>
-            
-            <div id="tm-actions" class="d-flex flex-column gap-2" style="display:none;">
-                <hr style="border-color:#475569; margin: 0 0 5px 0;">
+            <h5 class="text-warning mb-3">🎯 针对 <span id="tm-name"></span></h5>
+            <div class="d-flex flex-column gap-2">
                 <a id="btn-officer" href="#" class="btn btn-primary btn-sm">👮 派官员搜查手牌</a>
                 <div id="fly-targets" class="d-flex flex-wrap gap-2 justify-content-center mt-1"></div>
             </div>
-            <button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">关闭情报</button>
+            <button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">取消</button>
         </div>
     </div>
 
@@ -449,10 +481,14 @@
     <div id="thief-modal" class="action-modal">
         <div class="modal-box">
             <h5 class="text-warning mb-1">🥷 小偷选目标</h5>
-            <p class="text-muted small mb-3">{% if g.players|length > 4 %}选择最多 3 名玩家{% else %}将偷所有对手{% endif %}</p>
+            <p class="text-muted small mb-3">
+                {% if g.players|length > 4 %}选择最多 3 名玩家偷取手牌{% else %}将偷所有对手的手牌{% endif %}
+            </p>
             <div id="thief-targets" class="d-flex flex-wrap gap-2 justify-content-center mb-3">
                 {% for p in g.players %}{% if p.name != my_name %}
-                <div class="thief-target-btn btn btn-sm btn-outline-light" data-idx="{{ loop.index0 }}" onclick="toggleThiefTarget(this)">{{ p.name }} ({{ p.hand|length }}张)</div>
+                <div class="thief-target-btn btn btn-sm btn-outline-light" data-idx="{{ loop.index0 }}" onclick="toggleThiefTarget(this)">
+                    {{ p.name }} ({{ p.hand|length }}张)
+                </div>
                 {% endif %}{% endfor %}
             </div>
             <div id="thief-count" class="small text-muted mb-2">已选 0 / 3 人</div>
@@ -465,13 +501,63 @@
         </div>
     </div>
 
+    {% if g.wholesaler_reveal %}
+    <div class="action-modal" id="wholesaler-reveal-modal" style="display:flex;">
+        <div class="modal-box">
+            <h5 class="text-info mb-2">🏪 批发商公示</h5>
+            <p class="small text-muted mb-3">【{{ g.wholesaler_reveal.player }}】 从牌堆顶摸了 3 张牌：</p>
+            <div class="d-flex gap-2 justify-content-center mb-3">
+                {% for card in g.wholesaler_reveal.cards %}
+                {% set emoji_map = {"Rice":"🍚","Egg":"🥚","Peanuts":"🥜","Sambal":"🌶️","Cucumber":"🥒","Wholesaler":"🏪","Thief":"🥷","Supplier":"📣","Mak Cik":"🧑‍🍳","Officer":"👮","Fly":"🪰","Fly Swatter":"💥","Fan":"🪭"} %}
+                <div class="card-reveal {% if card in g.wholesaler_reveal.kept %}kept{% else %}gone{% endif %}">
+                    <div style="font-size:22px;">{{ emoji_map.get(card,'❓') }}</div>
+                    <div style="font-size:10px;">{{ card }}</div>
+                    {% if card in g.wholesaler_reveal.kept %}<div style="font-size:9px;color:#22c55e;">✓ 留下</div>
+                    {% else %}<div style="font-size:9px;color:#94a3b8;">✗ 弃掉</div>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <p class="small text-success mb-3">留下 {{ g.wholesaler_reveal.kept|length }} 张食材，弃掉 {{ g.wholesaler_reveal.discarded|length }} 张非食材牌。</p>
+            {% if g.turn_idx == my_p_idx %}
+            <a href="/action/wholesaler_dismiss" class="btn btn-info btn-sm w-100">✅ 我知道了，继续</a>
+            {% else %}
+            <p class="small text-muted">等待【{{ g.current_player().name }}】关闭此窗口…</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if g.thief_pending and g.turn_idx != my_p_idx %}
+    <div class="action-modal" style="display:flex;">
+        <div class="modal-box">
+            <h5 class="text-warning">🥷 小偷出动！</h5>
+            <p class="text-muted small">【{{ g.current_player().name }}】 正在选择偷窃目标…<br>请等待。</p>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if g.active_inspection and g.turn_idx == my_p_idx %}
+    <div class="action-modal" style="display:flex;">
+        <div class="modal-box" style="width:min(340px,92vw);">
+            <h5 class="text-primary mb-3">👮 查获【{{ g.active_inspection.target_name }}】的底牌</h5>
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                {% for card in g.active_inspection.hand_to_view %}
+                    {% if card in g.players[g.active_inspection.target_idx].hand %}
+                    <a href="/action/officer_take?card={{ card }}" class="btn btn-light border-primary fw-bold text-dark p-2" style="font-size:11px;">抢夺<br>{{ card }}</a>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div id="trade-modal" class="action-modal">
         <div class="modal-box">
-            <h5 class="text-primary mb-3">🤝 30秒限时交易</h5>
+            <h5 class="text-primary mb-3">🤝 15秒限时食材交易</h5>
             <form action="/propose_trade" method="POST">
                 <div class="row g-2 mb-2">
                     <div class="col-6">
-                        <label class="form-label small text-muted mb-1">我出</label>
+                        <label class="form-label small text-muted mb-1">我出食材</label>
                         <select name="offer" class="form-select form-select-sm" required>
                             {% for i in ['Rice','Egg','Peanuts','Sambal','Cucumber'] %}
                             <option value="{{ i }}">{{ {'Rice':'🍚 Rice','Egg':'🥚 Egg','Peanuts':'🥜 Peanuts','Sambal':'🌶️ Sambal','Cucumber':'🥒 Cucumber'}[i] }}</option>
@@ -479,7 +565,7 @@
                         </select>
                     </div>
                     <div class="col-6">
-                        <label class="form-label small text-muted mb-1">换取</label>
+                        <label class="form-label small text-muted mb-1">我要换取</label>
                         <select name="want" class="form-select form-select-sm" required>
                             {% for i in ['Rice','Egg','Peanuts','Sambal','Cucumber'] %}
                             <option value="{{ i }}">{{ {'Rice':'🍚 Rice','Egg':'🥚 Egg','Peanuts':'🥜 Peanuts','Sambal':'🌶️ Sambal','Cucumber':'🥒 Cucumber'}[i] }}</option>
@@ -493,69 +579,55 @@
                     <option value="{{ p.name }}">{{ p.name }}</option>
                     {% endfor %}
                 </select>
-                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">发起交易（耗1动）</button>
+                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">发起交易（消耗1动作）</button>
             </form>
             <button class="btn btn-sm btn-secondary w-100 mt-2" onclick="closeModals()">取消</button>
         </div>
     </div>
 
-    {% endif %}
-{% endif %}
-</div>
-
-<script>
-    // ===== 日志自动滚到底部 =====
-    const logBox = document.getElementById('center-log-box');
-    if(logBox) { logBox.scrollTop = logBox.scrollHeight; }
-
+    {% endif %}{% endif %}</div><script>
+    // ===== 重启 =====
     function openRestartModal() { document.getElementById('restart-confirm-modal').style.display = 'flex'; }
     function closeRestartModal() { document.getElementById('restart-confirm-modal').style.display = 'none'; }
     document.getElementById('restart-confirm-modal').addEventListener('click', function(e){ if(e.target===this) closeRestartModal(); });
 
+    // ===== 通用关弹窗 =====
     function closeModals() {
         document.querySelectorAll('.action-modal').forEach(m => { if(!m.dataset.persistent) m.style.display='none'; });
         document.getElementById('fan-target-list')?.classList.add('d-none');
     }
 
-    // ===== 智能透视弹窗（包含动作判别） =====
-    function openTargetModal(tIdx, name, handCount, foodCount, fliesStr) {
-        {% if room.status == "PLAYING" and g %}
-        // 任何时候都可以看名字和状态
+    // ===== 攻击目标弹窗（精准苍蝇雷达版） =====
+    function openTargetModal(tIdx, name, foodCount, fliesStr) {
+        {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending %}
         document.getElementById('tm-name').innerText = name;
-        document.getElementById('tm-stats').innerText = `手牌: ${handCount}张 | 椰浆饭: ${foodCount}包`;
+        document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
         
-        // 判断是否是我的回合，决定是否显示攻击按钮
-        let isMyTurnAndReady = {{ 'true' if (g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending and not g.pending_trade) else 'false' }};
-        let actionsDiv = document.getElementById('tm-actions');
+        let fa = document.getElementById('fly-targets');
+        fa.innerHTML = '';
         
-        if(isMyTurnAndReady) {
-            actionsDiv.style.display = 'flex';
-            document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
-            
-            let fa = document.getElementById('fly-targets');
-            fa.innerHTML = '';
-            if(foodCount > 0) {
-                let flies = JSON.parse(fliesStr || "[]");
-                for(let i=0; i<foodCount; i++) {
-                    if(flies[i]) {
-                        fa.innerHTML += `<span class="btn btn-sm btn-secondary disabled" style="opacity:0.6;">第${i+1}包(已有🪰)</span>`;
-                    } else {
-                        fa.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger shadow-sm">砸第${i+1}包</a>`;
-                    }
+        if(foodCount > 0) {
+            let flies = JSON.parse(fliesStr || "[]");
+            for(let i=0; i<foodCount; i++) {
+                if(flies[i]) {
+                    // 如果这包饭已经有苍蝇，灰色锁定，并提示已有苍蝇
+                    fa.innerHTML += `<span class="btn btn-sm btn-secondary disabled" style="opacity:0.6;">第${i+1}包(已有🪰)</span>`;
+                } else {
+                    // 如果是干净的，显示红色可攻击按钮
+                    fa.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger shadow-sm">砸在第${i+1}包</a>`;
                 }
-            } else { 
-                fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>'; 
             }
-        } else {
-            actionsDiv.style.display = 'none'; // 不是自己回合隐藏按钮
+        } else { 
+            fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>'; 
         }
-        
         document.getElementById('target-modal').style.display = 'flex';
         {% endif %}
     }
 
-    // 其它 Modal 函数保持一致
+    // ===== 供应商 =====
     function openSupplierModal() { document.getElementById('supplier-modal').style.display = 'flex'; }
+
+    // ===== 防守 =====
     function openDefenseModal(fIdx, hasFly) {
         {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.active_inspection %}
         if(hasFly){
@@ -569,6 +641,37 @@
     }
     function showFanTargets() { document.getElementById('fan-target-list').classList.remove('d-none'); }
 
+    // ===== 小偷选人 =====
+    let selectedThiefTargets = [];
+    const MAX_THIEF = {{ g.players|length if room.status == "PLAYING" and g else 4 }} > 4 ? 3 : 999;
+
+    function openThiefModal() {
+        selectedThiefTargets = [];
+        document.querySelectorAll('.thief-target-btn').forEach(b => b.classList.remove('selected'));
+        updateThiefCount();
+        document.getElementById('thief-modal').style.display = 'flex';
+    }
+    function toggleThiefTarget(el) {
+        const idx = parseInt(el.dataset.idx);
+        if(el.classList.contains('selected')){
+            el.classList.remove('selected');
+            selectedThiefTargets = selectedThiefTargets.filter(x => x !== idx);
+        } else {
+            if(selectedThiefTargets.length >= MAX_THIEF) return;
+            el.classList.add('selected');
+            selectedThiefTargets.push(idx);
+        }
+        updateThiefCount();
+    }
+    function updateThiefCount() {
+        const el = document.getElementById('thief-count');
+        if(el) el.textContent = `已选 ${selectedThiefTargets.length} / ${MAX_THIEF === 999 ? '全部' : MAX_THIEF} 人`;
+    }
+    function confirmThiefTargets() {
+        if(selectedThiefTargets.length === 0){ alert('请至少选择 1 名目标！'); return; }
+        window.location.href = '/action/thief_targets?targets=' + selectedThiefTargets.join(',');
+    }
+
     // ===== 交易倒计时 =====
     {% if room.status == "PLAYING" and g and g.pending_trade %}
     (function(){
@@ -578,14 +681,14 @@
             if(!timerEl) return;
             const left = Math.max(0, Math.ceil(expiresAt - Date.now()/1000));
             timerEl.textContent = left + 's';
-            timerEl.style.color = left <= 10 ? '#ef4444' : '#f59e0b';
+            timerEl.style.color = left <= 5 ? '#ef4444' : '#f59e0b';
             if(left > 0) setTimeout(tick, 500);
         }
         tick();
     })();
     {% endif %}
 
-    // ===== 自动刷新 =====
+    // ===== 自动刷新（非当前玩家） =====
     {% if room.status == "WAITING" or (room.status == "PLAYING" and g and g.turn_idx != my_p_idx and not g.game_over) %}
     setTimeout(function(){
         if(document.activeElement && document.activeElement.tagName === 'INPUT') return;
