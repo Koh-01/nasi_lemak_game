@@ -3,21 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>椰浆饭大作战 - 联机多玩家版</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>椰浆饭大作战 - 纯前端同屏桌游版</title>
     <style>
-        body { background-color: #f1f5f9; font-family: 'PingFang SC', sans-serif; }
-        .game-header { background: linear-gradient(135deg, #1b4d3e, #0a221a); color: #fff; padding: 15px 0; border-bottom: 5px solid #e2b13c; }
-        .stall-box { border: 2px solid #cbd5e1; border-radius: 16px; background: white; padding: 18px; }
-        .active-turn { border: 3px solid #e2b13c !important; box-shadow: 0 0 20px rgba(226,177,60,0.4); }
-        .gold-card { background: linear-gradient(135deg, #f39c12, #d35400); color: white; font-weight: bold; height: 100px; width: 85px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border: 2px solid #fff; font-size: 11px; position: relative; }
-        .gold-card-infected { background: linear-gradient(135deg, #475569, #1e293b) !important; color: #ef4444 !important; border: 2px solid #ef4444 !important; }
-        .card-render { display: inline-block; width: 100px; height: 140px; margin: 4px; border-radius: 12px; font-weight: bold; color: white; padding: 10px 5px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.2); vertical-align: top; position: relative; }
-        .card-emoji { font-size: 24px; margin: 5px 0; }
-        .card-sub { font-size: 9px; opacity: 0.8; }
-        .card-footer-type { font-size: 8px; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 1px 4px; position: absolute; bottom: 6px; left: 6px; right: 6px; }
+        :root {
+            --primary-bg: #f1f5f9;
+            --header-bg: linear-gradient(135deg, #1b4d3e, #0a221a);
+            --gold: #e2b13c;
+            --text-dark: #1e293b;
+        }
+        body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; background: var(--primary-bg); margin: 0; padding: 0; color: var(--text-dark); }
+        .header { background: var(--header-bg); color: white; text-align: center; padding: 20px 0; border-bottom: 5px solid var(--gold); }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header p { margin: 5px 0 0; font-size: 14px; opacity: 0.8; }
         
-        .c-Rice { background: linear-gradient(135deg, #ffffff, #f1f5f9); color: #334155; border: 2px solid #cbd5e1 !important; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .hidden { display: none !important; }
+        
+        /* 登录大厅 */
+        #lobby { background: white; max-width: 500px; margin: 40px auto; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+        input[type="text"] { width: 90%; padding: 12px; margin: 15px 0; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; }
+        button { background: #10b981; color: white; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        button:hover { background: #059669; }
+        
+        /* 游戏主界面布局 */
+        .game-board { display: flex; flex-wrap: wrap; gap: 20px; }
+        .left-panel { flex: 2; min-width: 300px; }
+        .right-panel { flex: 1; min-width: 250px; }
+        
+        /* 摊位样式 */
+        .stall { background: white; border: 2px solid #cbd5e1; border-radius: 12px; padding: 15px; margin-bottom: 15px; position: relative; }
+        .stall.active { border-color: var(--gold); box-shadow: 0 0 15px rgba(226,177,60,0.4); }
+        .stall-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 10px; }
+        .stall-title { font-weight: bold; font-size: 18px; margin: 0; }
+        .badge { background: #475569; color: white; padding: 4px 8px; border-radius: 12px; font-size: 12px; }
+        
+        /* 椰浆饭金卡 */
+        .gold-cards-container { display: flex; flex-wrap: wrap; gap: 8px; min-height: 40px; }
+        .gold-card { width: 70px; height: 90px; background: linear-gradient(135deg, #f39c12, #d35400); color: white; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); position: relative; }
+        .gold-card.infected { background: linear-gradient(135deg, #475569, #1e293b); color: #ef4444; border-color: #ef4444; }
+        
+        /* 主控台手牌 */
+        .control-panel { background: white; border: 2px solid var(--gold); border-radius: 12px; padding: 20px; margin-top: 20px; }
+        .hand-container { display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0; }
+        .card { width: 90px; height: 130px; border-radius: 10px; color: white; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; font-size: 12px; box-shadow: 0 3px 6px rgba(0,0,0,0.15); border: 2px solid rgba(255,255,255,0.2); text-align: center; }
+        .card-emoji { font-size: 28px; margin: 5px 0; }
+        
+        /* 卡牌颜色 */
+        .c-Rice { background: linear-gradient(135deg, #ffffff, #e2e8f0); color: #334155; border-color: #cbd5e1; }
         .c-Egg { background: linear-gradient(135deg, #f1c40f, #f39c12); }
         .c-Peanuts { background: linear-gradient(135deg, #e67e22, #d35400); }
         .c-Sambal { background: linear-gradient(135deg, #e74c3c, #c0392b); }
@@ -25,249 +57,519 @@
         .c-Wholesaler { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
         .c-Thief { background: linear-gradient(135deg, #34495e, #2c3e50); }
         .c-Supplier { background: linear-gradient(135deg, #1abc9c, #16a085); }
-        .c-MakCik { background: linear-gradient(135deg, #edf2f7, #cbd5e1); color: #2d3748; border: 2px solid #a0aec0 !important; }
-        .c-Officer { background: linear-gradient(135deg, #2980b9, #1f4068); }
-        .c-Fly { background: linear-gradient(135deg, #718096, #4a5568); border: 2px dashed #e53e3e !important; }
-        .c-FlySwatter { background: linear-gradient(135deg, #fc5c65, #eb3b5a); }
-        .c-Fan { background: linear-gradient(135deg, #45aaf2, #2d98da); }
-        .log-feed { background: #1e293b; color: #38bdf8; font-family: monospace; height: 200px; overflow-y: auto; padding: 12px; border-radius: 8px; }
+        .c-MakCik { background: linear-gradient(135deg, #ecf0f1, #bdc3c7); color: #2c3e50; border-color: #95a5a6; }
+        .c-Officer { background: linear-gradient(135deg, #2980b9, #2c3e50); }
+        .c-Fly { background: linear-gradient(135deg, #7f8c8d, #34495e); border: 2px dashed #ff4d4d; }
+        .c-FlySwatter { background: linear-gradient(135deg, #ff7675, #d63031); }
+        .c-Fan { background: linear-gradient(135deg, #74b9ff, #0984e3); }
         
-        .auto-refresh-indicator { position: fixed; top: 10px; right: 10px; font-size: 10px; color: rgba(255,255,255,0.5); z-index: 1000; }
+        /* 动作按钮 */
+        .actions-grid { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+        .btn-action { background: #3b82f6; color: white; padding: 8px 12px; border-radius: 6px; font-size: 13px; border: none; cursor: pointer; }
+        .btn-action:hover { background: #2563eb; }
+        .btn-danger { background: #ef4444; } .btn-danger:hover { background: #dc2626; }
+        .btn-warning { background: #f59e0b; color: black; } .btn-warning:hover { background: #d97706; }
+        
+        /* 日志区 */
+        .log-box { background: #1e293b; color: #38bdf8; font-family: monospace; height: 300px; overflow-y: auto; padding: 15px; border-radius: 12px; font-size: 13px; }
+        .log-entry { margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 4px; }
+        
+        /* 传阅屏遮罩 */
+        #pass-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; color: white; text-align: center; }
+        #pass-screen h2 { font-size: 36px; color: var(--gold); margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
-<div class="game-header text-center mb-3 position-relative">
-    <h2>🥣 椰浆饭大作战：联机多端版 🥣</h2>
-    {% if my_name %}<h5>当前绑定档口：<span class="text-warning">{{ my_name }}</span></h5>{% endif %}
-    {% if g and g.turn_idx != my_p_idx and not g.game_over %}
-    <div class="auto-refresh-indicator">🔄 自动刷新侦测中...</div>
-    {% endif %}
+<div class="header">
+    <h1>🥣 椰浆饭大作战 (纯前端同屏版) 🥣</h1>
+    <p>一台设备，多人轮流操作 • 保密防偷看机制已启用</p>
 </div>
 
-<div class="container-fluid px-4">
-    {% if not g %}
-    <div class="row justify-content-center">
-        <div class="col-md-5 card p-4 shadow mt-5">
-            <h4 class="text-center mb-3 text-success">开设新联机档口</h4>
-            <form action="/" method="POST">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">输入参与的档主名字（用逗号隔开，3-7人）：</label>
-                    <input type="text" class="form-control" name="player_names" value="阿里, 木都, 阿胜">
-                </div>
-                <button type="submit" class="btn btn-success w-100 py-2 fw-bold">初始化大厅</button>
-            </form>
-        </div>
+<div class="container">
+    <div id="lobby">
+        <h3 style="color: #059669; margin-top:0;">开设路边摊位</h3>
+        <p style="font-size: 14px; color: #64748b;">请输入参与玩家的名字（用英文逗号隔开，3-7人）：</p>
+        <input type="text" id="player-names" value="阿里, 木都, 阿胜">
+        <br>
+        <button onclick="startGame()">开始营业</button>
     </div>
-    {% elif not my_name %}
-    <div class="row justify-content-center">
-        <div class="col-md-5 card p-4 shadow mt-5 text-center">
-            <h4 class="text-primary mb-3">🚪 请选择并认领您的老板身份</h4>
-            <p class="text-muted small">点击下方名字，该设备将与该角色绑定。每个玩家只能认领一个身份！</p>
-            <div class="d-grid gap-2">
-                {% for p in g.players %}
-                <a href="/?join_name={{ p.name }}" class="btn btn-outline-secondary btn-lg">{{ p.name }}</a>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-    {% else %}
 
-    <div class="row">
-        <div class="col-lg-8">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="fw-bold m-0">🏪 全街档口实时状态 (当前轮到: <span class="text-danger fw-bold">{{ g.current_player().name }}</span>)</h5>
+    <div id="pass-screen" class="hidden">
+        <h2>✋ 请将设备递给：<span id="next-player-name" style="color: white; text-decoration: underline;"></span></h2>
+        <p>确认设备已在本人手中后，点击下方按钮开始您的回合，切勿偷看！</p>
+        <button onclick="startTurn()" style="margin-top: 30px; font-size: 20px; padding: 15px 40px; background: var(--gold); color: black;">我是 <span id="next-player-name-btn"></span>，开始操作</button>
+    </div>
+
+    <div id="game-area" class="hidden">
+        <div class="game-board">
+            <div class="left-panel">
+                <h3 style="margin-top:0;">🏬 街头摊位行情 
+                    <span style="font-size: 14px; font-weight: normal; float: right; background: #e2e8f0; padding: 4px 8px; border-radius: 8px;">
+                        中央饭盒剩余: <span id="deck-count"></span> 包
+                    </span>
+                </h3>
+                
+                <div id="stalls-container"></div>
+                
+                <div class="control-panel">
+                    <h3 style="margin-top:0; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">🎮 我的主控台：<span id="active-player-name" style="color: #059669;"></span>
+                        <span style="float: right; font-size: 14px; font-weight: normal; color: #475569;">剩余动作: <strong id="moves-left" style="color: #ef4444; font-size:18px;">3</strong></span>
+                    </h3>
+                    
+                    <div id="draw-phase-overlay" style="text-center; margin: 20px 0;">
+                        <button onclick="drawInitialCards()" style="width: 100%; font-size: 18px; padding: 15px;">📥 回合第一步：强制抽取 2 张手牌</button>
+                    </div>
+                    
+                    <div id="action-phase-area" class="hidden">
+                        <div style="font-size: 13px; color: #64748b; font-weight: bold;">🎴 您的私密手牌区：</div>
+                        <div id="my-hand" class="hand-container"></div>
+                        
+                        <div id="officer-panel" class="hidden" style="background: #e0f2fe; border: 1px solid #3b82f6; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <h4 style="margin:0 0 10px 0; color: #1d4ed8;">👮 官员搜查中：正在查阅 <span id="officer-target"></span> 的手牌</h4>
+                            <p style="font-size: 12px; margin: 0 0 10px 0;">请点击挑选 2 张占为己有：</p>
+                            <div id="officer-hand-view" class="hand-container"></div>
+                        </div>
+
+                        <div style="font-size: 13px; color: #64748b; font-weight: bold; margin-top: 15px;">⚙️ 可执行的生产行动：</div>
+                        <div class="actions-grid">
+                            <button class="btn-action" onclick="packStandard()">🍚 耗5种食材打包</button>
+                            <button class="btn-action" onclick="packMakCik()">🧑‍🍳 打出大妈卡速成(需3种食材)</button>
+                            <button class="btn-action" style="background:#1f2937;" onclick="playThief()">🥷 派小偷摸全场</button>
+                            <button class="btn-action" style="background:#8b5cf6;" onclick="playWholesaler()">🏪 派批发商摸3张提纯</button>
+                            
+                            <div style="display: flex; align-items: center; gap: 5px; width: 100%; margin-top: 10px;">
+                                <span style="font-size: 12px; font-weight: bold;">📣 强打供应商垄断：</span>
+                                <select id="supplier-ing" style="padding: 5px; border-radius: 5px; border: 1px solid #ccc;">
+                                    <option value="Rice">Rice (饭)</option>
+                                    <option value="Egg">Egg (蛋)</option>
+                                    <option value="Peanuts">Peanuts (花生)</option>
+                                    <option value="Sambal">Sambal (辣酱)</option>
+                                    <option value="Cucumber">Cucumber (黄瓜)</option>
+                                </select>
+                                <button class="btn-action" style="background:#0ea5e9;" onclick="playSupplier()">没收全场此牌</button>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 20px; text-align: right;">
+                            <button class="btn-action btn-danger" onclick="endTurn()">🛑 结束我的回合</button>
+                        </div>
+                    </div>
+                </div>
             </div>
             
-            <div class="row g-3">
-                {% for p in g.players %}
-                {% set player_idx = loop.index0 %} <div class="col-md-6">
-                    <div class="stall-box {% if g.turn_idx == player_idx %}active-turn{% endif %}">
-                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
-                            <h6 class="m-0 fw-bold">【{{ p.name }}】的摊位 {% if my_name == p.name %}<span class="badge bg-primary">我</span>{% endif %}</h6>
-                            <span class="badge bg-dark">手牌：{{ p.hand|length }} 张</span>
-                        </div>
-                        
-                        <div class="mb-2">
-                            <div class="d-flex flex-wrap gap-2">
-                                {% if p.scored_cards %}
-                                    {% for val in p.scored_cards %}
-                                    {% set food_idx = loop.index0 %} <div class="gold-card {% if p.flies[food_idx] %}gold-card-infected{% endif %}">
-                                        {% if p.flies[food_idx] %}
-                                            🪰 苍蝇污染
-                                        {% else %}
-                                            {% if my_name == p.name %}
-                                                🍚 椰浆饭<br><span class="badge bg-light text-dark mt-1">{{ val }}包分量</span>
-                                            {% else %}
-                                                🔒 椰浆饭<br><span style="font-size:10px; opacity:0.6;">(面朝下)</span>
-                                            {% endif %}
-                                        {% endif %}
-                                        
-                                        {% if my_name == p.name and p.flies[food_idx] and g.turn_idx == my_p_idx and not g.game_over %}
-                                        <div class="mt-1 d-flex gap-1" style="z-index: 100;">
-                                            <a href="/action/swat_fly?card_idx={{ food_idx }}" class="btn btn-danger btn-xs p-1" style="font-size:9px;">拍死</a>
-                                            <button class="btn btn-info text-white btn-xs p-1 dropdown-toggle" style="font-size:9px;" data-bs-toggle="dropdown">扇走</button>
-                                            <ul class="dropdown-menu">
-                                                {% for enemy in g.players %}
-                                                    {% set enemy_idx = loop.index0 %}
-                                                    {% if enemy.name != p.name and enemy.scored_cards %}
-                                                    <li><a class="dropdown-item small" href="/action/fan_fly?card_idx={{ food_idx }}&target={{ enemy_idx }}">扇给 {{ enemy.name }}</a></li>
-                                                    {% endif %}
-                                                {% endfor %}
-                                            </ul>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <span class="text-muted small">目前未有成品。</span>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        {% if g.turn_idx == my_p_idx and my_name != p.name and g.has_drawn and not g.game_over and not g.active_inspection %}
-                        <div class="border-top pt-1 text-end">
-                            <a href="/action/officer?target={{ player_idx }}" class="btn btn-xs btn-outline-primary btn-sm">👮 官员彻查手牌</a>
-                            {% if p.scored_cards %}
-                            <div class="dropdown d-inline-block ms-1">
-                                <button class="btn btn-sm btn-outline-danger dropdown-toggle" data-bs-toggle="dropdown">🪰 定点投蝇</button>
-                                <ul class="dropdown-menu">
-                                    {% for val in p.scored_cards %}
-                                        {% set target_food_idx = loop.index0 %}
-                                        {% if not p.flies[target_food_idx] %}
-                                        <li><a class="dropdown-item small text-danger" href="/action/play_fly?target={{ player_idx }}&card_idx={{ target_food_idx }}">砸在第 {{ loop.index }} 包饭</a></li>
-                                        {% endif %}
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
+            <div class="right-panel">
+                <h3 style="margin-top:0;">📋 街道事件审计日志</h3>
+                <div id="log" class="log-box"></div>
+                <button onclick="location.reload()" class="btn-action btn-warning" style="width: 100%; margin-top: 15px;">🔄 强制重置大厅</button>
             </div>
-
-            {% if not g.game_over %}
-            <div class="card my-3 shadow-sm {% if g.turn_idx == my_p_idx %}border-warning{% endif %}">
-                <div class="card-header {% if g.turn_idx == my_p_idx %}bg-warning text-dark{% else %}bg-secondary text-white{% endif %}">
-                    <h6 class="m-0 fw-bold">
-                        {% if g.turn_idx == my_p_idx %}
-                            🌟 【轮到您的回合了！】本回合剩余可用步数：{{ g.moves_left }} 次
-                        {% else %}
-                            ⏳ 正在等待 【{{ g.current_player().name }}】 做出决策... (网页会自动刷新)
-                        {% endif %}
-                    </h6>
-                </div>
-                <div class="card-body bg-white">
-                    
-                    <h6 class="fw-bold text-muted small mb-2">My Hand (我的绝密私有手牌区)：</h6>
-                    <div class="mb-3">
-                        {% for card in my_player.hand %}
-                        {% set c_class = "" %}{% set c_name = "" %}{% set c_emoji = "" %}{% set c_sub = "" %}{% set c_type = "功能卡" %}
-                        {% if card == 'Rice' %}{% set c_class = "c-Rice" %}{% set c_name = "椰浆饭" %}{% set c_emoji = "🍚" %}{% set c_sub = "Nasi" %}{% set c_type = "食材" %}
-                        {% elif card == 'Egg' %}{% set c_class = "c-Egg" %}{% set c_name = "鸡蛋" %}{% set c_emoji = "🥚" %}{% set c_sub = "Telur" %}{% set c_type = "食材" %}
-                        {% elif card == 'Peanuts' %}{% set c_class = "c-Peanuts" %}{% set c_name = "炸花生" %}{% set c_emoji = "🥜" %}{% set c_sub = "Kacang" %}{% set c_type = "食材" %}
-                        {% elif card == 'Sambal' %}{% set c_class = "c-Sambal" %}{% set c_name = "三巴辣椒" %}{% set c_emoji = "🌶️" %}{% set c_sub = "Sambal" %}{% set c_type = "食材" %}
-                        {% elif card == 'Cucumber' %}{% set c_class = "c-Cucumber" %}{% set c_name = "黄瓜片" %}{% set c_emoji = "🥒" %}{% set c_sub = "Timun" %}{% set c_type = "食材" %}
-                        {% elif card == 'Wholesaler' %}{% set c_class = "c-Wholesaler" %}{% set c_name = "批发商" %}{% set c_emoji = "🏪" %}{% set c_sub = "Pemborong" %}
-                        {% elif card == 'Thief' %}{% set c_class = "c-Thief" %}{% set c_name = "小偷" %}{% set c_emoji = "🥷" %}{% set c_sub = "Pencuri" %}
-                        {% elif card == 'Supplier' %}{% set c_class = "c-Supplier" %}{% set c_name = "供应商" %}{% set c_emoji = "📣" %}{% set c_sub = "Pembekal" %}
-                        {% elif card == 'Mak Cik' %}{% set c_class = "c-MakCik" %}{% set c_name = "大妈代工" %}{% set c_emoji = "🧑‍🍳" %}{% set c_sub = "Mak Cik" %}
-                        {% elif card == 'Officer' %}{% set c_class = "c-Officer" %}{% set c_name = "高级官员" %}{% set c_emoji = "👮" %}{% set c_sub = "Pegawai" %}
-                        {% elif card == 'Fly' %}{% set c_class = "c-Fly" %}{% set c_name = "苍蝇" %}{% set c_emoji = "🪰" %}{% set c_sub = "Lalat" %}
-                        {% elif card == 'Fly Swatter' %}{% set c_class = "c-FlySwatter" %}{% set c_name = "苍蝇拍" %}{% set c_emoji = "💥" %}{% set c_sub = "Pemukul" %}
-                        {% elif card == 'Fan' %}{% set c_class = "c-Fan" %}{% set c_name = "小风扇" %}{% set c_emoji = "🪭" %}{% set c_sub = "Kipas" %}
-                        {% endif %}
-                        <div class="card-render {{ c_class }}">
-                            <div class="m-0" style="font-size:11px;">{{ c_name }}</div>
-                            <div class="card-sub">{{ c_sub }}</div>
-                            <div class="card-emoji">{{ c_emoji }}</div>
-                            <div class="card-footer-type">{{ c_type }}</div>
-                        </div>
-                        {% endfor %}
-                    </div>
-
-                    {% if g.turn_idx == my_p_idx %}
-                        {% if not g.has_drawn %}
-                        <div class="text-center py-2">
-                            <a href="/draw" class="btn btn-success fw-bold px-4">📥 第一步：摸 2 张牌</a>
-                        </div>
-                        {% else %}
-                        
-                        {% if g.active_inspection %}
-                        <div class="alert alert-primary border-primary p-2 mb-3">
-                            <h6 class="fw-bold text-primary mb-1">👮 官员明盘：正在全方位彻查 【{{ g.active_inspection.target_name }}】 的卡牌</h6>
-                            <div class="d-flex flex-wrap gap-2">
-                                {% for card in g.active_inspection.hand_to_view %}
-                                    {% if card in g.players[g.active_inspection.target_idx].hand %}
-                                    <a href="/action/officer_take?card={{ card }}" class="btn btn-sm btn-light border-primary fw-bold text-dark btn-sm small">➕ 没收夺取：{{ card }}</a>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        {% if not g.active_inspection %}
-                        <div class="d-flex flex-wrap gap-2 mb-2">
-                            <a href="/action/pack_standard" class="btn btn-success btn-sm">🍚 打包标配饭(耗5食材)</a>
-                            <a href="/action/pack_makcik" class="btn btn-outline-success btn-sm">🧑‍🍳 打出【大妈卡】(仅需3不同食材)</a>
-                            <a href="/action/thief" class="btn btn-dark btn-sm">🥷 打出【小偷卡】全场各摸1张</a>
-                            <a href="/action/wholesaler" class="btn btn-secondary btn-sm">🏪 打出【批发商卡】过滤牌堆</a>
-                        </div>
-                        <form action="/action/supplier" method="GET" class="row g-2 align-items-center pt-2 border-top">
-                            <div class="col-auto"><span class="small text-muted fw-bold">📣 强打【供应商】垄断呼叫：</span></div>
-                            <div class="col-auto">
-                                <select name="ingredient" class="form-select form-select-sm">
-                                    <option value="Rice">Rice (饭粒)</option>
-                                    <option value="Egg">Egg (水煮蛋)</option>
-                                    <option value="Peanuts">Peanuts (炸花生)</option>
-                                    <option value="Sambal">Sambal (三巴辣酱)</option>
-                                    <option value="Cucumber">Cucumber (黄瓜片)</option>
-                                </select>
-                            </div>
-                            <div class="col-auto"><button type="submit" class="btn btn-sm btn-info text-white">收缴场上此牌</button></div>
-                            <div class="col-auto ms-auto"><a href="/action/end_turn_manual" class="btn btn-outline-danger btn-sm px-3">🛑 提前完结我的回合</a></div>
-                        </form>
-                        {% endif %}
-                        
-                        {% endif %}
-                    {% else %}
-                    <div class="text-center py-2 text-muted small italic bg-light rounded">
-                        🔒 回合控制权目前属于：{{ g.current_player().name }}。等轮到你时，面板按钮会自动激活解锁。
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% else %}
-            <div class="alert alert-success text-center p-4 shadow-sm">
-                <h3>👑 档口大盘清算完毕 👑</h3>
-                <h2 class="text-danger fw-bold">胜出摊主：【{{ g.winner }}】</h2>
-                <a href="/reset" class="btn btn-primary px-5 mt-2">重新开局洗牌</a>
-            </div>
-            {% endif %}
-        </div>
-
-        <div class="col-lg-4">
-            <h5 class="fw-bold mb-2">📋 街道历史事件公告栏</h5>
-            <div class="log-feed shadow-sm mb-2">
-                {% for log in g.log|reverse %}
-                <div class="mb-2 small border-bottom border-dark pb-1 {% if '❌' in log %}text-warning fw-bold{% endif %}">&gt; {{ log }}</div>
-                {% endfor %}
-            </div>
-            <a href="/reset" class="btn btn-outline-secondary w-100 py-1 btn-sm">🔄 房东清盘重启大厅</a>
         </div>
     </div>
-    {% endif %}
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    {% if g and g.turn_idx != my_p_idx and not g.game_over %}
-    setTimeout(function() {
-        window.location.reload();
-    }, 4000); // 4秒自动刷新防卡顿
-    {% endif %}
+    // --- 游戏核心数据引擎 ---
+    const CORE_5 = ["Rice", "Egg", "Peanuts", "Sambal", "Cucumber"];
+    const CARD_DICT = {
+        "Rice": { name: "椰浆饭", emoji: "🍚", class: "c-Rice", type: "食材" },
+        "Egg": { name: "鸡蛋", emoji: "🥚", class: "c-Egg", type: "食材" },
+        "Peanuts": { name: "炸花生", emoji: "🥜", class: "c-Peanuts", type: "食材" },
+        "Sambal": { name: "三巴辣椒", emoji: "🌶️", class: "c-Sambal", type: "食材" },
+        "Cucumber": { name: "黄瓜片", emoji: "🥒", class: "c-Cucumber", type: "食材" },
+        "Wholesaler": { name: "批发商", emoji: "🏪", class: "c-Wholesaler", type: "行动卡" },
+        "Thief": { name: "小偷", emoji: "🥷", class: "c-Thief", type: "行动卡" },
+        "Supplier": { name: "供应商", emoji: "📣", class: "c-Supplier", type: "行动卡" },
+        "Mak Cik": { name: "大妈代工", emoji: "🧑‍🍳", class: "c-MakCik", type: "行动卡" },
+        "Officer": { name: "高级官员", emoji: "👮", class: "c-Officer", type: "行动卡" },
+        "Fly": { name: "苍蝇", emoji: "🪰", class: "c-Fly", type: "陷阱" },
+        "Fly Swatter": { name: "苍蝇拍", emoji: "💥", class: "c-FlySwatter", type: "防御" },
+        "Fan": { name: "小风扇", emoji: "🪭", class: "c-Fan", type: "防御" }
+    };
+
+    let gameState = {
+        players: [],
+        mainDeck: [],
+        goldDeck: [],
+        discard: [],
+        turnIdx: 0,
+        movesLeft: 3,
+        hasDrawn: false,
+        gameOver: false,
+        officerState: null // 用于记录官员搜查的临时状态
+    };
+
+    // --- 工具函数 ---
+    function shuffle(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+    }
+
+    function logEvent(msg, isError = false) {
+        const logBox = document.getElementById('log');
+        const color = isError ? '#f59e0b' : '#38bdf8';
+        const icon = isError ? '❌ ' : '>';
+        logBox.innerHTML = `<div class="log-entry" style="color: ${color}">${icon} ${msg}</div>` + logBox.innerHTML;
+    }
+
+    // --- 初始化游戏 ---
+    function startGame() {
+        const namesInput = document.getElementById('player-names').value;
+        const names = namesInput.split(',').map(n => n.trim()).filter(n => n);
+        if (names.length < 3 || names.length > 7) {
+            alert("需要 3 到 7 名玩家！");
+            return;
+        }
+
+        // 初始化卡组
+        gameState.goldDeck = Array(8).fill(1).concat(Array(7).fill(2));
+        shuffle(gameState.goldDeck);
+
+        gameState.mainDeck = [];
+        CORE_5.forEach(ing => { for(let i=0; i<10; i++) gameState.mainDeck.push(ing); });
+        ["Wholesaler", "Thief", "Supplier", "Mak Cik", "Officer"].forEach(act => { for(let i=0; i<3; i++) gameState.mainDeck.push(act); });
+        for(let i=0; i<5; i++) gameState.mainDeck.push("Fly");
+        for(let i=0; i<2; i++) gameState.mainDeck.push("Fly Swatter");
+        for(let i=0; i<3; i++) gameState.mainDeck.push("Fan");
+        shuffle(gameState.mainDeck);
+
+        // 初始化玩家
+        gameState.players = names.map(name => ({
+            name: name, hand: [], scoredCards: [], flies: []
+        }));
+
+        // 发牌 (7张)
+        gameState.players.forEach(p => {
+            for(let i=0; i<7; i++) p.hand.push(gameState.mainDeck.pop());
+            p.hand.sort();
+        });
+
+        // 随机开局
+        gameState.turnIdx = Math.floor(Math.random() * gameState.players.length);
+        
+        document.getElementById('lobby').classList.add('hidden');
+        logEvent("游戏初始化完毕！准备开战！");
+        triggerPassScreen();
+    }
+
+    // --- 换人遮罩逻辑 ---
+    function triggerPassScreen() {
+        const currP = gameState.players[gameState.turnIdx];
+        document.getElementById('game-area').classList.add('hidden');
+        const passScreen = document.getElementById('pass-screen');
+        passScreen.classList.remove('hidden');
+        document.getElementById('next-player-name').innerText = currP.name;
+        document.getElementById('next-player-name-btn').innerText = currP.name;
+    }
+
+    function startTurn() {
+        document.getElementById('pass-screen').classList.add('hidden');
+        document.getElementById('game-area').classList.remove('hidden');
+        renderBoard();
+    }
+
+    // --- 核心动作系统 ---
+    function spendMove(desc) {
+        gameState.movesLeft--;
+        logEvent(`🎬 消耗动作：${desc} (剩余 ${gameState.movesLeft} 次)`);
+        if (gameState.movesLeft <= 0) endTurn();
+        else renderBoard();
+    }
+
+    function drawCards(count, player) {
+        let drawn = [];
+        for(let i=0; i<count; i++) {
+            if (gameState.mainDeck.length === 0) {
+                if (gameState.discard.length > 0) {
+                    gameState.mainDeck = [...gameState.discard];
+                    gameState.discard = [];
+                    shuffle(gameState.mainDeck);
+                    logEvent("🔄 牌堆空了，弃牌堆重新洗牌充当新牌堆。");
+                } else break;
+            }
+            let c = gameState.mainDeck.pop();
+            player.hand.push(c);
+            drawn.push(c);
+        }
+        player.hand.sort();
+        return drawn;
+    }
+
+    function drawInitialCards() {
+        let p = gameState.players[gameState.turnIdx];
+        drawCards(2, p);
+        gameState.hasDrawn = true;
+        logEvent(`📥 【${p.name}】 抽取了 2 张初始手牌。`);
+        renderBoard();
+    }
+
+    // --- 游戏结束判定 ---
+    function checkWin() {
+        for (let p of gameState.players) {
+            let netPacks = p.scoredCards.reduce((sum, val, idx) => sum + (p.flies[idx] ? 0 : val), 0);
+            if (netPacks >= 5) {
+                gameState.gameOver = true;
+                alert(`👑 恭喜摊主 【${p.name}】 成功售出 5 包净椰浆饭，赢得胜利！`);
+                location.reload();
+                return true;
+            }
+        }
+        if (gameState.goldDeck.length === 0) {
+            gameState.gameOver = true;
+            alert("📦 椰浆饭金卡已全部售罄，清算比分平局结束！");
+            location.reload();
+            return true;
+        }
+        return false;
+    }
+
+    function endTurn() {
+        if (checkWin()) return;
+        gameState.turnIdx = (gameState.turnIdx + 1) % gameState.players.length;
+        gameState.movesLeft = 3;
+        gameState.hasDrawn = false;
+        gameState.officerState = null;
+        triggerPassScreen();
+    }
+
+    // --- 卡牌技能逻辑 ---
+    function packStandard() {
+        let p = gameState.players[gameState.turnIdx];
+        let hasAll = CORE_5.every(ing => p.hand.includes(ing));
+        if (hasAll) {
+            CORE_5.forEach(ing => p.hand.splice(p.hand.indexOf(ing), 1));
+            p.scoredCards.push(gameState.goldDeck.pop());
+            p.flies.push(false);
+            spendMove("耗费5食材成功打包椰浆饭");
+        } else logEvent("你凑不够5种核心食材！", true);
+    }
+
+    function packMakCik() {
+        let p = gameState.players[gameState.turnIdx];
+        if (!p.hand.includes("Mak Cik")) return logEvent("你没有大妈卡！", true);
+        let uniques = [...new Set(p.hand.filter(c => CORE_5.includes(c)))];
+        if (uniques.length >= 3) {
+            p.hand.splice(p.hand.indexOf("Mak Cik"), 1);
+            for(let i=0; i<3; i++) p.hand.splice(p.hand.indexOf(uniques[i]), 1);
+            p.scoredCards.push(gameState.goldDeck.pop());
+            p.flies.push(false);
+            spendMove("打出大妈卡速成椰浆饭");
+        } else logEvent("手头没有3种完全不同的基础食材！", true);
+    }
+
+    function playThief() {
+        let p = gameState.players[gameState.turnIdx];
+        if (!p.hand.includes("Thief")) return logEvent("你没有小偷卡！", true);
+        p.hand.splice(p.hand.indexOf("Thief"), 1);
+        gameState.discard.push("Thief");
+        let count = 0;
+        gameState.players.forEach(opp => {
+            if (opp !== p && opp.hand.length > 0) {
+                let rIdx = Math.floor(Math.random() * opp.hand.length);
+                p.hand.push(opp.hand.splice(rIdx, 1)[0]);
+                count++;
+            }
+        });
+        p.hand.sort();
+        spendMove(`小偷出动，从全场摸走了 ${count} 张卡！`);
+    }
+
+    function playWholesaler() {
+        let p = gameState.players[gameState.turnIdx];
+        if (!p.hand.includes("Wholesaler")) return logEvent("你没有批发商卡！", true);
+        p.hand.splice(p.hand.indexOf("Wholesaler"), 1);
+        gameState.discard.push("Wholesaler");
+        let peeked = drawCards(3, p);
+        peeked.forEach(c => {
+            if (!CORE_5.includes(c)) {
+                p.hand.splice(p.hand.indexOf(c), 1);
+                gameState.discard.push(c);
+            }
+        });
+        spendMove("批发商过滤了牌堆顶 3 张牌，留下了食材");
+    }
+
+    function playSupplier() {
+        let p = gameState.players[gameState.turnIdx];
+        if (!p.hand.includes("Supplier")) return logEvent("你没有供应商卡！", true);
+        let req = document.getElementById("supplier-ing").value;
+        p.hand.splice(p.hand.indexOf("Supplier"), 1);
+        gameState.discard.push("Supplier");
+        let count = 0;
+        gameState.players.forEach(opp => {
+            if (opp !== p) {
+                for (let i = opp.hand.length - 1; i >= 0; i--) {
+                    if (opp.hand[i] === req) {
+                        p.hand.push(opp.hand.splice(i, 1)[0]);
+                        count++;
+                    }
+                }
+            }
+        });
+        p.hand.sort();
+        spendMove(`打出供应商，强行没收了全场 ${count} 张 [${CARD_DICT[req].name}]`);
+    }
+
+    // 动作目标委派函数（点击对方摊位上的按钮）
+    function attackTarget(type, tIdx, cardIdx = 0) {
+        let p = gameState.players[gameState.turnIdx];
+        let target = gameState.players[tIdx];
+
+        if (type === 'officer') {
+            if (!p.hand.includes("Officer")) return logEvent("你没有高级官员卡！", true);
+            p.hand.splice(p.hand.indexOf("Officer"), 1);
+            gameState.discard.push("Officer");
+            gameState.officerState = { targetIdx: tIdx, targetName: target.name, handCopy: [...target.hand], taken: [] };
+            logEvent(`👮 正在翻找 【${target.name}】 的底牌...`);
+            renderBoard();
+        } 
+        else if (type === 'fly') {
+            if (!p.hand.includes("Fly")) return logEvent("你没有苍蝇卡！", true);
+            p.hand.splice(p.hand.indexOf("Fly"), 1);
+            target.flies[cardIdx] = true;
+            spendMove(`把苍蝇砸到了 【${target.name}】 的饭上`);
+        }
+        else if (type === 'swat') {
+            if (!p.hand.includes("Fly Swatter")) return logEvent("你没有苍蝇拍！", true);
+            p.hand.splice(p.hand.indexOf("Fly Swatter"), 1);
+            gameState.discard.push("Fly Swatter", "Fly");
+            p.flies[cardIdx] = false;
+            spendMove(`拍死了自己第 ${cardIdx + 1} 包饭上的苍蝇`);
+        }
+        else if (type === 'fan') {
+            if (!p.hand.includes("Fan")) return logEvent("你没有扇子！", true);
+            let blowTo = prompt(`你要把苍蝇扇给谁？\n请输入对方摊位对应的编号：\n${gameState.players.map((x,i)=> x.name!==p.name && x.scoredCards.length>0 ? `[${i}] ${x.name}` : '').filter(x=>x).join('\n')}`);
+            if (blowTo !== null && !isNaN(blowTo)) {
+                let enemy = gameState.players[parseInt(blowTo)];
+                if (enemy && enemy !== p && enemy.scoredCards.length > 0) {
+                    let emptyIdx = enemy.flies.indexOf(false);
+                    if (emptyIdx !== -1) {
+                        p.hand.splice(p.hand.indexOf("Fan"), 1);
+                        gameState.discard.push("Fan");
+                        p.flies[cardIdx] = false;
+                        enemy.flies[emptyIdx] = true;
+                        spendMove(`成功把苍蝇扇到了 【${enemy.name}】 的摊位上`);
+                        return;
+                    }
+                }
+            }
+            logEvent("扇子操作失败：目标无效或已满苍蝇。", true);
+        }
+    }
+
+    function officerTakeCard(cardName) {
+        let p = gameState.players[gameState.turnIdx];
+        let t = gameState.players[gameState.officerState.targetIdx];
+        let cIdx = t.hand.indexOf(cardName);
+        if (cIdx !== -1) {
+            p.hand.push(t.hand.splice(cIdx, 1)[0]);
+            p.hand.sort();
+            gameState.officerState.taken.push(cardName);
+            // 实时更新视窗（从 handCopy 中抹掉，防止点两次）
+            gameState.officerState.handCopy.splice(gameState.officerState.handCopy.indexOf(cardName), 1);
+            
+            if (gameState.officerState.taken.length === 2 || t.hand.length === 0) {
+                let takenNames = gameState.officerState.taken.map(c => CARD_DICT[c].name).join(", ");
+                gameState.officerState = null;
+                spendMove(`官员搜查结束，强行带走了：[${takenNames}]`);
+            } else renderBoard();
+        }
+    }
+
+    // --- 动态页面渲染系统 ---
+    function renderBoard() {
+        if (gameState.gameOver) return;
+        
+        let p = gameState.players[gameState.turnIdx];
+        document.getElementById('deck-count').innerText = gameState.goldDeck.length;
+        document.getElementById('active-player-name').innerText = p.name;
+        document.getElementById('moves-left').innerText = gameState.movesLeft;
+
+        // 切换抽牌与行动阶段的 UI
+        if (!gameState.hasDrawn) {
+            document.getElementById('draw-phase-overlay').classList.remove('hidden');
+            document.getElementById('action-phase-area').classList.add('hidden');
+        } else {
+            document.getElementById('draw-phase-overlay').classList.add('hidden');
+            document.getElementById('action-phase-area').classList.remove('hidden');
+        }
+
+        // 渲染我的手牌
+        let myHandHtml = p.hand.map(c => {
+            let info = CARD_DICT[c];
+            return `<div class="card ${info.class}">
+                <div style="font-size:12px;">${info.name}</div>
+                <div class="card-emoji">${info.emoji}</div>
+                <div style="font-size:9px; opacity:0.8;">${c}</div>
+                <div style="font-size:9px; background:rgba(0,0,0,0.3); border-radius:4px; padding:2px; margin-top:5px;">${info.type}</div>
+            </div>`;
+        }).join('');
+        document.getElementById('my-hand').innerHTML = myHandHtml;
+
+        // 渲染官员搜查视窗
+        const officerPanel = document.getElementById('officer-panel');
+        if (gameState.officerState) {
+            officerPanel.classList.remove('hidden');
+            document.getElementById('officer-target').innerText = gameState.officerState.targetName;
+            document.getElementById('officer-hand-view').innerHTML = gameState.officerState.handCopy.map(c => 
+                `<button class="btn-action" style="background:white; color:black; border:1px solid #3b82f6; display:flex; flex-direction:column; align-items:center;" onclick="officerTakeCard('${c}')">
+                    <span style="font-size:20px;">${CARD_DICT[c].emoji}</span>
+                    <span style="font-size:11px;">抢夺 ${CARD_DICT[c].name}</span>
+                </button>`
+            ).join('');
+        } else {
+            officerPanel.classList.add('hidden');
+        }
+
+        // 渲染所有人的摊位
+        let stallsHtml = '';
+        gameState.players.forEach((opp, i) => {
+            let isActive = i === gameState.turnIdx ? 'active' : '';
+            let isMe = i === gameState.turnIdx;
+            
+            // 饭的 HTML
+            let foodHtml = opp.scoredCards.map((val, fIdx) => {
+                let flyOverlay = opp.flies[fIdx] ? `<div style="position:absolute; inset:0; background:rgba(30,41,59,0.9); border-radius:6px; display:flex; justify-content:center; align-items:center; color:#ef4444; font-size:10px;">🪰 失效</div>` : '';
+                let content = isMe ? `${val} 包` : `🔒 面朝下`;
+                
+                // 自己饭上有苍蝇，展示拍子/扇子按钮
+                let defBtns = (isMe && opp.flies[fIdx]) ? 
+                    `<div style="position:absolute; bottom:-12px; display:flex; gap:2px; z-index:10;">
+                        <button onclick="attackTarget('swat', ${i}, ${fIdx})" style="padding:2px 4px; font-size:9px; background:#ef4444;">拍死</button>
+                        <button onclick="attackTarget('fan', ${i}, ${fIdx})" style="padding:2px 4px; font-size:9px; background:#0ea5e9;">扇走</button>
+                    </div>` : '';
+
+                return `<div class="gold-card ${opp.flies[fIdx] ? 'infected' : ''}">
+                    ${flyOverlay}
+                    <span style="font-size:18px;">📦</span>
+                    <span>${content}</span>
+                    ${defBtns}
+                </div>`;
+            }).join('');
+            if (!foodHtml) foodHtml = `<span style="color:#64748b; font-size:12px;">未有成品</span>`;
+
+            // 对敌人发起攻击的 HTML
+            let atkHtml = '';
+            if (!isMe && gameState.hasDrawn && !gameState.officerState) {
+                let flyTargets = opp.scoredCards.map((v, idx) => !opp.flies[idx] ? `<button onclick="attackTarget('fly', ${i}, ${idx})" style="padding:4px; font-size:10px; background:#ef4444; color:white; border:none; border-radius:4px; cursor:pointer;">在第${idx+1}包放🪰</button>` : '').join('');
+                atkHtml = `<div style="margin-top:10px; padding-top:10px; border-top:1px dashed #cbd5e1; display:flex; gap:5px; flex-wrap:wrap;">
+                    <button onclick="attackTarget('officer', ${i})" style="padding:4px 8px; font-size:11px; background:#3b82f6; color:white; border:none; border-radius:4px; cursor:pointer;">👮 查他底牌</button>
+                    ${flyTargets}
+                </div>`;
+            }
+
+            stallsHtml += `<div class="stall ${isActive}">
+                <div class="stall-header">
+                    <span class="stall-title">[${i}] ${opp.name} ${isMe ? ' <span class="badge" style="background:#10b981;">我</span>' : ''}</span>
+                    <span class="badge">手牌: ${opp.hand.length}</span>
+                </div>
+                <div class="gold-cards-container">${foodHtml}</div>
+                ${atkHtml}
+            </div>`;
+        });
+        document.getElementById('stalls-container').innerHTML = stallsHtml;
+    }
 </script>
 </body>
 </html>
