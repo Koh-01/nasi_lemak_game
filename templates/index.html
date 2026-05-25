@@ -793,14 +793,26 @@
             } else { playCrowBtn.style.display = 'none'; }
         }
 
-        // ── Si Oyen button (I have Si Oyen, target has crow) ──
+        // ── Si Oyen button (我手里有猫，且【我自己】面前有乌鸦) ──
         const siOyenBtn = document.getElementById('btn-si-oyen');
         if(siOyenBtn) {
-            if(myHand.includes('Si Oyen') && targetHasCrow) {
+            // 💡 关键改动：把 targetHasCrow 改为检查“我自己”面前是否有乌鸦
+            // 假设你的前端有定义 myHasCrow 或者 me.placed_crow
+            // 如果你使用的是跟后端同步的玩家状态，请确保指向当前登录玩家的乌鸦状态
+            const myHasCrow = me && me.placed_crow !== null; 
+        
+            if(myHand.includes('Si Oyen') && myHasCrow) {
                 siOyenBtn.style.display = '';
-                siOyenBtn.href = '/action/si_oyen';
-            } else { siOyenBtn.style.display = 'none'; }
+                siOyenBtn.href = '/action/si_oyen'; // 纯粹的路由，不带任何 target 参数
+            } else { 
+                siOyenBtn.style.display = 'none'; 
+            }
         }
+        {% if "Si Oyen" in my_player.hand and my_player.placed_crow is not none %}
+            <a href="/action/si_oyen" id="btn-si-oyen" class="btn btn-cat">
+                🐱 召唤 Si Oyen 瞬间抓走我的乌鸦！
+            </a>
+        {% endif %}
 
         // ── Chase crow section (I have placed crow, target has no crow) ──
         const myHasCrow = {{ 'true' if my_player and my_player.placed_crow is not none else 'false' }};
