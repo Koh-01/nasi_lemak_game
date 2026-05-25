@@ -210,6 +210,91 @@
     {% elif room.status == "PLAYING" %}
     {% set g = room.game %}
 
+    {% if g.game_over %}
+    <!-- ===== 胜利界面 ===== -->
+    <div style="position:fixed;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a5f,#0f172a);z-index:10000;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:20px 10px;">
+
+        <!-- 冠军横幅 -->
+        <div style="text-align:center;margin-bottom:20px;">
+            <div style="font-size:52px;animation:bounce 0.6s infinite alternate;">👑</div>
+            <h2 style="color:#fde047;font-size:clamp(18px,4vw,28px);margin:6px 0 2px;text-shadow:0 0 20px #fde047;">
+                🎉 【{{ g.winner }}】 赢得胜利！
+            </h2>
+            <p style="color:#94a3b8;font-size:12px;">椰浆饭大作战已结束</p>
+        </div>
+
+        <!-- 玩家总结卡片区 -->
+        <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;width:100%;max-width:900px;margin-bottom:20px;">
+            {% for p in g.players %}
+            {% set net = [] %}
+            {% for idx in range(p.scored_cards|length) %}
+                {% if not p.flies[idx] %}{% set _ = net.append(p.scored_cards[idx]) %}{% endif %}
+            {% endfor %}
+            {% set is_winner = (p.name == g.winner) %}
+            <div style="background:{% if is_winner %}linear-gradient(135deg,rgba(253,224,71,0.15),rgba(234,179,8,0.08)){% else %}rgba(30,41,59,0.9){% endif %};
+                        border:2px solid {% if is_winner %}#fde047{% else %}#334155{% endif %};
+                        border-radius:12px;padding:14px;min-width:160px;flex:1;max-width:220px;text-align:center;">
+                {% if is_winner %}<div style="font-size:20px;margin-bottom:4px;">👑</div>{% endif %}
+                <div style="font-weight:bold;color:{% if is_winner %}#fde047{% else %}#38bdf8{% endif %};font-size:14px;margin-bottom:8px;">
+                    {{ p.name }}
+                </div>
+
+                <!-- 打包的饭 -->
+                <div style="margin-bottom:8px;">
+                    <div style="font-size:10px;color:#64748b;margin-bottom:4px;">椰浆饭</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center;">
+                        {% for idx in range(p.scored_cards|length) %}
+                        <span style="background:{% if p.flies[idx] %}#374151{% else %}#d4af37{% endif %};
+                                     color:{% if p.flies[idx] %}#ef4444{% else %}#000{% endif %};
+                                     border-radius:4px;padding:1px 6px;font-size:11px;font-weight:bold;
+                                     border:1px solid {% if p.flies[idx] %}#ef4444{% else %}#fff{% endif %};">
+                            📦{{ p.scored_cards[idx] }}包{% if p.flies[idx] %} 🪰{% endif %}
+                        </span>
+                        {% else %}
+                        <span style="font-size:11px;color:#475569;">（无）</span>
+                        {% endfor %}
+                    </div>
+                    <div style="font-size:12px;color:#22c55e;margin-top:4px;font-weight:bold;">
+                        净计：{{ net|sum }} 包
+                    </div>
+                </div>
+
+                <!-- 手牌 -->
+                <div>
+                    <div style="font-size:10px;color:#64748b;margin-bottom:4px;">剩余手牌 ({{ p.hand|length }}张)</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;">
+                        {% set emoji_map = {"Rice":"🍚","Egg":"🥚","Peanuts":"🥜","Sambal":"🌶️","Cucumber":"🥒","Wholesaler":"🏪","Thief":"🥷","Supplier":"📣","Mak Cik":"🧑‍🍳","Officer":"👮","Fly":"🪰","Fly Swatter":"💥","Fan":"🪭"} %}
+                        {% for card in p.hand %}
+                        <span style="background:#1e293b;border:1px solid #334155;border-radius:3px;padding:1px 4px;font-size:10px;">
+                            {{ emoji_map.get(card,'?') }}{{ card }}
+                        </span>
+                        {% endfor %}
+                        {% if not p.hand %}<span style="font-size:11px;color:#475569;">（空手）</span>{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- 游戏日志 -->
+        <div style="width:100%;max-width:700px;background:rgba(15,23,42,0.8);border:1px solid #334155;border-radius:10px;padding:12px;margin-bottom:20px;">
+            <div style="font-size:11px;color:#64748b;margin-bottom:6px;">📜 对局记录（最近10条）</div>
+            {% for line in g.log[-10:]|reverse %}
+            <div style="font-size:11px;color:#94a3b8;padding:2px 0;border-bottom:1px solid #1e293b;">{{ line }}</div>
+            {% endfor %}
+        </div>
+
+        <!-- 重新开始 -->
+        <a href="/reset" class="btn btn-warning fw-bold px-5" style="font-size:14px;">🔄 再来一局</a>
+    </div>
+
+    <style>
+    @keyframes bounce { from{transform:translateY(0)} to{transform:translateY(-8px)} }
+    </style>
+
+    {% else %}
+    <!-- ===== 正常游戏界面 ===== -->
+
     <!-- 顶部栏 -->
     <div class="top-bar">
         <span class="text-muted" style="font-size:11px;">饭剩 <span class="text-warning">{{ g.gold_deck|length }}</span></span>
@@ -511,6 +596,7 @@
         </div>
     </div>
 
+    {% endif %}<!-- end game_over else -->
     {% endif %}<!-- end PLAYING -->
 </div><!-- end game-wrapper -->
 
