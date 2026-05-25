@@ -2,402 +2,393 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>椰浆饭大作战 - 联机大厅版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>椰浆饭大作战 - 竞技横屏版</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f1f5f9; font-family: 'PingFang SC', sans-serif; }
-        .game-header { background: linear-gradient(135deg, #1b4d3e, #0a221a); color: #fff; padding: 15px 0; border-bottom: 5px solid #e2b13c; }
-        .stall-box { border: 2px solid #cbd5e1; border-radius: 16px; background: white; padding: 18px; transition: 0.3s; }
-        .active-turn { border: 3px solid #e2b13c !important; box-shadow: 0 0 20px rgba(226,177,60,0.4); }
-        .gold-card { background: linear-gradient(135deg, #f39c12, #d35400); color: white; font-weight: bold; height: 100px; width: 85px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border: 2px solid #fff; font-size: 11px; position: relative; }
-        .gold-card-infected { background: linear-gradient(135deg, #475569, #1e293b) !important; color: #ef4444 !important; border: 2px solid #ef4444 !important; }
-        .card-render { display: inline-block; width: 100px; height: 140px; margin: 4px; border-radius: 12px; font-weight: bold; color: white; padding: 10px 5px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid rgba(255,255,255,0.2); vertical-align: top; position: relative; }
-        .card-emoji { font-size: 24px; margin: 5px 0; }
-        .card-sub { font-size: 9px; opacity: 0.8; }
-        .card-footer-type { font-size: 8px; background: rgba(0,0,0,0.2); border-radius: 4px; padding: 1px 4px; position: absolute; bottom: 6px; left: 6px; right: 6px; }
-        
-        .c-Rice { background: linear-gradient(135deg, #ffffff, #f1f5f9); color: #334155; border: 2px solid #cbd5e1 !important; }
-        .c-Egg { background: linear-gradient(135deg, #f1c40f, #f39c12); }
-        .c-Peanuts { background: linear-gradient(135deg, #e67e22, #d35400); }
-        .c-Sambal { background: linear-gradient(135deg, #e74c3c, #c0392b); }
-        .c-Cucumber { background: linear-gradient(135deg, #2ecc71, #27ae60); }
-        .c-Wholesaler { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
-        .c-Thief { background: linear-gradient(135deg, #34495e, #2c3e50); }
-        .c-Supplier { background: linear-gradient(135deg, #1abc9c, #16a085); }
-        .c-MakCik { background: linear-gradient(135deg, #edf2f7, #cbd5e1); color: #2d3748; border: 2px solid #a0aec0 !important; }
-        .c-Officer { background: linear-gradient(135deg, #2980b9, #1f4068); }
-        .c-Fly { background: linear-gradient(135deg, #718096, #4a5568); border: 2px dashed #e53e3e !important; }
-        .c-FlySwatter { background: linear-gradient(135deg, #fc5c65, #eb3b5a); }
-        .c-Fan { background: linear-gradient(135deg, #45aaf2, #2d98da); }
-        
-        .log-feed { background: #1e293b; color: #38bdf8; font-family: monospace; height: 200px; overflow-y: auto; padding: 12px; border-radius: 8px; }
-        .auto-refresh-indicator { position: fixed; top: 10px; right: 10px; font-size: 10px; color: rgba(255,255,255,0.5); z-index: 1000; }
-        .lobby-player { background: #e2e8f0; padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; font-weight: bold; font-size: 16px; border-left: 4px solid #10b981; }
+        /* 强制横屏提示屏 */
+        #orientation-warning {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #0f172a; color: white; z-index: 99999; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+        }
+        @media screen and (orientation: portrait) {
+            #orientation-warning { display: flex; }
+            #game-wrapper { display: none !important; }
+        }
 
-        .trade-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; text-align: center; color: white; }
-        .trade-box { background: white; color: #1e293b; padding: 30px; border-radius: 16px; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 4px solid #e2b13c; }
-        .timer-text { font-size: 36px; font-weight: bold; color: #ef4444; }
+        body { background-color: #1e293b; color: white; font-family: 'PingFang SC', sans-serif; overflow: hidden; margin: 0; padding: 0; height: 100vh; }
+        
+        /* 游戏大框架 */
+        #game-wrapper { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+        
+        /* 顶部状态栏 */
+        .top-bar { background: linear-gradient(180deg, #0f172a, transparent); height: 40px; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 14px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); z-index: 10; }
+        .turn-indicator { color: #f59e0b; font-size: 16px; margin: 0 15px; }
+
+        /* 中部战局区 */
+        .battlefield { flex: 1; display: flex; justify-content: space-between; align-items: stretch; padding: 0 10px; overflow: hidden; position: relative; }
+        
+        /* 左右微缩玩家列表 (支持容纳多人) */
+        .opponents-col { display: flex; flex-direction: column; justify-content: space-evenly; width: 120px; z-index: 5; gap: 5px; }
+        .mini-stall { background: rgba(30, 41, 59, 0.8); border: 2px solid #475569; border-radius: 8px; padding: 6px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.3s; position: relative; }
+        .mini-stall.active { border-color: #e2b13c; box-shadow: 0 0 15px rgba(226,177,60,0.6); background: rgba(226,177,60,0.1); }
+        .mini-name { font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #38bdf8; margin-bottom: 4px; border-bottom: 1px solid #334155; padding-bottom: 2px; }
+        .mini-stats { display: flex; justify-content: space-around; font-size: 11px; }
+        .mini-stats span { display: flex; align-items: center; gap: 2px; }
+        
+        /* 中央牌堆区 */
+        .center-decks { flex: 1; display: flex; justify-content: center; align-items: center; gap: 40px; }
+        .deck { width: 90px; height: 130px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; font-size: 12px; cursor: pointer; transition: 0.2s; text-decoration: none; box-shadow: -4px 4px 10px rgba(0,0,0,0.5); }
+        .deck:hover { transform: scale(1.05) translateY(-5px); }
+        .gold-deck { background: linear-gradient(135deg, #d4af37, #996515); color: white; border: 3px solid #fde047; }
+        .main-deck { background: linear-gradient(135deg, #22c55e, #14532d); color: white; border: 3px solid #86efac; }
+        .deck-badge { background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-top: 5px; }
+
+        /* 底部我的区域 */
+        .bottom-console { height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 10px; background: linear-gradient(0deg, rgba(0,0,0,0.8), transparent); z-index: 10; }
+        
+        /* 本机摊位产出 */
+        .my-stall-zone { display: flex; gap: 10px; margin-bottom: 10px; height: 50px; }
+        .my-nasi { background: #d4af37; color: #000; font-weight: bold; padding: 2px 10px; border-radius: 6px; font-size: 12px; display: flex; align-items: center; gap: 5px; border: 2px solid #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.4); }
+        .my-nasi.infected { background: #475569; color: #ef4444; border-color: #ef4444; }
+
+        /* 斗地主式交叠手牌 */
+        .poker-hand { display: flex; justify-content: center; align-items: flex-end; height: 130px; padding: 0 20px; }
+        .poker-card { 
+            width: 85px; height: 125px; border-radius: 8px; margin-left: -35px; /* 负边距实现交叠 */
+            background: white; border: 1px solid #cbd5e1; box-shadow: -2px 0 8px rgba(0,0,0,0.4);
+            display: flex; flex-direction: column; align-items: center; padding-top: 8px; text-decoration: none;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); position: relative; color: #1e293b;
+        }
+        .poker-hand .poker-card:first-child { margin-left: 0; }
+        .poker-card:hover { transform: translateY(-20px); z-index: 50 !important; box-shadow: 0 10px 20px rgba(0,0,0,0.6); }
+        
+        /* 针对不同类型的卡牌涂色 */
+        .poker-card[data-type="action"] { background: linear-gradient(135deg, #e0f2fe, #bae6fd); border-color: #0ea5e9; }
+        .poker-card[data-type="attack"] { background: linear-gradient(135deg, #fee2e2, #fecaca); border-color: #ef4444; }
+        .poker-card[data-type="defense"] { background: linear-gradient(135deg, #dcfce7, #bbf7d0); border-color: #22c55e; }
+        .poker-card[data-type="food"] { background: #f8fafc; }
+        
+        .p-emoji { font-size: 32px; margin-bottom: 2px; }
+        .p-title { font-size: 11px; font-weight: bold; text-align: center; line-height: 1.1; }
+        .p-tag { position: absolute; bottom: 4px; font-size: 9px; background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 4px; }
+
+        /* 动态操作菜单弹窗 */
+        .action-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-box { background: #1e293b; border: 2px solid #38bdf8; border-radius: 12px; padding: 20px; width: 300px; text-align: center; }
+
+        /* 大厅/未开始界面覆盖 */
+        .lobby-screen { background: #0f172a; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow-y: auto; }
+        .auto-refresh-indicator { position: fixed; top: 5px; right: 10px; font-size: 10px; color: rgba(255,255,255,0.3); }
+
+        /* 链接禁用状态 */
+        a.disabled-card { pointer-events: none; opacity: 0.8; }
     </style>
 </head>
 <body>
 
-{% if room.status == "PLAYING" and g.pending_trade and trade_time_left > 0 %}
-<div class="trade-overlay">
-    <div class="trade-box">
-        {% if my_name == g.pending_trade.to %}
-            <h4 class="text-primary fw-bold mb-3">🚨 收到交易请求！</h4>
-            <p class="fs-5">【{{ g.pending_trade.from }}】 想用他的 <strong>[{{ g.pending_trade.offer }}]</strong> <br>换取你的 <strong>[{{ g.pending_trade.want }}]</strong></p>
-            <p>剩余决定时间：<span class="timer-text" id="trade-timer">{{ trade_time_left }}</span> 秒</p>
-            <div class="d-flex gap-3 mt-4">
-                <a href="/resolve_trade/accept" class="btn btn-success btn-lg w-50 fw-bold shadow">✅ 接受互换</a>
-                <a href="/resolve_trade/reject" class="btn btn-danger btn-lg w-50 fw-bold shadow">❌ 无情拒绝</a>
-            </div>
-        {% elif my_name == g.pending_trade.from %}
-            <h4 class="text-warning fw-bold mb-3">⏳ 交易发送成功</h4>
-            <p>正在等待 【{{ g.pending_trade.to }}】 决定是否接受您的互换...</p>
-            <p>等待对方回应：<span class="timer-text" id="trade-timer">{{ trade_time_left }}</span> 秒</p>
-        {% else %}
-            <h4 class="text-secondary fw-bold mb-3">🤝 交易谈判中...</h4>
-            <p>【{{ g.pending_trade.from }}】 正在与 【{{ g.pending_trade.to }}】 进行私密交易谈判。</p>
-            <p>倒计时：<span class="timer-text" id="trade-timer">{{ trade_time_left }}</span> 秒</p>
-        {% endif %}
-    </div>
-</div>
-{% endif %}
-
-<div class="game-header text-center mb-3 position-relative">
-    <h2>🥣 椰浆饭大作战：联机大厅版 🥣</h2>
-    {% if my_name %}<h5>本机身份：<span class="text-warning">{{ my_name }}</span></h5>{% endif %}
-    {% if not g.pending_trade and (room.status == "WAITING" or (room.status == "PLAYING" and g and g.turn_idx != my_p_idx and not g.game_over)) %}
-    <div class="auto-refresh-indicator">🔄 后台静默侦测中...</div>
-    {% endif %}
+<div id="orientation-warning">
+    <h1 style="font-size: 50px; margin-bottom: 20px;">🔄</h1>
+    <h3>请横置您的手机</h3>
+    <p class="text-muted small">本作战大厅专为竞技横屏设计以获得最佳视野</p>
 </div>
 
-<div class="container-fluid px-4">
+<div id="game-wrapper">
+
     {% if error %}
-    <div class="alert alert-danger text-center fw-bold shadow-sm">{{ error }}</div>
+    <div style="position:fixed; top:40px; left:50%; transform:translateX(-50%); z-index:9999;" class="alert alert-danger py-1 px-3 fs-6">{{ error }}</div>
     {% endif %}
 
-    {% if room.status == "EMPTY" %}
-    <div class="row justify-content-center">
-        <div class="col-md-5 card p-4 shadow mt-5 text-center">
-            <h4 class="mb-3 text-success">🏪 开启路边摊争霸赛</h4>
-            <form action="/create_room" method="POST">
-                <button type="submit" class="btn btn-success btn-lg w-100 fw-bold">创建联机大厅</button>
-            </form>
-        </div>
-    </div>
-    
-    {% elif room.status == "WAITING" %}
-    <div class="row justify-content-center">
-        <div class="col-md-5 card p-4 shadow mt-3">
-            <h4 class="text-primary text-center mb-4">🚪 游戏等候大厅</h4>
-            {% if my_name not in room.joined_players %}
-            <div class="border p-3 rounded bg-light mb-4 text-center">
-                <label class="form-label fw-bold">👇 请自定一个帅气的档主名字：</label>
-                <form action="/join_room" method="POST" class="d-flex gap-2">
-                    <input type="text" class="form-control form-control-lg" name="player_name" placeholder="例如：阿里" required autocomplete="off">
-                    <button type="submit" class="btn btn-primary fw-bold px-4">加入</button>
+    {% if room.status == "EMPTY" or room.status == "WAITING" %}
+    <div class="lobby-screen">
+        <h2 class="text-warning mb-4">🥣 椰浆饭大作战</h2>
+        <div class="card bg-dark text-white border-secondary p-4 shadow" style="width: 320px;">
+            {% if room.status == "EMPTY" %}
+                <form action="/create_room" method="POST">
+                    <button type="submit" class="btn btn-warning w-100 fw-bold">👉 创建新对局</button>
                 </form>
-            </div>
             {% else %}
-            <div class="alert alert-success text-center mb-4">
-                <strong>✅ 加入成功！</strong> 你已锁定名字 <strong>【{{ my_name }}】</strong><br>
-            </div>
-            {% endif %}
-            
-            <h6 class="fw-bold text-muted border-bottom pb-2">已入座玩家 ({{ room.joined_players|length }}/7 人)：</h6>
-            <div class="mb-4">
-                {% if room.joined_players %}
-                    {% for p_name in room.joined_players %}
-                    <div class="lobby-player">👤 {{ p_name }} {% if my_name == p_name %}<span class="badge bg-primary ms-2">本机</span>{% endif %}</div>
-                    {% endfor %}
+                {% if not my_name %}
+                <label class="form-label small text-info">请输入大名以入座：</label>
+                <form action="/join_room" method="POST" class="d-flex gap-2 mb-3">
+                    <input type="text" class="form-control form-control-sm" name="player_name" autocomplete="off" required>
+                    <button type="submit" class="btn btn-primary btn-sm fw-bold">入座</button>
+                </form>
                 {% else %}
-                    <div class="text-center text-muted small py-3">大厅空空如也，快叫人进来...</div>
+                <div class="text-center text-success mb-3 fw-bold">✅ 已就绪：{{ my_name }}</div>
                 {% endif %}
-            </div>
 
-            <form action="/start_game" method="POST">
-                {% if room.joined_players|length >= 3 %}
-                <button type="submit" class="btn btn-warning btn-lg w-100 fw-bold shadow-sm">🚀 人齐了，正式发牌开始！</button>
-                {% else %}
-                <button type="button" class="btn btn-secondary btn-lg w-100 disabled">至少需要 3 人才能开始游戏</button>
-                {% endif %}
-            </form>
-            <div class="text-center mt-3"><a href="/reset" class="text-danger small">解散房间</a></div>
-        </div>
-    </div>
-    
-    {% elif room.status == "PLAYING" %}
-    <div class="row">
-        <div class="col-lg-8">
-            <h5 class="fw-bold mb-2">🏪 全街档口监控 (行动者: <span class="text-danger fw-bold">{{ g.current_player().name }}</span>)</h5>
-            <div class="row g-3">
-                {% for p in g.players %}
-                {% set player_idx = loop.index0 %}
-                <div class="col-md-6">
-                    <div class="stall-box {% if g.turn_idx == player_idx %}active-turn{% endif %}">
-                        <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
-                            <h6 class="m-0 fw-bold">【{{ p.name }}】 {% if my_name == p.name %}<span class="badge bg-primary">我</span>{% endif %}</h6>
-                            <span class="badge bg-dark">剩余手牌：{{ p.hand|length }} 张</span>
-                        </div>
-                        
-                        <div class="mb-2">
-                            <div class="d-flex flex-wrap gap-2">
-                                {% if p.scored_cards %}
-                                    {% for val in p.scored_cards %}
-                                    {% set food_idx = loop.index0 %}
-                                    <div class="gold-card {% if p.flies[food_idx] %}gold-card-infected{% endif %}">
-                                        {% if p.flies[food_idx] %}
-                                            🪰 苍蝇污染
-                                        {% else %}
-                                            {% if my_name == p.name %}
-                                                🍚 椰浆饭<br><span class="badge bg-light text-dark mt-1">{{ val }}包</span>
-                                            {% else %}
-                                                🔒 椰浆饭<br><span style="font-size:10px; opacity:0.6;">(保密)</span>
-                                            {% endif %}
-                                        {% endif %}
-                                        
-                                        {% if my_name == p.name and p.flies[food_idx] and g.turn_idx == my_p_idx and not g.game_over and not g.pending_trade %}
-                                        <div class="mt-1 d-flex gap-1" style="z-index: 100;">
-                                            <a href="/action/swat_fly?card_idx={{ food_idx }}" class="btn btn-danger btn-xs p-1" style="font-size:9px;">拍死</a>
-                                            <button class="btn btn-info text-white btn-xs p-1 dropdown-toggle" style="font-size:9px;" data-bs-toggle="dropdown">扇走</button>
-                                            <ul class="dropdown-menu">
-                                                {% for enemy in g.players %}
-                                                    {% set enemy_idx = loop.index0 %}
-                                                    {% if enemy.name != p.name and enemy.scored_cards %}
-                                                    <li><a class="dropdown-item small" href="/action/fan_fly?card_idx={{ food_idx }}&target={{ enemy_idx }}">吹给 {{ enemy.name }}</a></li>
-                                                    {% endif %}
-                                                {% endfor %}
-                                            </ul>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                    {% endfor %}
-                                {% else %}
-                                    <span class="text-muted small">尚未出产成品。</span>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        {% if g.turn_idx == my_p_idx and my_name != p.name and g.has_drawn and not g.game_over and not g.active_inspection and not g.pending_trade %}
-                        <div class="border-top pt-1 text-end">
-                            <a href="/action/officer?target={{ player_idx }}" class="btn btn-xs btn-outline-primary btn-sm">👮 彻查底牌</a>
-                            {% if p.scored_cards %}
-                            <div class="dropdown d-inline-block ms-1">
-                                <button class="btn btn-sm btn-outline-danger dropdown-toggle" data-bs-toggle="dropdown">🪰 定点投蝇</button>
-                                <ul class="dropdown-menu">
-                                    {% for val in p.scored_cards %}
-                                        {% set target_food_idx = loop.index0 %}
-                                        {% if not p.flies[target_food_idx] %}
-                                        <li><a class="dropdown-item small text-danger" href="/action/play_fly?target={{ player_idx }}&card_idx={{ target_food_idx }}">砸在第 {{ loop.index }} 包饭</a></li>
-                                        {% endif %}
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-
-            {% if my_player and not g.game_over %}
-            <div class="card my-3 shadow-sm {% if g.turn_idx == my_p_idx %}border-warning{% endif %}">
-                <div class="card-header {% if g.turn_idx == my_p_idx %}bg-warning text-dark{% else %}bg-secondary text-white{% endif %}">
-                    <h6 class="m-0 fw-bold">
-                        {% if g.turn_idx == my_p_idx %}
-                            🌟 【轮到您的回合！】剩余动作：{{ g.moves_left }} 次
-                        {% else %}
-                            ⏳ 正在等待 【{{ g.current_player().name }}】 做出决策...
-                        {% endif %}
-                    </h6>
-                </div>
-                <div class="card-body bg-white">
-                    
-                    <h6 class="fw-bold text-muted small mb-2">本机私有手牌区：</h6>
-                    <div class="mb-3">
-                        {% for card in my_player.hand %}
-                        {% set c_class = "" %}{% set c_name = "" %}{% set c_emoji = "" %}{% set c_sub = "" %}{% set c_type = "功能卡" %}
-                        {% if card == 'Rice' %}{% set c_class = "c-Rice" %}{% set c_name = "椰浆饭" %}{% set c_emoji = "🍚" %}{% set c_sub = "Nasi" %}{% set c_type = "食材" %}
-                        {% elif card == 'Egg' %}{% set c_class = "c-Egg" %}{% set c_name = "鸡蛋" %}{% set c_emoji = "🥚" %}{% set c_sub = "Telur" %}{% set c_type = "食材" %}
-                        {% elif card == 'Peanuts' %}{% set c_class = "c-Peanuts" %}{% set c_name = "炸花生" %}{% set c_emoji = "🥜" %}{% set c_sub = "Kacang" %}{% set c_type = "食材" %}
-                        {% elif card == 'Sambal' %}{% set c_class = "c-Sambal" %}{% set c_name = "三巴辣椒" %}{% set c_emoji = "🌶️" %}{% set c_sub = "Sambal" %}{% set c_type = "食材" %}
-                        {% elif card == 'Cucumber' %}{% set c_class = "c-Cucumber" %}{% set c_name = "黄瓜片" %}{% set c_emoji = "🥒" %}{% set c_sub = "Timun" %}{% set c_type = "食材" %}
-                        {% elif card == 'Wholesaler' %}{% set c_class = "c-Wholesaler" %}{% set c_name = "批发商" %}{% set c_emoji = "🏪" %}{% set c_sub = "Pemborong" %}
-                        {% elif card == 'Thief' %}{% set c_class = "c-Thief" %}{% set c_name = "小偷" %}{% set c_emoji = "🥷" %}{% set c_sub = "Pencuri" %}
-                        {% elif card == 'Supplier' %}{% set c_class = "c-Supplier" %}{% set c_name = "供应商" %}{% set c_emoji = "📣" %}{% set c_sub = "Pembekal" %}
-                        {% elif card == 'Mak Cik' %}{% set c_class = "c-MakCik" %}{% set c_name = "大妈代工" %}{% set c_emoji = "🧑‍🍳" %}{% set c_sub = "Mak Cik" %}
-                        {% elif card == 'Officer' %}{% set c_class = "c-Officer" %}{% set c_name = "高级官员" %}{% set c_emoji = "👮" %}{% set c_sub = "Pegawai" %}
-                        {% elif card == 'Fly' %}{% set c_class = "c-Fly" %}{% set c_name = "苍蝇" %}{% set c_emoji = "🪰" %}{% set c_sub = "Lalat" %}
-                        {% elif card == 'Fly Swatter' %}{% set c_class = "c-FlySwatter" %}{% set c_name = "苍蝇拍" %}{% set c_emoji = "💥" %}{% set c_sub = "Pemukul" %}
-                        {% elif card == 'Fan' %}{% set c_class = "c-Fan" %}{% set c_name = "小风扇" %}{% set c_emoji = "🪭" %}{% set c_sub = "Kipas" %}
-                        {% endif %}
-                        <div class="card-render {{ c_class }}">
-                            <div class="m-0" style="font-size:11px;">{{ c_name }}</div>
-                            <div class="card-sub">{{ c_sub }}</div>
-                            <div class="card-emoji">{{ c_emoji }}</div>
-                            <div class="card-footer-type">{{ c_type }}</div>
-                        </div>
+                <div class="border-top border-secondary pt-2 mb-3">
+                    <div class="small text-muted mb-2">已就位玩家 ({{ room.joined_players|length }}/7)：</div>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% for p in room.joined_players %}
+                        <span class="badge bg-secondary">{{ p }}</span>
                         {% endfor %}
                     </div>
+                </div>
 
-                    {% if g.turn_idx == my_p_idx and not g.pending_trade %}
-                        {% if not g.has_drawn %}
-                        <div class="text-center py-2">
-                            <a href="/draw" class="btn btn-success fw-bold px-4">📥 第一步：先摸 2 张牌</a>
-                        </div>
-                        {% else %}
-                        
-                        {% if g.active_inspection %}
-                        <div class="alert alert-primary border-primary p-2 mb-3">
-                            <h6 class="fw-bold text-primary mb-1">👮 官员明盘：彻查 【{{ g.active_inspection.target_name }}】</h6>
-                            <div class="d-flex flex-wrap gap-2">
-                                {% for card in g.active_inspection.hand_to_view %}
-                                    {% if card in g.players[g.active_inspection.target_idx].hand %}
-                                    <a href="/action/officer_take?card={{ card }}" class="btn btn-sm btn-light border-primary fw-bold text-dark">➕ 抢夺：{{ card }}</a>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endif %}
-
-                        {% if not g.active_inspection %}
-                        
-                        <form action="/propose_trade" method="POST" class="row g-2 align-items-center mb-3 p-2 bg-light border rounded">
-                            <div class="col-auto"><span class="small text-primary fw-bold">🤝 发起限时交易：用我手里的</span></div>
-                            <div class="col-auto">
-                                <select name="offer" class="form-select form-select-sm border-primary" required>
-                                    <option value="">我愿意交出...</option>
-                                    {% for c in my_player.hand|sort %}
-                                        {% if c in ['Rice', 'Egg', 'Peanuts', 'Sambal', 'Cucumber'] %}
-                                        <option value="{{ c }}">{{ c }}</option>
-                                        {% endif %}
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-auto"><span class="small">换取</span></div>
-                            <div class="col-auto">
-                                <select name="want" class="form-select form-select-sm border-primary" required>
-                                    <option value="">我想要得到...</option>
-                                    <option value="Rice">Rice (椰浆饭粒)</option>
-                                    <option value="Egg">Egg (水煮蛋)</option>
-                                    <option value="Peanuts">Peanuts (炸花生)</option>
-                                    <option value="Sambal">Sambal (三巴辣酱)</option>
-                                    <option value="Cucumber">Cucumber (黄瓜片)</option>
-                                </select>
-                            </div>
-                            <div class="col-auto"><span class="small">目标对象：</span></div>
-                            <div class="col-auto">
-                                <select name="target" class="form-select form-select-sm border-primary" required>
-                                    <option value="">选择场上摊主</option>
-                                    {% for p in g.players %}
-                                        {% if p.name != my_name %}<option value="{{ p.name }}">{{ p.name }}</option>{% endif %}
-                                    {% endfor %}
-                                </select>
-                            </div>
-                            <div class="col-auto"><button type="submit" class="btn btn-sm btn-primary fw-bold">发起谈判(耗1动)</button></div>
-                        </form>
-
-                        <div class="d-flex flex-wrap gap-2 mb-2 pt-2 border-top">
-                            <a href="/action/pack_standard" class="btn btn-success btn-sm">🍚 打包标配饭(耗5不同食材)</a>
-                            <a href="/action/pack_makcik" class="btn btn-outline-success btn-sm">🧑‍🍳 打出【大妈卡】(3不同食材)</a>
-                            <a href="/action/thief" class="btn btn-dark btn-sm">🥷 【小偷卡】全场各摸1张</a>
-                            <a href="/action/wholesaler" class="btn btn-secondary btn-sm">🏪 【批发商】提纯牌堆</a>
-                        </div>
-                        <form action="/action/supplier" method="GET" class="row g-2 align-items-center pt-2">
-                            <div class="col-auto"><span class="small text-muted fw-bold">📣 【供应商】垄断：</span></div>
-                            <div class="col-auto">
-                                <select name="ingredient" class="form-select form-select-sm">
-                                    <option value="Rice">Rice (饭粒)</option>
-                                    <option value="Egg">Egg (水煮蛋)</option>
-                                    <option value="Peanuts">Peanuts (炸花生)</option>
-                                    <option value="Sambal">Sambal (三巴辣酱)</option>
-                                    <option value="Cucumber">Cucumber (黄瓜片)</option>
-                                </select>
-                            </div>
-                            <div class="col-auto"><button type="submit" class="btn btn-sm btn-info text-white">收缴此牌</button></div>
-                            <div class="col-auto ms-auto"><a href="/action/end_turn_manual" class="btn btn-outline-danger btn-sm px-3">🛑 完结回合</a></div>
-                        </form>
-                        {% endif %}
-                        
-                        {% endif %}
+                <form action="/start_game" method="POST">
+                    {% if room.joined_players|length >= 3 %}
+                    <button type="submit" class="btn btn-warning w-100 fw-bold">🚀 立即开战</button>
+                    {% else %}
+                    <button type="button" class="btn btn-secondary w-100 disabled small">需满3人开战</button>
                     {% endif %}
+                </form>
+            {% endif %}
+        </div>
+    </div>
+
+    {% elif room.status == "PLAYING" %}
+    {% set g = room.game %}
+    
+    <div class="top-bar">
+        <span class="text-muted me-3">椰浆饭剩余: <span class="text-warning">{{ g.gold_deck|length }}包</span></span>
+        <span class="turn-indicator">
+            {% if g.turn_idx == my_p_idx %}
+                🟢 你的回合 (剩 {{ g.moves_left }} 动)
+            {% else %}
+                ⏳ 等待 【{{ g.current_player().name }}】 出牌...
+            {% endif %}
+        </span>
+        <a href="/action/end_turn_manual" class="btn btn-sm btn-outline-danger py-0 px-2 ms-3" style="font-size:10px;">跳过/结束回合</a>
+    </div>
+
+    <div class="battlefield">
+        {% set opponents = [] %}
+        {% for p in g.players %}{% if p.name != my_name %}{% set _ = opponents.append((loop.index0, p)) %}{% endif %}{% endfor %}
+        
+        {% set mid = (opponents|length / 2)|round(0, 'ceil')|int %}
+        {% set left_opps = opponents[:mid] %}
+        {% set right_opps = opponents[mid:] %}
+
+        <div class="opponents-col">
+            {% for idx, opp in left_opps %}
+            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }})">
+                <div class="mini-name">{{ opp.name }}</div>
+                <div class="mini-stats">
+                    <span class="text-light">🎴{{ opp.hand|length }}</span>
+                    <span class="text-warning">📦{{ opp.scored_cards|length }}</span>
+                    {% if true in opp.flies %}<span class="text-danger">🪰</span>{% endif %}
                 </div>
             </div>
-            {% endif %}
-            
-            {% if g.game_over %}
-            <div class="alert alert-success text-center p-4 shadow-sm">
-                <h3>👑 档口大盘清算完毕 👑</h3>
-                <h2 class="text-danger fw-bold">胜出摊主：【{{ g.winner }}】</h2>
-                <a href="/reset" class="btn btn-primary px-5 mt-2">强制解散房间</a>
-            </div>
+            {% endfor %}
+        </div>
+
+        <div class="center-decks">
+            {% if g.turn_idx == my_p_idx %}
+                <a href="/action/pack_standard" class="deck gold-deck">
+                    <span style="font-size:24px;">📦</span>
+                    <span>打包标配饭</span>
+                    <span class="deck-badge">剩 {{ g.gold_deck|length }}</span>
+                </a>
+                
+                {% if not g.has_drawn %}
+                <a href="/draw" class="deck main-deck" style="box-shadow: 0 0 20px #22c55e;">
+                    <span style="font-size:24px;">📥</span>
+                    <span>摸 2 张牌</span>
+                    <span class="deck-badge">必须执行</span>
+                </a>
+                {% else %}
+                <div class="deck main-deck disabled-card" style="opacity: 0.5;">
+                    <span style="font-size:24px;">🎴</span>
+                    <span>已抽牌</span>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="deck gold-deck disabled-card"><span style="font-size:24px;">📦</span><span>Nasi Lemak</span></div>
+                <div class="deck main-deck disabled-card"><span style="font-size:24px;">🎴</span><span>抽牌堆</span></div>
             {% endif %}
         </div>
 
-        <div class="col-lg-4">
-            <h5 class="fw-bold mb-2">📋 街道历史事件公告栏</h5>
-            <div class="log-feed shadow-sm mb-2">
-                {% for log in g.log|reverse %}
-                <div class="mb-2 small border-bottom border-dark pb-1 {% if '❌' in log or '⚠️' in log %}text-warning fw-bold{% endif %}">&gt; {{ log }}</div>
+        <div class="opponents-col">
+            {% for idx, opp in right_opps %}
+            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }})">
+                <div class="mini-name">{{ opp.name }}</div>
+                <div class="mini-stats">
+                    <span class="text-light">🎴{{ opp.hand|length }}</span>
+                    <span class="text-warning">📦{{ opp.scored_cards|length }}</span>
+                    {% if true in opp.flies %}<span class="text-danger">🪰</span>{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="bottom-console">
+        <div class="my-stall-zone">
+            {% if my_player %}
+                {% for val in my_player.scored_cards %}
+                {% set f_idx = loop.index0 %}
+                <div class="my-nasi {% if my_player.flies[f_idx] %}infected{% endif %}" onclick="openDefenseModal({{ f_idx }}, {{ my_player.flies[f_idx]|lower }})">
+                    📦 {{ val }}包
+                    {% if my_player.flies[f_idx] %}<span style="font-size:14px;">🪰</span>{% endif %}
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="poker-hand">
+            {% if my_player %}
+                {% for card in my_player.hand %}
+                    {% set c_type = "food" %}
+                    {% if card in ['Thief', 'Wholesaler', 'Supplier', 'Mak Cik'] %}{% set c_type = "action" %}{% endif %}
+                    {% if card in ['Fly', 'Officer'] %}{% set c_type = "attack" %}{% endif %}
+                    {% if card in ['Fly Swatter', 'Fan'] %}{% set c_type = "defense" %}{% endif %}
+
+                    {% set c_dict = {
+                        "Rice": ("椰浆饭", "🍚"), "Egg": ("鸡蛋", "🥚"), "Peanuts": ("炸花生", "🥜"), "Sambal": ("三巴酱", "🌶️"), "Cucumber": ("黄瓜", "🥒"),
+                        "Wholesaler": ("批发商", "🏪"), "Thief": ("小偷", "🥷"), "Supplier": ("供应商", "📣"), "Mak Cik": ("大妈", "🧑‍🍳"),
+                        "Officer": ("官员", "👮"), "Fly": ("苍蝇", "🪰"), "Fly Swatter": ("苍蝇拍", "💥"), "Fan": ("风扇", "🪭")
+                    } %}
+
+                    {% set is_my_turn = (g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection) %}
+                    
+                    {% if is_my_turn and card == 'Thief' %}
+                        <a href="/action/thief" class="poker-card" data-type="{{ c_type }}" style="z-index: {{ loop.index }};">
+                    {% elif is_my_turn and card == 'Wholesaler' %}
+                        <a href="/action/wholesaler" class="poker-card" data-type="{{ c_type }}" style="z-index: {{ loop.index }};">
+                    {% elif is_my_turn and card == 'Mak Cik' %}
+                        <a href="/action/pack_makcik" class="poker-card" data-type="{{ c_type }}" style="z-index: {{ loop.index }};">
+                    {% elif is_my_turn and card == 'Supplier' %}
+                        <a href="javascript:void(0);" onclick="openSupplierModal()" class="poker-card" data-type="{{ c_type }}" style="z-index: {{ loop.index }};">
+                    {% elif is_my_turn and card in ['Officer', 'Fly'] %}
+                        <a href="javascript:void(0);" onclick="alert('提示：请直接点击左右两侧对手的头像框，向其发起【官员搜查】或【放苍蝇】！')" class="poker-card" data-type="{{ c_type }}" style="z-index: {{ loop.index }};">
+                    {% elif is_my_turn and card in ['Fly Swatter', 'Fan'] %}
+                        <a href="javascript:void(0);" onclick="alert('提示：请直接点击你自己被苍蝇污染的椰浆饭，即可使用防守道具！')" class="poker-card" data-type="{{ c_type }}" style="z-index: {{ loop.index }};">
+                    {% else %}
+                        <a href="javascript:void(0);" class="poker-card {% if not is_my_turn %}disabled-card{% endif %}" data-type="{{ c_type }}" style="z-index: {{ loop.index }};">
+                    {% endif %}
+                        <div class="p-emoji">{{ c_dict[card][1] }}</div>
+                        <div class="p-title">{{ c_dict[card][0] }}</div>
+                        <div class="p-tag">{{ c_type|upper }}</div>
+                    </a>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="target-modal" class="action-modal">
+        <div class="modal-box">
+            <h5 class="text-warning mb-3">🎯 针对 <span id="tm-name"></span></h5>
+            <div class="d-flex flex-column gap-2">
+                <a id="btn-officer" href="#" class="btn btn-primary">👮 派官员搜查手牌</a>
+                <div id="fly-targets" class="d-flex flex-wrap gap-2 justify-content-center mt-2"></div>
+            </div>
+            <button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">取消</button>
+        </div>
+    </div>
+
+    <div id="supplier-modal" class="action-modal">
+        <div class="modal-box">
+            <h5 class="text-info mb-3">📣 供应商垄断征收</h5>
+            <form action="/action/supplier" method="GET">
+                <select name="ingredient" class="form-select mb-3">
+                    <option value="Rice">Rice (椰浆饭粒)</option>
+                    <option value="Egg">Egg (水煮蛋)</option>
+                    <option value="Peanuts">Peanuts (炸花生)</option>
+                    <option value="Sambal">Sambal (三巴辣酱)</option>
+                    <option value="Cucumber">Cucumber (黄瓜片)</option>
+                </select>
+                <button type="submit" class="btn btn-info w-100">强行没收全场此牌</button>
+            </form>
+            <button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">取消</button>
+        </div>
+    </div>
+
+    <div id="defense-modal" class="action-modal">
+        <div class="modal-box">
+            <h5 class="text-danger mb-3">🪰 紧急驱蝇除害</h5>
+            <div class="d-flex gap-2">
+                <a id="btn-swat" href="#" class="btn btn-danger flex-grow-1">💥 苍蝇拍拍死</a>
+                <a id="btn-fan-base" href="#" class="btn btn-info text-white flex-grow-1" onclick="showFanTargets()">🪭 扇子吹走</a>
+            </div>
+            <div id="fan-target-list" class="d-flex flex-wrap gap-1 mt-2 justify-content-center d-none">
+                {% for p in g.players %}{% if p.name != my_name %}
+                <a href="#" class="btn btn-sm btn-outline-info fan-opt" data-tidx="{{ loop.index0 }}">吹给 {{ p.name }}</a>
+                {% endif %}{% endfor %}
+            </div>
+            <button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">取消</button>
+        </div>
+    </div>
+
+    {% if g.active_inspection and g.turn_idx == my_p_idx %}
+    <div class="action-modal" style="display:flex;">
+        <div class="modal-box" style="width: 80%;">
+            <h5 class="text-primary mb-3">👮 查获 【{{ g.active_inspection.target_name }}】 的底牌</h5>
+            <div class="d-flex flex-wrap gap-2 justify-content-center">
+                {% for card in g.active_inspection.hand_to_view %}
+                    {% if card in g.players[g.active_inspection.target_idx].hand %}
+                    <a href="/action/officer_take?card={{ card }}" class="btn btn-light border-primary fw-bold text-dark p-2 shadow-sm" style="font-size:12px;">抢夺<br>{{ card }}</a>
+                    {% endif %}
                 {% endfor %}
             </div>
-            <a href="/reset" class="btn btn-outline-danger w-100 py-1 btn-sm fw-bold" onclick="return confirm('警告：这将踢出所有人！确定吗？')">💥 强行解散大厅并踢人</a>
         </div>
     </div>
     {% endif %}
+
+    {% endif %}
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // --- 1. 输入框防刷新的草稿保护记忆 ---
-    document.addEventListener("DOMContentLoaded", function() {
-        var nameInput = document.querySelector('input[name="player_name"]');
-        if (nameInput) {
-            var draft = sessionStorage.getItem("nasi_lemak_draft");
-            if (draft) nameInput.value = draft;
-            nameInput.addEventListener("input", function() {
-                sessionStorage.setItem("nasi_lemak_draft", this.value);
-            });
-        }
-    });
+    // === 弹窗交互控制 ===
+    let currTargetIdx = -1;
+    let currFoodIdx = -1;
 
-    // --- 2. 高精度交易弹窗 15秒 JS 倒计时 ---
-    {% if room.status == "PLAYING" and g.pending_trade and trade_time_left > 0 %}
-        let timeLeft = {{ trade_time_left }};
-        let timerEl = document.querySelectorAll(".timer-text");
-        let tradeInterval = setInterval(function() {
-            timeLeft--;
-            timerEl.forEach(el => el.innerText = timeLeft);
-            if (timeLeft <= 0) {
-                clearInterval(tradeInterval);
-                {% if my_name == g.pending_trade.to %}
-                    window.location.href = "/resolve_trade/reject";
-                {% else %}
-                    window.location.reload();
-                {% endif %}
-            }
-        }, 1000);
-    {% endif %}
-
-    // --- 3. 智能防打断常规后台刷新 ---
-    {% if not g.pending_trade and (room.status == "WAITING" or (room.status == "PLAYING" and g and g.turn_idx != my_p_idx and not g.game_over)) %}
-    function startSmartRefresh() {
-        setTimeout(function() {
-            var nameInput = document.querySelector('input[name="player_name"]');
-            var isTyping = (nameInput && document.activeElement === nameInput);
-            
-            if (isTyping) {
-                startSmartRefresh();
-            } else {
-                window.location.reload();
-            }
-        }, 3000); 
+    function closeModals() {
+        document.querySelectorAll('.action-modal').forEach(m => m.style.display = 'none');
+        document.getElementById('fan-target-list')?.classList.add('d-none');
     }
-    startSmartRefresh();
+
+    // 点别人头像 -> 攻击他
+    function openTargetModal(tIdx, name, foodCount) {
+        {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection %}
+        currTargetIdx = tIdx;
+        document.getElementById('tm-name').innerText = name;
+        document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
+        
+        let flyArea = document.getElementById('fly-targets');
+        flyArea.innerHTML = '';
+        if (foodCount > 0) {
+            for(let i=0; i<foodCount; i++) {
+                flyArea.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger">砸在第 ${i+1} 包饭</a>`;
+            }
+        } else {
+            flyArea.innerHTML = '<span class="small text-muted">对方没饭，无法放苍蝇</span>';
+        }
+        document.getElementById('target-modal').style.display = 'flex';
+        {% endif %}
+    }
+
+    // 点供应商卡 -> 选物资
+    function openSupplierModal() { document.getElementById('supplier-modal').style.display = 'flex'; }
+
+    // 点自己的饭 -> 防守
+    function openDefenseModal(fIdx, hasFly) {
+        {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.active_inspection %}
+        if (hasFly) {
+            currFoodIdx = fIdx;
+            document.getElementById('btn-swat').href = '/action/swat_fly?card_idx=' + fIdx;
+            // 更新扇子列表的超链接参数
+            document.querySelectorAll('.fan-opt').forEach(btn => {
+                let tidx = btn.getAttribute('data-tidx');
+                btn.href = `/action/fan_fly?card_idx=${fIdx}&target=${tidx}`;
+            });
+            document.getElementById('defense-modal').style.display = 'flex';
+        }
+        {% endif %}
+    }
+
+    function showFanTargets() { document.getElementById('fan-target-list').classList.remove('d-none'); }
+
+    // === 后台静默侦测防卡顿刷新 ===
+    {% if not g.active_inspection and (room.status == "WAITING" or (room.status == "PLAYING" and g and g.turn_idx != my_p_idx and not g.game_over)) %}
+    setTimeout(function() {
+        let inputs = document.querySelectorAll('input');
+        let isTyping = false;
+        inputs.forEach(i => { if(document.activeElement === i) isTyping = true; });
+        if (!isTyping) window.location.reload();
+    }, 3000); 
     {% endif %}
 </script>
 </body>
