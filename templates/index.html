@@ -602,7 +602,7 @@
                     <div class="d-flex flex-wrap gap-1 justify-content-center">
                         {% for si in range(p.scored_cards|length) %}
                         <span style="background:{% if p.flies[si] %}#374151{% else %}#d4af37{% endif %};color:{% if p.flies[si] %}#ef4444{% else %}#000{% endif %};border-radius:4px;padding:1px 6px;font-size:11px;font-weight:bold;">
-                            📦{{ p.scored_cards[si] }}包{% if p.flies[si] %} 🪰{% endif %}
+                            📦?包{% if p.flies[si] %} 🪰{% endif %}
                         </span>
                         {% endfor %}
                     </div>
