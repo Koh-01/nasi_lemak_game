@@ -443,24 +443,25 @@ def play_action(action_type):
         g.spend_move(f"🐦‍⬛ 【{p['name']}】 用 [{ingredient}] 喂乌鸦，把乌鸦（携带{len(old_ings)}张食材）赶到了 【{target_p['name']}】！")
 
     # ── Si Oyen：捕获乌鸦，领取其携带的食材 ──────────────────────────
-# ── Si Oyen：捕获乌鸦，领取其携带的食材 ──────────────────────────
     elif action_type == 'si_oyen':
+        # 1. 基础检查：手里得有猫
         if "Si Oyen" not in p["hand"]:
             return redirect(url_for('index'))
     
-        # 🚨 核心逻辑：严格检查当前玩家面前是否有乌鸦，完全无视 target_p，确保不能杀别人的乌鸦
+        # 2. 核心检查：自己面前必须有乌鸦。如果没有，直接弹回，不消耗卡牌
         if not p.get("placed_crow"):
-            g.log.append("❌ 你的面前没有乌鸦！Si Oyen 是一只家猫，傲娇的它拒绝去别人家抓乌鸦。")
+            g.log.append(f"❌ 【{p['name']}】空放了一只 Si Oyen！但你面前根本没有乌鸦骚扰。")
             return redirect(url_for('index'))
     
-        # 扣除手牌并放入弃牌堆
+        # 3. 核心逻辑：只对自己(p)的操作，完全不管 target_p 是谁
         p["hand"].remove("Si Oyen")
         g.discard.append("Si Oyen")
     
-        # 收获乌鸦身上的食材
+        # 拿走这只乌鸦肚子里的所有食材
         crow_ings = p["placed_crow"]["ingredients"]
-        p["placed_crow"] = None # 移除自己面前的乌鸦
+        p["placed_crow"] = None # 成功消灭自己面前的乌鸦！
     
+        # 将食材吐回当前玩家的手牌
         for ing in crow_ings:
             p["hand"].append(ing)
     
@@ -468,9 +469,8 @@ def play_action(action_type):
     
         reward_str = f"[{', '.join(crow_ings)}]" if crow_ings else "（无食材）"
     
-        g.spend_move(
-            f"🐱 【{p['name']}】 派出大橘 Si Oyen 瞬间扑杀了自己面前的乌鸦！并饱餐一顿拿回食材：{reward_str}"
-        )
+        # 4. 写入游戏日志
+        g.spend_move(f"🐱 【{p['name']}】使用 [Si Oyen]，直接扑杀了自己面前的乌鸦！获得食材反馈：{reward_str}")
 
     elif action_type == 'end_turn_manual':
         g.end_turn()
