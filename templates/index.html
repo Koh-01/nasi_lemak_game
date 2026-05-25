@@ -23,8 +23,47 @@
         #game-wrapper { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
         
         /* 顶部状态栏 */
-        .top-bar { background: linear-gradient(180deg, #0f172a, transparent); height: 40px; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 14px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); z-index: 10; }
+        .top-bar { background: linear-gradient(180deg, #0f172a, transparent); height: 40px; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 14px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); z-index: 10; position: relative; }
         .turn-indicator { color: #f59e0b; font-size: 16px; margin: 0 15px; }
+
+        /* 强制重启按钮 */
+        .restart-btn {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(135deg, #7f1d1d, #991b1b);
+            color: #fca5a5;
+            border: 1px solid #ef4444;
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            letter-spacing: 0.5px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .restart-btn:hover { background: linear-gradient(135deg, #991b1b, #b91c1c); color: #fee2e2; border-color: #f87171; box-shadow: 0 0 8px rgba(239,68,68,0.5); }
+
+        /* 重启确认弹窗 */
+        #restart-confirm-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 99998; justify-content: center; align-items: center;
+        }
+        .restart-modal-box {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 2px solid #ef4444;
+            border-radius: 14px;
+            padding: 24px 28px;
+            text-align: center;
+            width: 280px;
+            box-shadow: 0 0 30px rgba(239,68,68,0.3);
+        }
+        .restart-modal-box h5 { color: #ef4444; margin-bottom: 8px; }
+        .restart-modal-box p { color: #94a3b8; font-size: 12px; margin-bottom: 16px; }
+        .restart-confirm-btns { display: flex; gap: 10px; justify-content: center; }
 
         /* 中部战局区 */
         .battlefield { flex: 1; display: flex; justify-content: space-between; align-items: stretch; padding: 0 10px; overflow: hidden; position: relative; }
@@ -84,9 +123,36 @@
 
         /* 链接禁用状态 */
         a.disabled-card { pointer-events: none; opacity: 0.8; }
+
+        /* 大厅重启按钮 */
+        .lobby-restart-btn {
+            margin-top: 12px;
+            background: transparent;
+            color: #64748b;
+            border: 1px solid #334155;
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+        }
+        .lobby-restart-btn:hover { color: #ef4444; border-color: #ef4444; background: rgba(239,68,68,0.05); }
     </style>
 </head>
 <body>
+
+<!-- 强制重启确认弹窗 (全局) -->
+<div id="restart-confirm-modal">
+    <div class="restart-modal-box">
+        <h5>⚠️ 强制重启确认</h5>
+        <p>这将<strong style="color:#ef4444;">立即终止</strong>当前对局并清空所有玩家数据，所有人需重新加入房间。此操作不可撤销。</p>
+        <div class="restart-confirm-btns">
+            <a href="/reset" class="btn btn-danger btn-sm px-3">💥 确认重启</a>
+            <button onclick="closeRestartModal()" class="btn btn-secondary btn-sm px-3">取消</button>
+        </div>
+    </div>
+</div>
 
 <div id="orientation-warning">
     <h1 style="font-size: 50px; margin-bottom: 20px;">🔄</h1>
@@ -136,6 +202,11 @@
                     {% endif %}
                 </form>
             {% endif %}
+
+            <!-- 大厅强制重启按钮 -->
+            <button onclick="openRestartModal()" class="lobby-restart-btn">
+                🔄 强制重启房间
+            </button>
         </div>
     </div>
 
@@ -152,6 +223,11 @@
             {% endif %}
         </span>
         <a href="/action/end_turn_manual" class="btn btn-sm btn-outline-danger py-0 px-2 ms-3" style="font-size:10px;">跳过/结束回合</a>
+
+        <!-- 强制重启按钮 (游戏中) -->
+        <button onclick="openRestartModal()" class="restart-btn">
+            ⚡ 强制重启
+        </button>
     </div>
 
     <div class="battlefield">
@@ -331,6 +407,18 @@
 </div>
 
 <script>
+    // === 强制重启弹窗控制 ===
+    function openRestartModal() {
+        document.getElementById('restart-confirm-modal').style.display = 'flex';
+    }
+    function closeRestartModal() {
+        document.getElementById('restart-confirm-modal').style.display = 'none';
+    }
+    // 点弹窗背景也可关闭
+    document.getElementById('restart-confirm-modal').addEventListener('click', function(e) {
+        if (e.target === this) closeRestartModal();
+    });
+
     // === 弹窗交互控制 ===
     let currTargetIdx = -1;
     let currFoodIdx = -1;
