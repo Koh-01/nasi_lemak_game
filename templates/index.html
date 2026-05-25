@@ -59,7 +59,7 @@
         .mini-stats { display: flex; justify-content: space-around; font-size: 10px; }
 
         /* ===== 中央牌堆 ===== */
-        .center-decks { flex: 1; display: flex; justify-content: center; align-items: center; gap: clamp(10px, 3vw, 40px); }
+        .center-decks { flex: 1; display: flex; justify-content: center; align-items: center; gap: clamp(6px, 2vw, 20px); }
         .deck {
             width: clamp(65px, 8vw, 90px); height: clamp(95px, 12vh, 130px);
             border-radius: 10px; display: flex; flex-direction: column;
@@ -72,6 +72,47 @@
         .main-deck { background: linear-gradient(135deg,#22c55e,#14532d); color: white; border: 3px solid #86efac; }
         .deck span:first-child { font-size: clamp(18px, 2.5vw, 24px); }
         .deck-badge { background: rgba(0,0,0,.6); padding: 1px 5px; border-radius: 8px; font-size: 9px; margin-top: 4px; }
+
+        /* ===== 中央对局记录 ===== */
+        .center-log {
+            width: clamp(90px, 14vw, 160px); height: clamp(95px, 12vh, 130px);
+            background: rgba(15,23,42,0.9); border: 1px solid #334155; border-radius: 10px;
+            display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0;
+        }
+        .center-log-title { font-size: 9px; color: #64748b; text-align: center; padding: 3px 0 2px; border-bottom: 1px solid #1e293b; flex-shrink: 0; letter-spacing: 0.5px; }
+        .center-log-body { flex: 1; overflow-y: auto; padding: 3px 5px; scrollbar-width: none; }
+        .center-log-body::-webkit-scrollbar { display: none; }
+        .center-log-line { font-size: 9px; color: #94a3b8; line-height: 1.4; padding: 1px 0; border-bottom: 1px solid rgba(51,65,85,0.4); }
+
+        /* ===== 快捷沟通 ===== */
+        .quick-chat-bar {
+            display: flex; align-items: center; gap: 4px; padding: 3px 8px;
+            background: rgba(15,23,42,0.8); border-top: 1px solid #1e3a5f;
+            flex-shrink: 0; flex-wrap: nowrap; overflow-x: auto;
+        }
+        .quick-chat-bar::-webkit-scrollbar { display: none; }
+        .qc-label { font-size: 9px; color: #475569; white-space: nowrap; flex-shrink: 0; }
+        .qc-btn {
+            background: rgba(30,58,95,0.8); border: 1px solid #1d4ed8;
+            border-radius: 12px; padding: 2px 7px; font-size: 13px; cursor: pointer;
+            transition: .15s; flex-shrink: 0; line-height: 1.4;
+        }
+        .qc-btn:hover, .qc-btn:active { background: rgba(59,130,246,0.3); transform: scale(1.15); }
+        .qc-btn.urge { border-color: #f59e0b; background: rgba(120,53,15,0.5); }
+
+        /* ===== 聊天气泡浮层 ===== */
+        .chat-bubble-layer { position: fixed; top: 38px; right: 6px; z-index: 500; display: flex; flex-direction: column; gap: 3px; pointer-events: none; max-width: 160px; }
+        .chat-bubble { background: rgba(30,41,59,0.95); border: 1px solid #334155; border-radius: 10px; padding: 3px 8px; font-size: 11px; color: #e2e8f0; animation: bubblein .3s ease, bubbleout .4s 3.5s forwards; white-space: nowrap; }
+        @keyframes bubblein { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes bubbleout { from{opacity:1} to{opacity:0} }
+
+        /* ===== 交易通知横幅强化 ===== */
+        .trade-banner-highlight { animation: tradepulse 1s infinite alternate; }
+        @keyframes tradepulse { from{box-shadow:0 0 8px rgba(56,189,248,0.3)} to{box-shadow:0 0 20px rgba(56,189,248,0.8)} }
+
+        /* ===== 玩家状态卡片始终可见的增强 ===== */
+        .mini-stall .mini-hand-pills { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; margin-top: 3px; }
+        .hand-pill { font-size: 8px; background: rgba(51,65,85,0.8); border-radius: 3px; padding: 0 3px; color: #94a3b8; }
 
         /* ===== 底部控制台：固定比例 ===== */
         .bottom-console {
@@ -177,6 +218,9 @@
 {% endif %}
 
 <div id="game-wrapper">
+
+<!-- 聊天气泡浮层（始终悬浮右上角） -->
+<div id="chat-bubble-layer" class="chat-bubble-layer"></div>
 
     {% if error %}
     <div style="position:fixed;top:40px;left:50%;transform:translateX(-50%);z-index:9999;" class="alert alert-danger py-1 px-3 fs-6">{{ error }}</div>
@@ -309,8 +353,10 @@
 
     {% if g.pending_trade %}
     {% set t = g.pending_trade %}
-    <div id="trade-banner" style="background:linear-gradient(90deg,#1e3a5f,#1e293b);border-top:2px solid #38bdf8;border-bottom:2px solid #38bdf8;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;z-index:20;">
-        <span style="font-size:12px;">🤝 <strong class="text-info">{{ t.from }}</strong> 要用 <strong class="text-warning">{{ t.offer }}</strong> 换你的 <strong class="text-danger">{{ t.want }}</strong></span>
+    <div id="trade-banner" class="trade-banner-highlight" style="background:linear-gradient(90deg,#1e3a5f,#1e293b);border-top:2px solid #38bdf8;border-bottom:2px solid #38bdf8;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;z-index:20;">
+        <span style="font-size:12px;">🤝 <strong class="text-warning">{{ t.from }}</strong> 要用 <strong class="text-success">{{ t.offer }}</strong> 换 <strong class="text-danger">{{ t.to }}</strong> 的 <strong class="text-info">{{ t.want }}</strong>
+        {% if my_name != t.to and my_name != t.from %}<span style="font-size:10px;color:#64748b;"> （旁观）</span>{% endif %}
+        </span>
         {% if my_name == t.to %}
         <div class="d-flex gap-2 align-items-center">
             <span id="trade-timer" class="text-warning" style="font-size:12px;font-weight:bold;min-width:30px;"></span>
@@ -318,6 +364,7 @@
             <a href="/resolve_trade/decline" class="btn btn-danger btn-sm py-0 px-2" style="font-size:11px;">❌ 拒绝</a>
         </div>
         {% else %}
+        <span id="trade-timer" class="text-warning" style="font-size:11px;font-weight:bold;min-width:30px;"></span>
         <span class="text-muted" style="font-size:11px;">等待 {{ t.to }} 回应…</span>
         {% endif %}
     </div>
@@ -330,8 +377,10 @@
 
         <div class="opponents-col">
             {% for idx, opp in opponents[:mid] %}
-            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }},'{{ opp.name }}',{{ opp.scored_cards|length }}, this.getAttribute('data-flies'))" data-flies='{{ opp.flies | tojson }}'>
-                <div class="mini-name">{{ opp.name }}</div>
+            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}"
+                 onclick="openTargetModal({{ idx }},'{{ opp.name }}',{{ opp.scored_cards|length }}, this.getAttribute('data-flies'))"
+                 data-flies='{{ opp.flies | tojson }}'>
+                <div class="mini-name">{% if g.turn_idx == idx %}▶ {% endif %}{{ opp.name }}</div>
                 <div class="mini-stats">
                     <span>🎴{{ opp.hand|length }}</span>
                     <span class="text-warning">📦{{ opp.scored_cards|length }}</span>
@@ -347,6 +396,21 @@
                     <span>📦</span><span>打包标配</span>
                     <span class="deck-badge">剩{{ g.gold_deck|length }}</span>
                 </a>
+            {% else %}
+                <div class="deck gold-deck disabled-card"><span>📦</span><span>Nasi Lemak</span></div>
+            {% endif %}
+
+            <!-- 对局记录 — 两堆卡牌中间 -->
+            <div class="center-log">
+                <div class="center-log-title">📜 对局记录</div>
+                <div class="center-log-body" id="center-log-body">
+                    {% for line in g.log[-20:]|reverse %}
+                    <div class="center-log-line">{{ line }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            {% if g.turn_idx == my_p_idx %}
                 {% if not g.has_drawn %}
                 <a href="/draw" class="deck main-deck" style="box-shadow:0 0 16px #22c55e;">
                     <span>📥</span><span>摸2张牌</span>
@@ -358,15 +422,16 @@
                 </div>
                 {% endif %}
             {% else %}
-                <div class="deck gold-deck disabled-card"><span>📦</span><span>Nasi Lemak</span></div>
                 <div class="deck main-deck disabled-card"><span>🎴</span><span>抽牌堆</span></div>
             {% endif %}
         </div>
 
         <div class="opponents-col">
             {% for idx, opp in opponents[mid:] %}
-            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }}, this.getAttribute('data-flies'))" data-flies='{{ opp.flies | tojson }}'>
-                <div class="mini-name">{{ opp.name }}</div>
+            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}"
+                 onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }}, this.getAttribute('data-flies'))"
+                 data-flies='{{ opp.flies | tojson }}'>
+                <div class="mini-name">{% if g.turn_idx == idx %}▶ {% endif %}{{ opp.name }}</div>
                 <div class="mini-stats">
                     <span>🎴{{ opp.hand|length }}</span>
                     <span class="text-warning">📦{{ opp.scored_cards|length }}</span>
@@ -432,16 +497,57 @@
                 {% endfor %}
             {% endif %}
         </div>
+
+        <!-- ===== 快捷沟通栏 ===== -->
+        {% if my_name %}
+        <div class="quick-chat-bar">
+            <span class="qc-label">我有：</span>
+            <button class="qc-btn" onclick="sendQuickChat('🥚')" title="我有鸡蛋">🥚</button>
+            <button class="qc-btn" onclick="sendQuickChat('🥒')" title="我有黄瓜">🥒</button>
+            <button class="qc-btn" onclick="sendQuickChat('🍚')" title="我有白饭">🍚</button>
+            <button class="qc-btn" onclick="sendQuickChat('🌶️')" title="我有Sambal">🌶️</button>
+            <button class="qc-btn" onclick="sendQuickChat('🥜')" title="我有花生">🥜</button>
+            <span class="qc-label" style="margin-left:4px;">|</span>
+            <button class="qc-btn" onclick="sendQuickChat('🙋')" title="举手（我有！）">🙋</button>
+            <button class="qc-btn urge" onclick="sendQuickChat('⏩')" title="快一点！">⏩</button>
+        </div>
+        {% endif %}
     </div>
 
     <div id="target-modal" class="action-modal">
         <div class="modal-box">
-            <h5 class="text-warning mb-3">🎯 针对 <span id="tm-name"></span></h5>
-            <div class="d-flex flex-column gap-2">
-                <a id="btn-officer" href="#" class="btn btn-primary btn-sm">👮 派官员搜查手牌</a>
-                <div id="fly-targets" class="d-flex flex-wrap gap-2 justify-content-center mt-1"></div>
+            <h5 class="text-warning mb-2">👤 <span id="tm-name"></span></h5>
+
+            <!-- 攻击选项（仅自己回合可见） -->
+            <div id="tm-attack-section">
+                <div class="d-flex flex-column gap-2 mb-2">
+                    <a id="btn-officer" href="#" class="btn btn-primary btn-sm">👮 派官员搜查手牌</a>
+                    <div id="fly-targets" class="d-flex flex-wrap gap-2 justify-content-center mt-1"></div>
+                </div>
             </div>
-            <button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">取消</button>
+
+            <!-- 只读状态（非自己回合） -->
+            <div id="tm-readonly-section" style="display:none;">
+                <p class="text-muted small mb-1">👁️ 查看模式（非你的回合）</p>
+                {% for p in g.players %}{% if p.name != my_name %}
+                <div id="tm-status-{{ loop.index0 }}" class="d-none">
+                    <div class="small text-info mb-1">手牌：{{ p.hand|length }} 张 &nbsp;|&nbsp; 椰浆饭：{{ p.scored_cards|length }} 包</div>
+                    {% if p.scored_cards %}
+                    <div class="d-flex flex-wrap gap-1 justify-content-center">
+                        {% for si in range(p.scored_cards|length) %}
+                        <span style="background:{% if p.flies[si] %}#374151{% else %}#d4af37{% endif %};color:{% if p.flies[si] %}#ef4444{% else %}#000{% endif %};border-radius:4px;padding:1px 6px;font-size:11px;font-weight:bold;">
+                            📦{{ p.scored_cards[si] }}包{% if p.flies[si] %} 🪰{% endif %}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="small text-muted">尚未打包任何椰浆饭</div>
+                    {% endif %}
+                </div>
+                {% endif %}{% endfor %}
+            </div>
+
+            <button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">关闭</button>
         </div>
     </div>
 
@@ -553,7 +659,7 @@
 
     <div id="trade-modal" class="action-modal">
         <div class="modal-box">
-            <h5 class="text-primary mb-3">🤝 15秒限时食材交易</h5>
+            <h5 class="text-primary mb-3">🤝 30秒限时食材交易</h5>
             <form action="/propose_trade" method="POST">
                 <div class="row g-2 mb-2">
                     <div class="col-6">
@@ -597,31 +703,43 @@
         document.getElementById('fan-target-list')?.classList.add('d-none');
     }
 
-    // ===== 攻击目标弹窗（精准苍蝇雷达版） =====
+    // ===== 攻击目标弹窗（始终可查看状态，仅自己回合可攻击） =====
     function openTargetModal(tIdx, name, foodCount, fliesStr) {
-        {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending %}
         document.getElementById('tm-name').innerText = name;
-        document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
         
+        // 攻击按钮区域
+        const attackSection = document.getElementById('tm-attack-section');
+        const readonlySection = document.getElementById('tm-readonly-section');
+        
+        {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending %}
+        // 我的回合 — 显示攻击选项
+        if(attackSection) attackSection.style.display = '';
+        if(readonlySection) readonlySection.style.display = 'none';
+        document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
         let fa = document.getElementById('fly-targets');
         fa.innerHTML = '';
-        
         if(foodCount > 0) {
             let flies = JSON.parse(fliesStr || "[]");
             for(let i=0; i<foodCount; i++) {
                 if(flies[i]) {
-                    // 如果这包饭已经有苍蝇，灰色锁定，并提示已有苍蝇
                     fa.innerHTML += `<span class="btn btn-sm btn-secondary disabled" style="opacity:0.6;">第${i+1}包(已有🪰)</span>`;
                 } else {
-                    // 如果是干净的，显示红色可攻击按钮
                     fa.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger shadow-sm">砸在第${i+1}包</a>`;
                 }
             }
-        } else { 
-            fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>'; 
+        } else {
+            fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>';
         }
-        document.getElementById('target-modal').style.display = 'flex';
+        {% else %}
+        // 非我的回合 — 仅查看状态
+        if(attackSection) attackSection.style.display = 'none';
+        if(readonlySection) readonlySection.style.display = '';
+        // 隐藏所有，只显示点击的那个
+        document.querySelectorAll('[id^="tm-status-"]').forEach(el => el.classList.add('d-none'));
+        const statusEl = document.getElementById('tm-status-' + tIdx);
+        if(statusEl) statusEl.classList.remove('d-none');
         {% endif %}
+        document.getElementById('target-modal').style.display = 'flex';
     }
 
     // ===== 供应商 =====
@@ -694,6 +812,44 @@
         if(document.activeElement && document.activeElement.tagName === 'INPUT') return;
         window.location.reload();
     }, 3000);
+    {% endif %}
+
+    // ===== 快捷沟通 =====
+    const CHAT_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生','🙋':'我有！','⏩':'快点啦！'};
+    function sendQuickChat(msg) {
+        const fd = new FormData();
+        fd.append('msg', msg);
+        fetch('/quick_chat', {method:'POST', body:fd});
+        showLocalBubble('你', msg);
+    }
+    function showLocalBubble(player, msg) {
+        const layer = document.getElementById('chat-bubble-layer');
+        if(!layer) return;
+        const b = document.createElement('div');
+        b.className = 'chat-bubble';
+        const label = CHAT_LABELS[msg] || msg;
+        b.innerHTML = `<strong style="color:#38bdf8;">${player}</strong>：${msg} <span style="font-size:9px;color:#64748b;">${label}</span>`;
+        layer.appendChild(b);
+        setTimeout(() => b.remove(), 4000);
+    }
+
+    // ===== 服务器聊天消息渲染 =====
+    {% if chat_messages %}
+    (function(){
+        const msgs = {{ chat_messages | tojson }};
+        const now = Date.now() / 1000;
+        const layer = document.getElementById('chat-bubble-layer');
+        if(!layer) return;
+        msgs.filter(m => now - m.ts < 4).slice(-3).forEach(m => {
+            const b = document.createElement('div');
+            b.className = 'chat-bubble';
+            const label = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生','🙋':'我有！','⏩':'快点啦！'}[m.msg] || m.msg;
+            b.innerHTML = `<strong style="color:#38bdf8;">${m.player}</strong>：${m.msg} <span style="font-size:9px;color:#64748b;">${label}</span>`;
+            layer.appendChild(b);
+            const age = now - m.ts;
+            setTimeout(() => b.remove(), Math.max(500, (4 - age) * 1000));
+        });
+    })();
     {% endif %}
 </script>
 </body>
