@@ -114,18 +114,33 @@
         .mini-stall .mini-hand-pills { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; margin-top: 3px; }
         .hand-pill { font-size: 8px; background: rgba(51,65,85,0.8); border-radius: 3px; padding: 0 3px; color: #94a3b8; }
 
-        /* ===== 底部控制台：固定比例 ===== */
         .bottom-console {
             flex: 0 0 auto;
-            height: clamp(140px, 28dvh, 185px);
-            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-            padding-bottom: clamp(4px, 1dvh, 10px);
+            height: clamp(170px, 32dvh, 220px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: clamp(8px, 2dvh, 14px);
             background: linear-gradient(0deg, rgba(0,0,0,.75), transparent);
-            z-index: 10;
+            z-index: 30;
+            position: relative;
         }
 
         /* ===== 已打包的饭 ===== */
-        .my-stall-zone { display: flex; gap: 6px; margin-bottom: 5px; align-items: center; flex-wrap: wrap; justify-content: center; max-height: 38px; overflow: hidden; }
+        .my-stall-zone {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            min-height: 52px;
+            max-height: 80px;
+            overflow-y: auto;
+            position: relative;
+            z-index: 80;
+        }
         .my-nasi {
             background: #d4af37; color: #000; font-weight: bold;
             padding: 2px 8px; border-radius: 5px; font-size: 11px;
@@ -136,9 +151,14 @@
 
         /* ===== 手牌（斗地主交叠） ===== */
         .poker-hand {
-            display: flex; justify-content: center; align-items: flex-end;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
             height: clamp(90px, 18dvh, 125px);
             padding: 0 10px;
+            position: relative;
+            z-index: 10;
+            margin-top: 4px;
         }
         .poker-card {
             width: clamp(55px, 7vw, 80px);
@@ -464,7 +484,7 @@
         <div class="my-stall-zone">
             {% if my_player %}
                 {% if my_player.placed_crow is not none %}
-                <div style="background:rgba(234,179,8,0.2);border:2px solid #eab308;border-radius:8px;padding:4px 10px;font-size:11px;color:#fde047;width:100%;text-align:center;">
+                <div style="background:rgba(234,179,8,0.2);border:2px solid #eab308;border-radius:8px;padding:6px 12px;font-size:11px;color:#fde047;width:100%;text-align:center;position:relative;z-index:120;margin-bottom:6px;box-shadow: 0 0 12px rgba(234,179,8,.35);">
                     🐦‍⬛ 乌鸦在你面前！你无法包Nasi Lemak。
                     携带食材：{% if my_player.placed_crow.ingredients %}[{{ my_player.placed_crow.ingredients | join(', ') }}]（共{{ my_player.placed_crow.ingredients|length }}张）{% else %}无{% endif %}
                     — 点击对手赶走乌鸦！
