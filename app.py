@@ -79,9 +79,23 @@ class OnlineGameState:
         p["hand"].sort()
         return drawn
 
+    def check_win(self):
+        """检查是否有人达成胜利条件，随时可调用。"""
+        for p in self.players:
+            net_packs = sum(val for idx, val in enumerate(p["scored_cards"]) if not p["flies"][idx])
+            if net_packs >= 5:
+                self.game_over = True
+                self.winner = p["name"]
+                self.log.append(f"👑 【{p['name']}】 成功卖出 {net_packs} 包净椰浆饭，赢得了胜利！")
+                return True
+        return False
+
     def spend_move(self, action_description):
         self.moves_left -= 1
         self.log.append(f"🎬 消耗动作：{action_description}（剩 {self.moves_left} 次动作）")
+        # 每次动作后立即检查胜利条件
+        if self.check_win():
+            return
         if self.moves_left <= 0:
             self.end_turn()
 
@@ -89,13 +103,8 @@ class OnlineGameState:
         self.pending_trade = None
         self.wholesaler_reveal = None
         self.thief_pending = False
-        for p in self.players:
-            net_packs = sum(val for idx, val in enumerate(p["scored_cards"]) if not p["flies"][idx])
-            if net_packs >= 5:
-                self.game_over = True
-                self.winner = p["name"]
-                self.log.append(f"👑 【{p['name']}】 成功售出 {net_packs} 包净椰浆饭，赢得了胜利！")
-                return
+        if self.check_win():
+            return
 
         if not self.gold_deck:
             self.game_over = True
@@ -380,19 +389,15 @@ def play_action(action_type):
         p["hand"].remove("Wholesaler")
         g.discard.append("Wholesaler")
         peeked = g.draw_from_deck(g.turn_idx, 3)
-        kept = [c for c in peeked if c in CORE_5]
-        discarded = [c for c in peeked if c not in CORE_5]
-        for c in discarded:
-            p["hand"].remove(c)
-            g.discard.append(c)
+        # 批发商：全部3张都留下（食材或功能卡均可）
         # 公示给所有玩家看
         g.wholesaler_reveal = {
             "player": p["name"],
             "cards": peeked,
-            "kept": kept,
-            "discarded": discarded
+            "kept": peeked,
+            "discarded": []
         }
-        g.spend_move(f"【{p['name']}】 批发商过滤了牌堆顶3张牌，留下 {len(kept)} 张食材")
+        g.spend_move(f"【{p['name']}】 批发商摸了牌堆顶 3 张牌，全部留下！")
 
     elif action_type == 'supplier':
         if "Supplier" not in p["hand"]: return redirect(url_for('index'))
