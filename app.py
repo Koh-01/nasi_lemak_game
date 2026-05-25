@@ -46,7 +46,7 @@ class OnlineGameState:
         self.has_drawn = False
         self.game_over = False
         self.winner = ""
-        self.log = [f"🎲 游戏正式开始！由 【{self.players[self.turn_idx]['name']}】 率先行动！"]
+        self.log = [f"🎲 游戏正式开始！系统随机抽签，由 【{self.players[self.turn_idx]['name']}】 率先行动！"]
         self.active_inspection = None
         self.pending_trade = None
         self.wholesaler_reveal = None  
@@ -69,7 +69,7 @@ class OnlineGameState:
                     self.main_deck = self.discard[:]
                     self.discard.clear()
                     for _ in range(3): random.shuffle(self.main_deck)
-                    self.log.append("🔄 摸牌堆空了！弃牌堆已进行【深度洗牌】重用。")
+                    self.log.append("🔄 摸牌堆空了！弃牌堆已进行【深度混乱洗牌】重用。")
                 else: break
             card = self.main_deck.pop()
             p["hand"].append(card)
@@ -89,10 +89,11 @@ class OnlineGameState:
 
     def spend_move(self, action_description):
         self.moves_left -= 1
-        self.log.append(f"🎬 消耗动作：{action_description}（剩 {self.moves_left} 动）")
+        self.log.append(f"🎬 消耗动作：{action_description}（剩 {self.moves_left} 次动作）")
         if self.check_win():
             return
         
+        # 核心修复：如果还有悬而未决的交易、小偷选人、或批发商展示，暂时挂起，绝不结束回合
         if self.moves_left <= 0 and not self.pending_trade and not self.thief_pending and not getattr(self, 'wholesaler_reveal', None):
             self.end_turn()
 
@@ -140,6 +141,7 @@ def index():
     my_p_idx = -1
     trade_time_left = 0
     
+    # 幽灵缓存清理机制
     if my_name:
         if room.status == "EMPTY":
             session.pop('my_name', None); my_name = None
@@ -153,9 +155,10 @@ def index():
         if room.game.pending_trade:
             trade_time_left = int(room.game.pending_trade["expires_at"] - time.time())
             if trade_time_left <= 0:
-                room.game.log.append(f"⏱️ 交易超时！【{room.game.pending_trade['to']}】 未能在规定时间内回应。")
+                room.game.log.append(f"⏱️ 交易超时！【{room.game.pending_trade['to']}】 未能在 15 秒内作出回应。")
                 room.game.pending_trade = None
                 trade_time_left = 0
+                # 核心修复：超时后，如果发起人动作没了，补发结束回合
                 if room.game.moves_left <= 0: room.game.end_turn()
                 
         if my_name:
@@ -200,26 +203,6 @@ def draw():
             g.log.append(f"📥 【{g.current_player()['name']}】 抽取了 2 张手牌。")
     return redirect(url_for('index'))
 
-# ================= 快捷聊天系统 =================
-@app.route('/chat/<msg_type>')
-def chat(msg_type):
-    g = room.game
-    my_name = session.get('my_name')
-    if not g or not my_name: return redirect(url_for('index'))
-    
-    msg_map = {
-        "ask_rice": "谁有 🍚白饭？",
-        "ask_egg": "谁有 🥚水煮蛋？",
-        "ask_peanuts": "谁有 🥜炸花生？",
-        "ask_sambal": "谁有 🌶️三巴酱？",
-        "ask_cucumber": "谁有 🥒黄瓜片？",
-        "raise_hand": "🙋 我有！",
-        "hurry": "⏱️ 快点啦老板，我等到脖子都长了！"
-    }
-    if msg_type in msg_map:
-        g.log.append(f"💬 【{my_name}】: {msg_map[msg_type]}")
-    return redirect(url_for('index'))
-
 @app.route('/propose_trade', methods=['POST'])
 def propose_trade():
     g = room.game
@@ -242,9 +225,8 @@ def propose_trade():
         g.log.append("❌ 交易发起失败：你手里没有这张食材，或目标对象错误。")
         return redirect(url_for('index'))
 
-    # 时间延长至 30 秒
-    g.pending_trade = {"from": p["name"], "to": target_name, "offer": offer_card, "want": want_card, "expires_at": time.time() + 30}
-    g.spend_move(f"向 【{target_name}】 发起了 30 秒限时交易")
+    g.pending_trade = {"from": p["name"], "to": target_name, "offer": offer_card, "want": want_card, "expires_at": time.time() + 15}
+    g.spend_move(f"向 【{target_name}】 发起 15 秒限时食材交易：用 [{offer_card}] 换取 [{want_card}]")
     return redirect(url_for('index'))
 
 @app.route('/resolve_trade/<decision>')
@@ -273,9 +255,9 @@ def resolve_trade(decision):
             p_from["hand"].append(t_data["want"])
             p_from["hand"].sort()
             p_to["hand"].sort()
-            g.log.append(f"🤝 交易成功！【{t_data['to']}】 接受了请求，双方完成了互换。")
+            g.log.append(f"🤝 交易成功！【{t_data['to']}】 接受了请求，双方完成了食材互换。")
         else:
-            g.log.append(f"❌ 交易破裂！【{t_data['to']}】 并没有 [{t_data['want']}] 食材卡，这是一场骗局。")
+            g.log.append(f"❌ 交易破裂！【{t_data['to']}】 根本没有 [{t_data['want']}] 食材卡，这是一场骗局。")
     else:
         g.log.append(f"🚫 【{t_data['to']}】 无情地拒绝了交易请求。")
 
