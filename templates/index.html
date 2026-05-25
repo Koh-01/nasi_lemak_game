@@ -221,6 +221,23 @@
         <button onclick="openRestartModal()" class="restart-btn">⚡重启</button>
     </div>
 
+    <!-- 交易待处理横幅（被交易方看到） -->
+    {% if g.pending_trade %}
+    {% set t = g.pending_trade %}
+    <div id="trade-banner" style="background:linear-gradient(90deg,#1e3a5f,#1e293b);border-top:2px solid #38bdf8;border-bottom:2px solid #38bdf8;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;z-index:20;">
+        <span style="font-size:12px;">🤝 <strong class="text-info">{{ t.from }}</strong> 要用 <strong class="text-warning">{{ t.offer }}</strong> 换你的 <strong class="text-danger">{{ t.want }}</strong></span>
+        {% if my_name == t.to %}
+        <div class="d-flex gap-2 align-items-center">
+            <span id="trade-timer" class="text-warning" style="font-size:12px;font-weight:bold;min-width:30px;"></span>
+            <a href="/resolve_trade/accept" class="btn btn-success btn-sm py-0 px-2" style="font-size:11px;">✅ 接受</a>
+            <a href="/resolve_trade/decline" class="btn btn-danger btn-sm py-0 px-2" style="font-size:11px;">❌ 拒绝</a>
+        </div>
+        {% else %}
+        <span class="text-muted" style="font-size:11px;">等待 {{ t.to }} 回应…</span>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- 战场 -->
     <div class="battlefield">
         {% set opponents = [] %}
@@ -287,6 +304,15 @@
                 {% endfor %}
             {% endif %}
         </div>
+
+        <!-- 交易按钮：仅当轮到自己且已抽牌时显示 -->
+        {% if g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending and not g.pending_trade %}
+        <button onclick="document.getElementById('trade-modal').style.display='flex'"
+                class="btn btn-sm btn-outline-primary mb-1 px-3"
+                style="font-size:11px;border-radius:20px;opacity:0.85;">
+            🤝 发起食材交易
+        </button>
+        {% endif %}
 
         <div class="poker-hand">
             {% if my_player %}
@@ -450,6 +476,41 @@
     </div>
     {% endif %}
 
+    <!-- 交易发起弹窗 -->
+    <div id="trade-modal" class="action-modal">
+        <div class="modal-box">
+            <h5 class="text-primary mb-3">🤝 15秒限时食材交易</h5>
+            <form action="/propose_trade" method="POST">
+                <div class="row g-2 mb-2">
+                    <div class="col-6">
+                        <label class="form-label small text-muted mb-1">我出食材</label>
+                        <select name="offer" class="form-select form-select-sm" required>
+                            {% for i in ['Rice','Egg','Peanuts','Sambal','Cucumber'] %}
+                            <option value="{{ i }}">{{ {'Rice':'🍚 Rice','Egg':'🥚 Egg','Peanuts':'🥜 Peanuts','Sambal':'🌶️ Sambal','Cucumber':'🥒 Cucumber'}[i] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small text-muted mb-1">我要换取</label>
+                        <select name="want" class="form-select form-select-sm" required>
+                            {% for i in ['Rice','Egg','Peanuts','Sambal','Cucumber'] %}
+                            <option value="{{ i }}">{{ {'Rice':'🍚 Rice','Egg':'🥚 Egg','Peanuts':'🥜 Peanuts','Sambal':'🌶️ Sambal','Cucumber':'🥒 Cucumber'}[i] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <label class="form-label small text-muted mb-1">目标摊主</label>
+                <select name="target" class="form-select form-select-sm mb-3" required>
+                    {% for p in g.players if p.name != my_name %}
+                    <option value="{{ p.name }}">{{ p.name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">发起交易（消耗1动作）</button>
+            </form>
+            <button class="btn btn-sm btn-secondary w-100 mt-2" onclick="closeModals()">取消</button>
+        </div>
+    </div>
+
     {% endif %}<!-- end PLAYING -->
 </div><!-- end game-wrapper -->
 
@@ -526,6 +587,22 @@
         if(selectedThiefTargets.length === 0){ alert('请至少选择 1 名目标！'); return; }
         window.location.href = '/action/thief_targets?targets=' + selectedThiefTargets.join(',');
     }
+
+    // ===== 交易倒计时 =====
+    {% if room.status == "PLAYING" and g and g.pending_trade %}
+    (function(){
+        const expiresAt = {{ g.pending_trade.expires_at }};
+        const timerEl = document.getElementById('trade-timer');
+        function tick(){
+            if(!timerEl) return;
+            const left = Math.max(0, Math.ceil(expiresAt - Date.now()/1000));
+            timerEl.textContent = left + 's';
+            timerEl.style.color = left <= 5 ? '#ef4444' : '#f59e0b';
+            if(left > 0) setTimeout(tick, 500);
+        }
+        tick();
+    })();
+    {% endif %}
 
     // ===== 自动刷新（非当前玩家） =====
     {% if room.status == "WAITING" or (room.status == "PLAYING" and g and g.turn_idx != my_p_idx and not g.game_over) %}
