@@ -778,10 +778,19 @@
         const attackSection = document.getElementById('tm-attack-section');
         const readonlySection = document.getElementById('tm-readonly-section');
 
-        {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending %}
+        {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.active_inspection and not g.thief_pending %}
         if(attackSection) attackSection.style.display = '';
         if(readonlySection) readonlySection.style.display = 'none';
         document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
+        {% if not g.has_drawn %}
+        document.getElementById('btn-officer').classList.add('disabled');
+        document.getElementById('btn-officer').style.opacity = '0.4';
+        document.getElementById('btn-officer').onclick = function(e){ e.preventDefault(); alert('请先摸牌再使用官员！'); };
+        {% else %}
+        document.getElementById('btn-officer').classList.remove('disabled');
+        document.getElementById('btn-officer').style.opacity = '';
+        document.getElementById('btn-officer').onclick = null;
+        {% endif %}
 
         // ── Play Crow button (I have Crow in hand, target has no crow) ──
         const myHand = {{ my_player.hand | tojson if my_player else '[]' }};
@@ -808,12 +817,6 @@
                 siOyenBtn.style.display = 'none'; 
             }
         }
-        {% if "Si Oyen" in my_player.hand and my_player.placed_crow is not none %}
-            <a href="/action/si_oyen" id="btn-si-oyen" class="btn btn-cat">
-                🐱 召唤 Si Oyen 瞬间抓走我的乌鸦！
-            </a>
-        {% endif %}
-
         // ── Chase crow section (I have placed crow, target has no crow) ──
         const myHasCrow = {{ 'true' if my_player and my_player.placed_crow is not none else 'false' }};
         const chaseSection = document.getElementById('crow-chase-section');
