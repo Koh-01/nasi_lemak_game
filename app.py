@@ -25,7 +25,6 @@ def create_main_deck():
     deck.extend(["Fly"] * 5)
     deck.extend(["Fly Swatter"] * 2)
     deck.extend(["Fan"] * 3)
-    # 初始发牌大洗牌
     for _ in range(3): random.shuffle(deck)
     return deck
 
@@ -50,6 +49,10 @@ class OnlineGameState:
         self.log = [f"🎲 游戏正式开始！系统随机抽签，由 【{self.players[self.turn_idx]['name']}】 率先行动！"]
         self.active_inspection = None
         self.pending_trade = None
+        # 批发商公示：存储上一次批发商摸到的牌，让所有人可见
+        self.wholesaler_reveal = None  # {"player": name, "cards": [...], "kept": [...]}
+        # 小偷选人模式：超过4人时需要玩家选择偷谁
+        self.thief_pending = False  # 等待当前玩家选择偷谁
 
         for p in self.players:
             for _ in range(7):
@@ -67,7 +70,6 @@ class OnlineGameState:
                 if self.discard:
                     self.main_deck = self.discard[:]
                     self.discard.clear()
-                    # 超级混乱洗牌：连续打散3次，防止弃牌堆里的同类卡扎堆
                     for _ in range(3): random.shuffle(self.main_deck)
                     self.log.append("🔄 摸牌堆空了！弃牌堆已进行【深度混乱洗牌】重用。")
                 else: break
@@ -84,7 +86,9 @@ class OnlineGameState:
             self.end_turn()
 
     def end_turn(self):
-        self.pending_trade = None 
+        self.pending_trade = None
+        self.wholesaler_reveal = None
+        self.thief_pending = False
         for p in self.players:
             net_packs = sum(val for idx, val in enumerate(p["scored_cards"]) if not p["flies"][idx])
             if net_packs >= 5:
@@ -185,7 +189,7 @@ def draw():
             g.log.append(f"📥 【{g.current_player()['name']}】 抽取了 2 张手牌。")
     return redirect(url_for('index'))
 
-# ================= 交易系统 (限制：仅限食材交换) =================
+# ================= 交易系统 =================
 @app.route('/propose_trade', methods=['POST'])
 def propose_trade():
     g = room.game
@@ -199,7 +203,6 @@ def propose_trade():
     want_card = request.form.get('want')
     target_name = request.form.get('target')
 
-    # 硬性校验：必须且只能是 CORE_5 食材卡
     if offer_card not in CORE_5 or want_card not in CORE_5:
         g.log.append("❌ 交易发起失败：按照规则，交易只能交换食材卡！")
         return redirect(url_for('index'))
@@ -211,7 +214,6 @@ def propose_trade():
         g.log.append("❌ 交易发起失败：你手里没有这张食材，或目标对象错误。")
         return redirect(url_for('index'))
 
-    # 发起交易
     g.pending_trade = {
         "from": p["name"],
         "to": target_name,
@@ -315,28 +317,82 @@ def play_action(action_type):
 
     elif action_type == 'thief':
         if "Thief" not in p["hand"]: return redirect(url_for('index'))
-        p["hand"].remove("Thief")
-        g.discard.append("Thief")
-        stolen_count = 0
-        for opp in g.players:
-            if opp["name"] != p["name"] and opp["hand"]:
+        opponents = [opp for opp in g.players if opp["name"] != p["name"] and opp["hand"]]
+        
+        # 超过4人局：需要玩家选择3个目标，弹出选人界面
+        if len(g.players) > 4:
+            # 进入选人模式，不立即执行
+            g.thief_pending = True
+            g.log.append(f"🥷 【{p['name']}】 正在选择偷窃目标（需选3人）...")
+            return redirect(url_for('index'))
+        else:
+            # 4人以下：偷所有人
+            p["hand"].remove("Thief")
+            g.discard.append("Thief")
+            stolen_count = 0
+            for opp in opponents:
                 card = random.choice(opp["hand"])
                 opp["hand"].remove(card)
                 p["hand"].append(card)
                 stolen_count += 1
+            p["hand"].sort()
+            g.spend_move(f"🥷 【{p['name']}】 派小偷从全场共摸走了 {stolen_count} 张手牌！")
+
+    elif action_type == 'thief_targets':
+        # 多人局：玩家提交了选定的3个偷窃目标
+        if not g.thief_pending or "Thief" not in p["hand"]: return redirect(url_for('index'))
+        raw = request.args.get('targets', '')
+        try:
+            chosen_idxs = [int(x) for x in raw.split(',') if x.strip()]
+        except ValueError:
+            return redirect(url_for('index'))
+        
+        # 最多3个，排除自己，排除手牌为空的
+        valid_targets = []
+        for idx in chosen_idxs:
+            if idx < len(g.players) and g.players[idx]["name"] != p["name"] and g.players[idx]["hand"]:
+                valid_targets.append(idx)
+        valid_targets = list(dict.fromkeys(valid_targets))[:3]  # 去重取前3
+        
+        if len(valid_targets) == 0:
+            g.log.append("❌ 没有选择有效的偷窃目标！")
+            g.thief_pending = False
+            return redirect(url_for('index'))
+        
+        p["hand"].remove("Thief")
+        g.discard.append("Thief")
+        stolen_count = 0
+        target_names = []
+        for idx in valid_targets:
+            opp = g.players[idx]
+            if opp["hand"]:
+                card = random.choice(opp["hand"])
+                opp["hand"].remove(card)
+                p["hand"].append(card)
+                stolen_count += 1
+                target_names.append(opp["name"])
         p["hand"].sort()
-        g.spend_move(f"🥷 【{p['name']}】 派小偷从全场共摸走了 {stolen_count} 张手牌！")
+        g.thief_pending = False
+        g.spend_move(f"🥷 【{p['name']}】 从 【{'、'.join(target_names)}】 各偷走了1张手牌！")
 
     elif action_type == 'wholesaler':
         if "Wholesaler" not in p["hand"]: return redirect(url_for('index'))
         p["hand"].remove("Wholesaler")
         g.discard.append("Wholesaler")
         peeked = g.draw_from_deck(g.turn_idx, 3)
+        kept = [c for c in peeked if c in CORE_5]
         discarded = [c for c in peeked if c not in CORE_5]
         for c in discarded:
             p["hand"].remove(c)
             g.discard.append(c)
-        g.spend_move(f"【{p['name']}】 批发商过滤了牌堆顶 3 张牌")
+        # 公示给所有玩家看
+        g.wholesaler_reveal = {
+            "player": p["name"],
+            "cards": peeked,
+            "kept": kept,
+            "discarded": discarded
+        }
+        g.spend_move(f"【{p['name']}】 批发商过滤了牌堆顶3张牌，留下 {len(kept)} 张食材")
 
     elif action_type == 'supplier':
         if "Supplier" not in p["hand"]: return redirect(url_for('index'))
@@ -384,6 +440,13 @@ def play_action(action_type):
     elif action_type == 'end_turn_manual':
         g.end_turn()
 
+    return redirect(url_for('index'))
+
+@app.route('/action/wholesaler_dismiss')
+def wholesaler_dismiss():
+    g = room.game
+    if g and session.get('my_name') == g.current_player()['name']:
+        g.wholesaler_reveal = None
     return redirect(url_for('index'))
 
 @app.route('/reset')
