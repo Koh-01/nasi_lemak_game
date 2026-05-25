@@ -144,6 +144,23 @@ def index():
     my_p_idx = -1
     trade_time_left = 0
     
+    # ================= 核心修复：清理残留的“幽灵缓存” =================
+    if my_name:
+        # 1. 房间被彻底重置为空了，强行扒掉旧玩家的名字
+        if room.status == "EMPTY":
+            session.pop('my_name', None)
+            my_name = None
+        # 2. 房间在等人，但该玩家的名字并不在官方入场名单里（说明是上局残留）
+        elif room.status == "WAITING" and my_name not in room.joined_players:
+            session.pop('my_name', None)
+            my_name = None
+        # 3. 游戏已经开始了，但这个旧名字不在局内玩家名单里
+        elif room.status == "PLAYING" and room.game:
+            if my_name not in [p["name"] for p in room.game.players]:
+                session.pop('my_name', None)
+                my_name = None
+    # ====================================================================
+    
     if room.status == "PLAYING" and room.game:
         if room.game.pending_trade:
             trade_time_left = int(room.game.pending_trade["expires_at"] - time.time())
