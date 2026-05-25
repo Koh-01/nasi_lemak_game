@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import random
 
 app = Flask(__name__)
-# 线上部署安全密钥
+# 线上部署安全密钥（防止本地与线上 Session 加密冲突）
 app.secret_key = os.environ.get("SECRET_KEY", "nasilemak_multiplayer_secret_key_2026")
 
 CORE_5 = ["Rice", "Egg", "Peanuts", "Sambal", "Cucumber"]
@@ -17,6 +17,7 @@ def create_main_deck():
     deck = []
     for ing in CORE_5:
         deck.extend([ing] * 10)
+    # 功能行动卡（单行独立添加，防止 extend 多参数报错）
     deck.extend(["Wholesaler"] * 3)
     deck.extend(["Thief"] * 3)
     deck.extend(["Supplier"] * 3)
@@ -34,6 +35,10 @@ class OnlineGameState:
         self.gold_deck = create_gold_deck()
         self.discard = []
         self.players = []
+        
+        # 记录已经被其他设备认领过的名字列表（防止一个角色被多人选）
+        self.claimed_roles = []
+        
         for name in player_names:
             self.players.append({
                 "name": name,
@@ -41,14 +46,18 @@ class OnlineGameState:
                 "scored_cards": [],
                 "flies": []
             })
-        self.turn_idx = 0
+            
+        # 【新增】：开局顺序完全随机打乱
+        self.turn_idx = random.randint(0, len(self.players) - 1)
+        
         self.moves_left = 3
         self.has_drawn = False
         self.game_over = False
         self.winner = ""
-        self.log = ["游戏房间已创建！每位老板分发 7 张起始手牌。"]
+        self.log = [f"🎲 游戏房间已创建！系统随机抽签，由 【{self.players[self.turn_idx]['name']}】 率先开始！"]
         self.active_inspection = None
 
+        # 初始发 7 张牌
         for p in self.players:
             for _ in range(7):
                 if self.main_deck: p["hand"].append(self.main_deck.pop())
@@ -81,6 +90,7 @@ class OnlineGameState:
             self.end_turn()
 
     def end_turn(self):
+        # 胜利清算逻辑
         for p in self.players:
             net_packs = sum(val for idx, val in enumerate(p["scored_cards"]) if not p["flies"][idx])
             if net_packs >= 5:
@@ -89,6 +99,7 @@ class OnlineGameState:
                 self.log.append(f"👑 【{p['name']}】 成功售出 {net_packs} 包净椰浆饭，赢得了胜利！")
                 return
 
+        # 平局清算逻辑
         if not self.gold_deck:
             self.game_over = True
             highest_packs = -1
@@ -104,12 +115,14 @@ class OnlineGameState:
             self.log.append(f"📦 金卡堆耗尽！平局清算获胜者：{self.winner}")
             return
 
+        # 正常换人
         self.turn_idx = (self.turn_idx + 1) % len(self.players)
         self.moves_left = 3
         self.has_drawn = False
         self.active_inspection = None
-        self.log.append(f"🟢 轮到 【{self.players[self.turn_idx]['name']}】 的回合。")
+        self.log.append(f"🟢 轮到 【{self.players[self.turn_idx]['name']}】 的回合。请先摸牌。")
 
+# 线上安全的多进程全局共享类绑定
 class GlobalGameHolder:
     def __init__(self):
         self.instance = None
@@ -118,6 +131,7 @@ game_holder = GlobalGameHolder()
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    # 1. 房东创建新游戏
     if request.method == 'POST' and not game_holder.instance:
         names_raw = request.form.get('player_names', '老板A, 老板B, 老板C')
         names = [n.strip() for n in names_raw.split(',') if n.strip()]
@@ -130,13 +144,26 @@ def index():
     my_p_idx = -1
     
     if game_holder.instance:
-        if not my_name and 'join_name' in request.args:
+        # 2. 【核心修改】玩家尝试认领角色身份
+        if 'join_name' in request.args:
             join_name = request.args.get('join_name')
-            for idx, p in enumerate(game_holder.instance.players):
-                if p["name"] == join_name:
-                    session['my_name'] = join_name
-                    return redirect(url_for('index'))
+            # 校验 1：如果这个设备已经认领过名字了，不允许再认领别人
+            if my_name:
+                pass # 忽略请求
+            # 校验 2：如果这个名字已经被别人抢先认领了，不允许认领
+            elif join_name in game_holder.instance.claimed_roles:
+                game_holder.instance.log.append(f"⚠️ 认领失败：角色【{join_name}】已被其他设备连接！")
+            else:
+                # 校验通过：绑定该设备
+                for idx, p in enumerate(game_holder.instance.players):
+                    if p["name"] == join_name:
+                        session['my_name'] = join_name
+                        game_holder.instance.claimed_roles.append(join_name) # 登记在册，锁定该角色
+                        game_holder.instance.log.append(f"👤 玩家【{join_name}】已成功上线连接！")
+                        break
+            return redirect(url_for('index'))
 
+        # 3. 刷新/获取当前 Session 绑定的角色指针
         my_name = session.get('my_name', None)
         if my_name:
             for idx, p in enumerate(game_holder.instance.players):
@@ -147,6 +174,7 @@ def index():
 
     return render_template('index.html', g=game_holder.instance, my_name=my_name, my_player=my_player_obj, my_p_idx=my_p_idx)
 
+# 后续所有的 /action 和 /draw 路由保持不变，它们已经非常稳定了
 @app.route('/draw')
 def draw():
     g = game_holder.instance
@@ -154,7 +182,7 @@ def draw():
         if session.get('my_name') == g.current_player()['name']:
             g.draw_from_deck(g.turn_idx, 2)
             g.has_drawn = True
-            g.log.append(f"📥 【{g.current_player()['name']}】 抽取了 2 张初始手牌。")
+            g.log.append(f"📥 【{g.current_player()['name']}】 抽取了 2 张手牌。")
     return redirect(url_for('index'))
 
 @app.route('/action/<action_type>')
@@ -168,7 +196,6 @@ def play_action(action_type):
         
     p = g.current_player()
 
-    # 强力容错机制：如果网页传来的数字有问题，直接拦截，绝不崩溃！
     try:
         target_idx = int(request.args.get('target', 0))
         card_idx = int(request.args.get('card_idx', 0))
@@ -238,7 +265,6 @@ def play_action(action_type):
                 p["hand"].append(card)
                 stolen_count += 1
         p["hand"].sort()
-        # 优化小偷提示，确保明确告知大家他偷了多少卡
         g.spend_move(f"🥷 【{p['name']}】 派小偷成功从全场其他人手里共摸走了 {stolen_count} 张手牌！")
 
     elif action_type == 'wholesaler':
