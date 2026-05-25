@@ -3,151 +3,156 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>椰浆饭大作战 - 竞技横屏版</title>
+    <title>椰浆饭大作战</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* 强制横屏提示屏 */
+        /* ===== 横屏强制 ===== */
         #orientation-warning {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #0f172a; color: white; z-index: 99999; flex-direction: column;
-            justify-content: center; align-items: center; text-align: center;
+            display: none; position: fixed; inset: 0;
+            background: #0f172a; color: white; z-index: 99999;
+            flex-direction: column; justify-content: center; align-items: center; text-align: center;
         }
         @media screen and (orientation: portrait) {
             #orientation-warning { display: flex; }
             #game-wrapper { display: none !important; }
         }
 
-        body { background-color: #1e293b; color: white; font-family: 'PingFang SC', sans-serif; overflow: hidden; margin: 0; padding: 0; height: 100vh; }
+        /* ===== 全局 ===== */
+        *, *::before, *::after { box-sizing: border-box; }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1e293b; color: white; font-family: 'PingFang SC', 'Helvetica Neue', sans-serif; }
         
-        /* 游戏大框架 */
-        #game-wrapper { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
-        
-        /* 顶部状态栏 */
-        .top-bar { background: linear-gradient(180deg, #0f172a, transparent); height: 40px; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 14px; text-shadow: 0 2px 4px rgba(0,0,0,0.8); z-index: 10; position: relative; }
-        .turn-indicator { color: #f59e0b; font-size: 16px; margin: 0 15px; }
+        /* ===== 游戏框架：用 dvh 适配移动端地址栏 ===== */
+        #game-wrapper { display: flex; flex-direction: column; width: 100vw; height: 100dvh; }
 
-        /* 强制重启按钮 */
+        /* ===== 顶部栏：固定高度 ===== */
+        .top-bar {
+            flex: 0 0 36px; height: 36px;
+            background: linear-gradient(180deg, #0f172a 60%, transparent);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: bold; z-index: 10; position: relative;
+            padding: 0 8px;
+        }
+        .turn-indicator { color: #f59e0b; font-size: 13px; margin: 0 8px; white-space: nowrap; }
         .restart-btn {
-            position: absolute;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: linear-gradient(135deg, #7f1d1d, #991b1b);
-            color: #fca5a5;
-            border: 1px solid #ef4444;
-            border-radius: 6px;
-            padding: 2px 8px;
-            font-size: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            text-decoration: none;
-            letter-spacing: 0.5px;
-            transition: all 0.2s;
-            white-space: nowrap;
+            position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+            background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444;
+            border-radius: 5px; padding: 1px 7px; font-size: 10px; font-weight: bold;
+            cursor: pointer; white-space: nowrap;
         }
-        .restart-btn:hover { background: linear-gradient(135deg, #991b1b, #b91c1c); color: #fee2e2; border-color: #f87171; box-shadow: 0 0 8px rgba(239,68,68,0.5); }
 
-        /* 重启确认弹窗 */
-        #restart-confirm-modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 99998; justify-content: center; align-items: center;
+        /* ===== 战场区：自动填满剩余高度 ===== */
+        .battlefield {
+            flex: 1 1 0; min-height: 0;
+            display: flex; justify-content: space-between; align-items: stretch;
+            padding: 4px 6px; overflow: hidden;
         }
-        .restart-modal-box {
-            background: linear-gradient(135deg, #1e293b, #0f172a);
-            border: 2px solid #ef4444;
-            border-radius: 14px;
-            padding: 24px 28px;
-            text-align: center;
-            width: 280px;
-            box-shadow: 0 0 30px rgba(239,68,68,0.3);
+
+        /* ===== 对手列 ===== */
+        .opponents-col { display: flex; flex-direction: column; justify-content: space-evenly; width: 110px; gap: 4px; flex-shrink: 0; }
+        .mini-stall {
+            background: rgba(30,41,59,0.85); border: 2px solid #475569;
+            border-radius: 7px; padding: 4px 5px; text-align: center;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3); transition: .25s; cursor: pointer;
         }
-        .restart-modal-box h5 { color: #ef4444; margin-bottom: 8px; }
-        .restart-modal-box p { color: #94a3b8; font-size: 12px; margin-bottom: 16px; }
-        .restart-confirm-btns { display: flex; gap: 10px; justify-content: center; }
+        .mini-stall.active { border-color: #e2b13c; box-shadow: 0 0 12px rgba(226,177,60,.6); background: rgba(226,177,60,.1); }
+        .mini-name { font-size: 11px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #38bdf8; margin-bottom: 3px; border-bottom: 1px solid #334155; padding-bottom: 2px; }
+        .mini-stats { display: flex; justify-content: space-around; font-size: 10px; }
 
-        /* 中部战局区 */
-        .battlefield { flex: 1; display: flex; justify-content: space-between; align-items: stretch; padding: 0 10px; overflow: hidden; position: relative; }
-        
-        /* 左右微缩玩家列表 (支持容纳多人) */
-        .opponents-col { display: flex; flex-direction: column; justify-content: space-evenly; width: 120px; z-index: 5; gap: 5px; }
-        .mini-stall { background: rgba(30, 41, 59, 0.8); border: 2px solid #475569; border-radius: 8px; padding: 6px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.3s; position: relative; }
-        .mini-stall.active { border-color: #e2b13c; box-shadow: 0 0 15px rgba(226,177,60,0.6); background: rgba(226,177,60,0.1); }
-        .mini-name { font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #38bdf8; margin-bottom: 4px; border-bottom: 1px solid #334155; padding-bottom: 2px; }
-        .mini-stats { display: flex; justify-content: space-around; font-size: 11px; }
-        .mini-stats span { display: flex; align-items: center; gap: 2px; }
-        
-        /* 中央牌堆区 */
-        .center-decks { flex: 1; display: flex; justify-content: center; align-items: center; gap: 40px; }
-        .deck { width: 90px; height: 130px; border-radius: 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: bold; font-size: 12px; cursor: pointer; transition: 0.2s; text-decoration: none; box-shadow: -4px 4px 10px rgba(0,0,0,0.5); }
-        .deck:hover { transform: scale(1.05) translateY(-5px); }
-        .gold-deck { background: linear-gradient(135deg, #d4af37, #996515); color: white; border: 3px solid #fde047; }
-        .main-deck { background: linear-gradient(135deg, #22c55e, #14532d); color: white; border: 3px solid #86efac; }
-        .deck-badge { background: rgba(0,0,0,0.6); padding: 2px 6px; border-radius: 10px; font-size: 10px; margin-top: 5px; }
+        /* ===== 中央牌堆 ===== */
+        .center-decks { flex: 1; display: flex; justify-content: center; align-items: center; gap: clamp(10px, 3vw, 40px); }
+        .deck {
+            width: clamp(65px, 8vw, 90px); height: clamp(95px, 12vh, 130px);
+            border-radius: 10px; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; font-weight: bold;
+            font-size: 11px; cursor: pointer; transition: .2s; text-decoration: none;
+            box-shadow: -3px 4px 10px rgba(0,0,0,.5);
+        }
+        .deck:hover { transform: scale(1.05) translateY(-4px); }
+        .gold-deck { background: linear-gradient(135deg,#d4af37,#996515); color: white; border: 3px solid #fde047; }
+        .main-deck { background: linear-gradient(135deg,#22c55e,#14532d); color: white; border: 3px solid #86efac; }
+        .deck span:first-child { font-size: clamp(18px, 2.5vw, 24px); }
+        .deck-badge { background: rgba(0,0,0,.6); padding: 1px 5px; border-radius: 8px; font-size: 9px; margin-top: 4px; }
 
-        /* 底部我的区域 */
-        .bottom-console { height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 10px; background: linear-gradient(0deg, rgba(0,0,0,0.8), transparent); z-index: 10; }
-        
-        /* 本机摊位产出 */
-        .my-stall-zone { display: flex; gap: 10px; margin-bottom: 10px; height: 50px; }
-        .my-nasi { background: #d4af37; color: #000; font-weight: bold; padding: 2px 10px; border-radius: 6px; font-size: 12px; display: flex; align-items: center; gap: 5px; border: 2px solid #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.4); }
+        /* ===== 底部控制台：固定比例 ===== */
+        .bottom-console {
+            flex: 0 0 auto;
+            height: clamp(140px, 28dvh, 185px);
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+            padding-bottom: clamp(4px, 1dvh, 10px);
+            background: linear-gradient(0deg, rgba(0,0,0,.75), transparent);
+            z-index: 10;
+        }
+
+        /* ===== 已打包的饭 ===== */
+        .my-stall-zone { display: flex; gap: 6px; margin-bottom: 5px; align-items: center; flex-wrap: wrap; justify-content: center; max-height: 38px; overflow: hidden; }
+        .my-nasi {
+            background: #d4af37; color: #000; font-weight: bold;
+            padding: 2px 8px; border-radius: 5px; font-size: 11px;
+            display: flex; align-items: center; gap: 3px; border: 2px solid #fff;
+            box-shadow: 0 3px 5px rgba(0,0,0,.4); cursor: pointer; white-space: nowrap;
+        }
         .my-nasi.infected { background: #475569; color: #ef4444; border-color: #ef4444; }
 
-        /* 斗地主式交叠手牌 */
-        .poker-hand { display: flex; justify-content: center; align-items: flex-end; height: 130px; padding: 0 20px; }
-        .poker-card { 
-            width: 85px; height: 125px; border-radius: 8px; margin-left: -35px; /* 负边距实现交叠 */
-            background: white; border: 1px solid #cbd5e1; box-shadow: -2px 0 8px rgba(0,0,0,0.4);
-            display: flex; flex-direction: column; align-items: center; padding-top: 8px; text-decoration: none;
-            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); position: relative; color: #1e293b;
+        /* ===== 手牌（斗地主交叠） ===== */
+        .poker-hand {
+            display: flex; justify-content: center; align-items: flex-end;
+            height: clamp(90px, 18dvh, 125px);
+            padding: 0 10px;
+        }
+        .poker-card {
+            width: clamp(55px, 7vw, 80px);
+            height: clamp(85px, 17dvh, 120px);
+            border-radius: 7px; margin-left: clamp(-45px, -4vw, -28px);
+            background: white; border: 1px solid #cbd5e1;
+            box-shadow: -2px 0 6px rgba(0,0,0,.4);
+            display: flex; flex-direction: column; align-items: center;
+            padding-top: 6px; text-decoration: none;
+            transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+            position: relative; color: #1e293b; flex-shrink: 0;
         }
         .poker-hand .poker-card:first-child { margin-left: 0; }
-        .poker-card:hover { transform: translateY(-20px); z-index: 50 !important; box-shadow: 0 10px 20px rgba(0,0,0,0.6); }
-        
-        /* 针对不同类型的卡牌涂色 */
-        .poker-card[data-type="action"] { background: linear-gradient(135deg, #e0f2fe, #bae6fd); border-color: #0ea5e9; }
-        .poker-card[data-type="attack"] { background: linear-gradient(135deg, #fee2e2, #fecaca); border-color: #ef4444; }
-        .poker-card[data-type="defense"] { background: linear-gradient(135deg, #dcfce7, #bbf7d0); border-color: #22c55e; }
-        .poker-card[data-type="food"] { background: #f8fafc; }
-        
-        .p-emoji { font-size: 32px; margin-bottom: 2px; }
-        .p-title { font-size: 11px; font-weight: bold; text-align: center; line-height: 1.1; }
-        .p-tag { position: absolute; bottom: 4px; font-size: 9px; background: rgba(0,0,0,0.1); padding: 2px 4px; border-radius: 4px; }
+        .poker-card:hover, .poker-card:active { transform: translateY(-18px); z-index: 50 !important; box-shadow: 0 8px 18px rgba(0,0,0,.6); }
+        .poker-card[data-type="action"] { background: linear-gradient(135deg,#e0f2fe,#bae6fd); border-color: #0ea5e9; }
+        .poker-card[data-type="attack"] { background: linear-gradient(135deg,#fee2e2,#fecaca); border-color: #ef4444; }
+        .poker-card[data-type="defense"] { background: linear-gradient(135deg,#dcfce7,#bbf7d0); border-color: #22c55e; }
+        .p-emoji { font-size: clamp(20px, 3vw, 30px); margin-bottom: 1px; }
+        .p-title { font-size: clamp(8px, 1vw, 11px); font-weight: bold; text-align: center; line-height: 1.1; }
+        .p-tag { position: absolute; bottom: 3px; font-size: 8px; background: rgba(0,0,0,.1); padding: 1px 3px; border-radius: 3px; }
 
-        /* 动态操作菜单弹窗 */
-        .action-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 9999; justify-content: center; align-items: center; }
-        .modal-box { background: #1e293b; border: 2px solid #38bdf8; border-radius: 12px; padding: 20px; width: 300px; text-align: center; }
+        /* ===== 弹窗 ===== */
+        .action-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-box { background: #1e293b; border: 2px solid #38bdf8; border-radius: 12px; padding: 16px; width: min(320px, 90vw); text-align: center; max-height: 90dvh; overflow-y: auto; }
 
-        /* 大厅/未开始界面覆盖 */
-        .lobby-screen { background: #0f172a; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow-y: auto; }
-        .auto-refresh-indicator { position: fixed; top: 5px; right: 10px; font-size: 10px; color: rgba(255,255,255,0.3); }
+        /* ===== 批发商公示弹窗 ===== */
+        .card-reveal { display: inline-flex; flex-direction: column; align-items: center; background: white; color: #1e293b; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: bold; min-width: 52px; }
+        .card-reveal.kept { border: 2px solid #22c55e; }
+        .card-reveal.gone { border: 2px solid #94a3b8; opacity: .5; text-decoration: line-through; }
 
-        /* 链接禁用状态 */
-        a.disabled-card { pointer-events: none; opacity: 0.8; }
+        /* ===== 小偷选人弹窗 ===== */
+        .thief-target-btn { cursor: pointer; transition: .15s; }
+        .thief-target-btn.selected { border-color: #f59e0b !important; background: rgba(245,158,11,.15) !important; }
 
-        /* 大厅重启按钮 */
-        .lobby-restart-btn {
-            margin-top: 12px;
-            background: transparent;
-            color: #64748b;
-            border: 1px solid #334155;
-            border-radius: 6px;
-            padding: 4px 12px;
-            font-size: 11px;
-            cursor: pointer;
-            transition: all 0.2s;
-            width: 100%;
-        }
-        .lobby-restart-btn:hover { color: #ef4444; border-color: #ef4444; background: rgba(239,68,68,0.05); }
+        /* ===== 重启确认 ===== */
+        #restart-confirm-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 99998; justify-content: center; align-items: center; }
+        .restart-modal-box { background: linear-gradient(135deg,#1e293b,#0f172a); border: 2px solid #ef4444; border-radius: 14px; padding: 20px 24px; text-align: center; width: min(280px, 85vw); box-shadow: 0 0 28px rgba(239,68,68,.3); }
+        .restart-modal-box h5 { color: #ef4444; margin-bottom: 8px; }
+        .restart-modal-box p { color: #94a3b8; font-size: 11px; margin-bottom: 14px; }
+
+        /* ===== 大厅 ===== */
+        .lobby-screen { background: #0f172a; height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow-y: auto; padding: 16px; }
+        a.disabled-card { pointer-events: none; opacity: .7; }
+        .lobby-restart-btn { margin-top: 10px; background: transparent; color: #64748b; border: 1px solid #334155; border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer; transition: .2s; width: 100%; }
+        .lobby-restart-btn:hover { color: #ef4444; border-color: #ef4444; }
     </style>
 </head>
 <body>
 
-<!-- 强制重启确认弹窗 (全局) -->
+<!-- 重启确认弹窗 -->
 <div id="restart-confirm-modal">
     <div class="restart-modal-box">
         <h5>⚠️ 强制重启确认</h5>
-        <p>这将<strong style="color:#ef4444;">立即终止</strong>当前对局并清空所有玩家数据，所有人需重新加入房间。此操作不可撤销。</p>
-        <div class="restart-confirm-btns">
+        <p>将<strong style="color:#ef4444;">立即终止</strong>当前对局并清空所有数据。此操作不可撤销。</p>
+        <div class="d-flex gap-2 justify-content-center">
             <a href="/reset" class="btn btn-danger btn-sm px-3">💥 确认重启</a>
             <button onclick="closeRestartModal()" class="btn btn-secondary btn-sm px-3">取消</button>
         </div>
@@ -155,21 +160,21 @@
 </div>
 
 <div id="orientation-warning">
-    <h1 style="font-size: 50px; margin-bottom: 20px;">🔄</h1>
-    <h3>请横置您的手机</h3>
-    <p class="text-muted small">本作战大厅专为竞技横屏设计以获得最佳视野</p>
+    <div style="font-size:48px;">🔄</div>
+    <h3 style="margin:10px 0 6px;">请横置手机</h3>
+    <p class="text-muted small">本游戏为横屏模式</p>
 </div>
 
 <div id="game-wrapper">
 
     {% if error %}
-    <div style="position:fixed; top:40px; left:50%; transform:translateX(-50%); z-index:9999;" class="alert alert-danger py-1 px-3 fs-6">{{ error }}</div>
+    <div style="position:fixed;top:40px;left:50%;transform:translateX(-50%);z-index:9999;" class="alert alert-danger py-1 px-3 fs-6">{{ error }}</div>
     {% endif %}
 
     {% if room.status == "EMPTY" or room.status == "WAITING" %}
     <div class="lobby-screen">
-        <h2 class="text-warning mb-4">🥣 椰浆饭大作战</h2>
-        <div class="card bg-dark text-white border-secondary p-4 shadow" style="width: 320px;">
+        <h2 class="text-warning mb-3">🥣 椰浆饭大作战</h2>
+        <div class="card bg-dark text-white border-secondary p-4 shadow" style="width:min(320px,95vw);">
             {% if room.status == "EMPTY" %}
                 <form action="/create_room" method="POST">
                     <button type="submit" class="btn btn-warning w-100 fw-bold">👉 创建新对局</button>
@@ -184,16 +189,12 @@
                 {% else %}
                 <div class="text-center text-success mb-3 fw-bold">✅ 已就绪：{{ my_name }}</div>
                 {% endif %}
-
                 <div class="border-top border-secondary pt-2 mb-3">
-                    <div class="small text-muted mb-2">已就位玩家 ({{ room.joined_players|length }}/7)：</div>
+                    <div class="small text-muted mb-2">已就位 ({{ room.joined_players|length }}/7)：</div>
                     <div class="d-flex flex-wrap gap-1">
-                        {% for p in room.joined_players %}
-                        <span class="badge bg-secondary">{{ p }}</span>
-                        {% endfor %}
+                        {% for p in room.joined_players %}<span class="badge bg-secondary">{{ p }}</span>{% endfor %}
                     </div>
                 </div>
-
                 <form action="/start_game" method="POST">
                     {% if room.joined_players|length >= 3 %}
                     <button type="submit" class="btn btn-warning w-100 fw-bold">🚀 立即开战</button>
@@ -202,48 +203,36 @@
                     {% endif %}
                 </form>
             {% endif %}
-
-            <!-- 大厅强制重启按钮 -->
-            <button onclick="openRestartModal()" class="lobby-restart-btn">
-                🔄 强制重启房间
-            </button>
+            <button onclick="openRestartModal()" class="lobby-restart-btn">🔄 强制重启房间</button>
         </div>
     </div>
 
     {% elif room.status == "PLAYING" %}
     {% set g = room.game %}
-    
-    <div class="top-bar">
-        <span class="text-muted me-3">椰浆饭剩余: <span class="text-warning">{{ g.gold_deck|length }}包</span></span>
-        <span class="turn-indicator">
-            {% if g.turn_idx == my_p_idx %}
-                🟢 你的回合 (剩 {{ g.moves_left }} 动)
-            {% else %}
-                ⏳ 等待 【{{ g.current_player().name }}】 出牌...
-            {% endif %}
-        </span>
-        <a href="/action/end_turn_manual" class="btn btn-sm btn-outline-danger py-0 px-2 ms-3" style="font-size:10px;">跳过/结束回合</a>
 
-        <!-- 强制重启按钮 (游戏中) -->
-        <button onclick="openRestartModal()" class="restart-btn">
-            ⚡ 强制重启
-        </button>
+    <!-- 顶部栏 -->
+    <div class="top-bar">
+        <span class="text-muted" style="font-size:11px;">饭剩 <span class="text-warning">{{ g.gold_deck|length }}</span></span>
+        <span class="turn-indicator">
+            {% if g.turn_idx == my_p_idx %}🟢 你的回合 (剩{{ g.moves_left }}动)
+            {% else %}⏳ 等待【{{ g.current_player().name }}】{% endif %}
+        </span>
+        <a href="/action/end_turn_manual" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2" style="font-size:10px;">结束回合</a>
+        <button onclick="openRestartModal()" class="restart-btn">⚡重启</button>
     </div>
 
+    <!-- 战场 -->
     <div class="battlefield">
         {% set opponents = [] %}
         {% for p in g.players %}{% if p.name != my_name %}{% set _ = opponents.append((loop.index0, p)) %}{% endif %}{% endfor %}
-        
-        {% set mid = (opponents|length / 2)|round(0, 'ceil')|int %}
-        {% set left_opps = opponents[:mid] %}
-        {% set right_opps = opponents[mid:] %}
+        {% set mid = (opponents|length / 2)|round(0,'ceil')|int %}
 
         <div class="opponents-col">
-            {% for idx, opp in left_opps %}
-            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }})">
+            {% for idx, opp in opponents[:mid] %}
+            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }},'{{ opp.name }}',{{ opp.scored_cards|length }})">
                 <div class="mini-name">{{ opp.name }}</div>
                 <div class="mini-stats">
-                    <span class="text-light">🎴{{ opp.hand|length }}</span>
+                    <span>🎴{{ opp.hand|length }}</span>
                     <span class="text-warning">📦{{ opp.scored_cards|length }}</span>
                     {% if true in opp.flies %}<span class="text-danger">🪰</span>{% endif %}
                 </div>
@@ -254,35 +243,31 @@
         <div class="center-decks">
             {% if g.turn_idx == my_p_idx %}
                 <a href="/action/pack_standard" class="deck gold-deck">
-                    <span style="font-size:24px;">📦</span>
-                    <span>打包标配饭</span>
-                    <span class="deck-badge">剩 {{ g.gold_deck|length }}</span>
+                    <span>📦</span><span>打包标配</span>
+                    <span class="deck-badge">剩{{ g.gold_deck|length }}</span>
                 </a>
-                
                 {% if not g.has_drawn %}
-                <a href="/draw" class="deck main-deck" style="box-shadow: 0 0 20px #22c55e;">
-                    <span style="font-size:24px;">📥</span>
-                    <span>摸 2 张牌</span>
+                <a href="/draw" class="deck main-deck" style="box-shadow:0 0 16px #22c55e;">
+                    <span>📥</span><span>摸2张牌</span>
                     <span class="deck-badge">必须执行</span>
                 </a>
                 {% else %}
-                <div class="deck main-deck disabled-card" style="opacity: 0.5;">
-                    <span style="font-size:24px;">🎴</span>
-                    <span>已抽牌</span>
+                <div class="deck main-deck disabled-card" style="opacity:.45;">
+                    <span>🎴</span><span>已抽牌</span>
                 </div>
                 {% endif %}
             {% else %}
-                <div class="deck gold-deck disabled-card"><span style="font-size:24px;">📦</span><span>Nasi Lemak</span></div>
-                <div class="deck main-deck disabled-card"><span style="font-size:24px;">🎴</span><span>抽牌堆</span></div>
+                <div class="deck gold-deck disabled-card"><span>📦</span><span>Nasi Lemak</span></div>
+                <div class="deck main-deck disabled-card"><span>🎴</span><span>抽牌堆</span></div>
             {% endif %}
         </div>
 
         <div class="opponents-col">
-            {% for idx, opp in right_opps %}
-            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }})">
+            {% for idx, opp in opponents[mid:] %}
+            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }},'{{ opp.name }}',{{ opp.scored_cards|length }})">
                 <div class="mini-name">{{ opp.name }}</div>
                 <div class="mini-stats">
-                    <span class="text-light">🎴{{ opp.hand|length }}</span>
+                    <span>🎴{{ opp.hand|length }}</span>
                     <span class="text-warning">📦{{ opp.scored_cards|length }}</span>
                     {% if true in opp.flies %}<span class="text-danger">🪰</span>{% endif %}
                 </div>
@@ -291,14 +276,13 @@
         </div>
     </div>
 
+    <!-- 底部控制台 -->
     <div class="bottom-console">
         <div class="my-stall-zone">
             {% if my_player %}
-                {% for val in my_player.scored_cards %}
-                {% set f_idx = loop.index0 %}
-                <div class="my-nasi {% if my_player.flies[f_idx] %}infected{% endif %}" onclick="openDefenseModal({{ f_idx }}, {{ my_player.flies[f_idx]|lower }})">
-                    📦 {{ val }}包
-                    {% if my_player.flies[f_idx] %}<span style="font-size:14px;">🪰</span>{% endif %}
+                {% for val in my_player.scored_cards %}{% set f_idx = loop.index0 %}
+                <div class="my-nasi {% if my_player.flies[f_idx] %}infected{% endif %}" onclick="openDefenseModal({{ f_idx }},{{ my_player.flies[f_idx]|lower }})">
+                    📦{{ val }}包{% if my_player.flies[f_idx] %} 🪰{% endif %}
                 </div>
                 {% endfor %}
             {% endif %}
@@ -308,94 +292,157 @@
             {% if my_player %}
                 {% for card in my_player.hand %}
                     {% set c_type = "food" %}
-                    {% if card in ['Thief', 'Wholesaler', 'Supplier', 'Mak Cik'] %}{% set c_type = "action" %}{% endif %}
-                    {% if card in ['Fly', 'Officer'] %}{% set c_type = "attack" %}{% endif %}
-                    {% if card in ['Fly Swatter', 'Fan'] %}{% set c_type = "defense" %}{% endif %}
-
+                    {% if card in ['Thief','Wholesaler','Supplier','Mak Cik'] %}{% set c_type = "action" %}{% endif %}
+                    {% if card in ['Fly','Officer'] %}{% set c_type = "attack" %}{% endif %}
+                    {% if card in ['Fly Swatter','Fan'] %}{% set c_type = "defense" %}{% endif %}
                     {% set c_dict = {
-                        "Rice": ("椰浆饭", "🍚"), "Egg": ("鸡蛋", "🥚"), "Peanuts": ("炸花生", "🥜"), "Sambal": ("三巴酱", "🌶️"), "Cucumber": ("黄瓜", "🥒"),
-                        "Wholesaler": ("批发商", "🏪"), "Thief": ("小偷", "🥷"), "Supplier": ("供应商", "📣"), "Mak Cik": ("大妈", "🧑‍🍳"),
-                        "Officer": ("官员", "👮"), "Fly": ("苍蝇", "🪰"), "Fly Swatter": ("苍蝇拍", "💥"), "Fan": ("风扇", "🪭")
+                        "Rice":("椰浆饭","🍚"),"Egg":("鸡蛋","🥚"),"Peanuts":("花生","🥜"),"Sambal":("三巴","🌶️"),"Cucumber":("黄瓜","🥒"),
+                        "Wholesaler":("批发商","🏪"),"Thief":("小偷","🥷"),"Supplier":("供应商","📣"),"Mak Cik":("大妈","🧑‍🍳"),
+                        "Officer":("官员","👮"),"Fly":("苍蝇","🪰"),"Fly Swatter":("蝇拍","💥"),"Fan":("风扇","🪭")
                     } %}
+                    {% set is_my_turn = (g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending) %}
 
-                    {% set is_my_turn = (g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection) %}
-                    
                     {% if is_my_turn and card == 'Thief' %}
-                        <a href="/action/thief" class="poker-card" data-type="{{ c_type }}" style="z-index: {{ loop.index }};">
+                        <a href="javascript:void(0);" onclick="openThiefModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% elif is_my_turn and card == 'Wholesaler' %}
-                        <a href="/action/wholesaler" class="poker-card" data-type="{{ c_type }}" style="z-index: {{ loop.index }};">
+                        <a href="/action/wholesaler" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% elif is_my_turn and card == 'Mak Cik' %}
-                        <a href="/action/pack_makcik" class="poker-card" data-type="{{ c_type }}" style="z-index: {{ loop.index }};">
+                        <a href="/action/pack_makcik" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% elif is_my_turn and card == 'Supplier' %}
-                        <a href="javascript:void(0);" onclick="openSupplierModal()" class="poker-card" data-type="{{ c_type }}" style="z-index: {{ loop.index }};">
-                    {% elif is_my_turn and card in ['Officer', 'Fly'] %}
-                        <a href="javascript:void(0);" onclick="alert('提示：请直接点击左右两侧对手的头像框，向其发起【官员搜查】或【放苍蝇】！')" class="poker-card" data-type="{{ c_type }}" style="z-index: {{ loop.index }};">
-                    {% elif is_my_turn and card in ['Fly Swatter', 'Fan'] %}
-                        <a href="javascript:void(0);" onclick="alert('提示：请直接点击你自己被苍蝇污染的椰浆饭，即可使用防守道具！')" class="poker-card" data-type="{{ c_type }}" style="z-index: {{ loop.index }};">
+                        <a href="javascript:void(0);" onclick="openSupplierModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                    {% elif is_my_turn and card in ['Officer','Fly'] %}
+                        <a href="javascript:void(0);" onclick="alert('请点击对手头像框发起攻击！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                    {% elif is_my_turn and card in ['Fly Swatter','Fan'] %}
+                        <a href="javascript:void(0);" onclick="alert('请点击自己被污染的椰浆饭！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% else %}
-                        <a href="javascript:void(0);" class="poker-card {% if not is_my_turn %}disabled-card{% endif %}" data-type="{{ c_type }}" style="z-index: {{ loop.index }};">
+                        <a href="javascript:void(0);" class="poker-card {% if not is_my_turn %}disabled-card{% endif %}" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% endif %}
                         <div class="p-emoji">{{ c_dict[card][1] }}</div>
                         <div class="p-title">{{ c_dict[card][0] }}</div>
-                        <div class="p-tag">{{ c_type|upper }}</div>
+                        <div class="p-tag">{{ c_type }}</div>
                     </a>
                 {% endfor %}
             {% endif %}
         </div>
     </div>
 
+    <!-- 攻击目标弹窗 -->
     <div id="target-modal" class="action-modal">
         <div class="modal-box">
             <h5 class="text-warning mb-3">🎯 针对 <span id="tm-name"></span></h5>
             <div class="d-flex flex-column gap-2">
-                <a id="btn-officer" href="#" class="btn btn-primary">👮 派官员搜查手牌</a>
-                <div id="fly-targets" class="d-flex flex-wrap gap-2 justify-content-center mt-2"></div>
+                <a id="btn-officer" href="#" class="btn btn-primary btn-sm">👮 派官员搜查手牌</a>
+                <div id="fly-targets" class="d-flex flex-wrap gap-2 justify-content-center mt-1"></div>
             </div>
             <button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">取消</button>
         </div>
     </div>
 
+    <!-- 供应商弹窗 -->
     <div id="supplier-modal" class="action-modal">
         <div class="modal-box">
             <h5 class="text-info mb-3">📣 供应商垄断征收</h5>
             <form action="/action/supplier" method="GET">
-                <select name="ingredient" class="form-select mb-3">
-                    <option value="Rice">Rice (椰浆饭粒)</option>
-                    <option value="Egg">Egg (水煮蛋)</option>
-                    <option value="Peanuts">Peanuts (炸花生)</option>
-                    <option value="Sambal">Sambal (三巴辣酱)</option>
-                    <option value="Cucumber">Cucumber (黄瓜片)</option>
+                <select name="ingredient" class="form-select form-select-sm mb-3">
+                    <option value="Rice">🍚 Rice 椰浆饭粒</option>
+                    <option value="Egg">🥚 Egg 水煮蛋</option>
+                    <option value="Peanuts">🥜 Peanuts 炸花生</option>
+                    <option value="Sambal">🌶️ Sambal 三巴酱</option>
+                    <option value="Cucumber">🥒 Cucumber 黄瓜</option>
                 </select>
-                <button type="submit" class="btn btn-info w-100">强行没收全场此牌</button>
+                <button type="submit" class="btn btn-info btn-sm w-100">强行没收全场此牌</button>
             </form>
-            <button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">取消</button>
+            <button class="btn btn-sm btn-secondary mt-2" onclick="closeModals()">取消</button>
         </div>
     </div>
 
+    <!-- 防守弹窗 -->
     <div id="defense-modal" class="action-modal">
         <div class="modal-box">
-            <h5 class="text-danger mb-3">🪰 紧急驱蝇除害</h5>
+            <h5 class="text-danger mb-3">🪰 驱蝇除害</h5>
             <div class="d-flex gap-2">
-                <a id="btn-swat" href="#" class="btn btn-danger flex-grow-1">💥 苍蝇拍拍死</a>
-                <a id="btn-fan-base" href="#" class="btn btn-info text-white flex-grow-1" onclick="showFanTargets()">🪭 扇子吹走</a>
+                <a id="btn-swat" href="#" class="btn btn-danger btn-sm flex-grow-1">💥 苍蝇拍拍死</a>
+                <a id="btn-fan-base" href="#" class="btn btn-info btn-sm text-white flex-grow-1" onclick="showFanTargets()">🪭 扇子吹走</a>
             </div>
             <div id="fan-target-list" class="d-flex flex-wrap gap-1 mt-2 justify-content-center d-none">
                 {% for p in g.players %}{% if p.name != my_name %}
-                <a href="#" class="btn btn-sm btn-outline-info fan-opt" data-tidx="{{ loop.index0 }}">吹给 {{ p.name }}</a>
+                <a href="#" class="btn btn-sm btn-outline-info fan-opt" data-tidx="{{ loop.index0 }}">→ {{ p.name }}</a>
                 {% endif %}{% endfor %}
             </div>
             <button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">取消</button>
         </div>
     </div>
 
+    <!-- 小偷选人弹窗 (多人局) -->
+    <div id="thief-modal" class="action-modal">
+        <div class="modal-box">
+            <h5 class="text-warning mb-1">🥷 小偷选目标</h5>
+            <p class="text-muted small mb-3">
+                {% if g.players|length > 4 %}选择最多 3 名玩家偷取手牌{% else %}将偷所有对手的手牌{% endif %}
+            </p>
+            <div id="thief-targets" class="d-flex flex-wrap gap-2 justify-content-center mb-3">
+                {% for p in g.players %}{% if p.name != my_name %}
+                <div class="thief-target-btn btn btn-sm btn-outline-light" data-idx="{{ loop.index0 }}" onclick="toggleThiefTarget(this)">
+                    {{ p.name }} ({{ p.hand|length }}张)
+                </div>
+                {% endif %}{% endfor %}
+            </div>
+            <div id="thief-count" class="small text-muted mb-2">已选 0 / 3 人</div>
+            {% if g.players|length > 4 %}
+            <button onclick="confirmThiefTargets()" class="btn btn-warning btn-sm w-100">🥷 出发行窃！</button>
+            {% else %}
+            <a href="/action/thief" class="btn btn-warning btn-sm w-100">🥷 偷遍所有人！</a>
+            {% endif %}
+            <button class="btn btn-sm btn-secondary mt-2" onclick="closeModals()">取消</button>
+        </div>
+    </div>
+
+    <!-- 批发商公示弹窗（所有玩家都能看到） -->
+    {% if g.wholesaler_reveal %}
+    <div class="action-modal" id="wholesaler-reveal-modal" style="display:flex;">
+        <div class="modal-box">
+            <h5 class="text-info mb-2">🏪 批发商公示</h5>
+            <p class="small text-muted mb-3">【{{ g.wholesaler_reveal.player }}】 从牌堆顶摸了 3 张牌：</p>
+            <div class="d-flex gap-2 justify-content-center mb-3">
+                {% for card in g.wholesaler_reveal.cards %}
+                {% set emoji_map = {"Rice":"🍚","Egg":"🥚","Peanuts":"🥜","Sambal":"🌶️","Cucumber":"🥒","Wholesaler":"🏪","Thief":"🥷","Supplier":"📣","Mak Cik":"🧑‍🍳","Officer":"👮","Fly":"🪰","Fly Swatter":"💥","Fan":"🪭"} %}
+                <div class="card-reveal {% if card in g.wholesaler_reveal.kept %}kept{% else %}gone{% endif %}">
+                    <div style="font-size:22px;">{{ emoji_map.get(card,'❓') }}</div>
+                    <div style="font-size:10px;">{{ card }}</div>
+                    {% if card in g.wholesaler_reveal.kept %}<div style="font-size:9px;color:#22c55e;">✓ 留下</div>
+                    {% else %}<div style="font-size:9px;color:#94a3b8;">✗ 弃掉</div>{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <p class="small text-success mb-3">留下 {{ g.wholesaler_reveal.kept|length }} 张食材，弃掉 {{ g.wholesaler_reveal.discarded|length }} 张非食材牌。</p>
+            {% if g.turn_idx == my_p_idx %}
+            <a href="/action/wholesaler_dismiss" class="btn btn-info btn-sm w-100">✅ 我知道了，继续</a>
+            {% else %}
+            <p class="small text-muted">等待【{{ g.current_player().name }}】关闭此窗口…</p>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 小偷等待选人提示（其他玩家看到） -->
+    {% if g.thief_pending and g.turn_idx != my_p_idx %}
+    <div class="action-modal" style="display:flex;">
+        <div class="modal-box">
+            <h5 class="text-warning">🥷 小偷出动！</h5>
+            <p class="text-muted small">【{{ g.current_player().name }}】 正在选择偷窃目标…<br>请等待。</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 官员搜查结果弹窗 -->
     {% if g.active_inspection and g.turn_idx == my_p_idx %}
     <div class="action-modal" style="display:flex;">
-        <div class="modal-box" style="width: 80%;">
-            <h5 class="text-primary mb-3">👮 查获 【{{ g.active_inspection.target_name }}】 的底牌</h5>
+        <div class="modal-box" style="width:min(340px,92vw);">
+            <h5 class="text-primary mb-3">👮 查获【{{ g.active_inspection.target_name }}】的底牌</h5>
             <div class="d-flex flex-wrap gap-2 justify-content-center">
                 {% for card in g.active_inspection.hand_to_view %}
                     {% if card in g.players[g.active_inspection.target_idx].hand %}
-                    <a href="/action/officer_take?card={{ card }}" class="btn btn-light border-primary fw-bold text-dark p-2 shadow-sm" style="font-size:12px;">抢夺<br>{{ card }}</a>
+                    <a href="/action/officer_take?card={{ card }}" class="btn btn-light border-primary fw-bold text-dark p-2" style="font-size:11px;">抢夺<br>{{ card }}</a>
                     {% endif %}
                 {% endfor %}
             </div>
@@ -403,80 +450,89 @@
     </div>
     {% endif %}
 
-    {% endif %}
-</div>
+    {% endif %}<!-- end PLAYING -->
+</div><!-- end game-wrapper -->
 
 <script>
-    // === 强制重启弹窗控制 ===
-    function openRestartModal() {
-        document.getElementById('restart-confirm-modal').style.display = 'flex';
-    }
-    function closeRestartModal() {
-        document.getElementById('restart-confirm-modal').style.display = 'none';
-    }
-    // 点弹窗背景也可关闭
-    document.getElementById('restart-confirm-modal').addEventListener('click', function(e) {
-        if (e.target === this) closeRestartModal();
-    });
+    // ===== 重启 =====
+    function openRestartModal() { document.getElementById('restart-confirm-modal').style.display = 'flex'; }
+    function closeRestartModal() { document.getElementById('restart-confirm-modal').style.display = 'none'; }
+    document.getElementById('restart-confirm-modal').addEventListener('click', function(e){ if(e.target===this) closeRestartModal(); });
 
-    // === 弹窗交互控制 ===
-    let currTargetIdx = -1;
-    let currFoodIdx = -1;
-
+    // ===== 通用关弹窗 =====
     function closeModals() {
-        document.querySelectorAll('.action-modal').forEach(m => m.style.display = 'none');
+        document.querySelectorAll('.action-modal').forEach(m => { if(!m.dataset.persistent) m.style.display='none'; });
         document.getElementById('fan-target-list')?.classList.add('d-none');
     }
 
-    // 点别人头像 -> 攻击他
+    // ===== 攻击目标弹窗 =====
     function openTargetModal(tIdx, name, foodCount) {
-        {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection %}
-        currTargetIdx = tIdx;
+        {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending %}
         document.getElementById('tm-name').innerText = name;
         document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
-        
-        let flyArea = document.getElementById('fly-targets');
-        flyArea.innerHTML = '';
-        if (foodCount > 0) {
-            for(let i=0; i<foodCount; i++) {
-                flyArea.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger">砸在第 ${i+1} 包饭</a>`;
-            }
-        } else {
-            flyArea.innerHTML = '<span class="small text-muted">对方没饭，无法放苍蝇</span>';
-        }
+        let fa = document.getElementById('fly-targets');
+        fa.innerHTML = '';
+        if(foodCount > 0){
+            for(let i=0;i<foodCount;i++) fa.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger">砸第${i+1}包</a>`;
+        } else { fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>'; }
         document.getElementById('target-modal').style.display = 'flex';
         {% endif %}
     }
 
-    // 点供应商卡 -> 选物资
+    // ===== 供应商 =====
     function openSupplierModal() { document.getElementById('supplier-modal').style.display = 'flex'; }
 
-    // 点自己的饭 -> 防守
+    // ===== 防守 =====
     function openDefenseModal(fIdx, hasFly) {
         {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.active_inspection %}
-        if (hasFly) {
-            currFoodIdx = fIdx;
+        if(hasFly){
             document.getElementById('btn-swat').href = '/action/swat_fly?card_idx=' + fIdx;
-            // 更新扇子列表的超链接参数
             document.querySelectorAll('.fan-opt').forEach(btn => {
-                let tidx = btn.getAttribute('data-tidx');
-                btn.href = `/action/fan_fly?card_idx=${fIdx}&target=${tidx}`;
+                btn.href = `/action/fan_fly?card_idx=${fIdx}&target=${btn.dataset.tidx}`;
             });
             document.getElementById('defense-modal').style.display = 'flex';
         }
         {% endif %}
     }
-
     function showFanTargets() { document.getElementById('fan-target-list').classList.remove('d-none'); }
 
-    // === 后台静默侦测防卡顿刷新 ===
-    {% if not g.active_inspection and (room.status == "WAITING" or (room.status == "PLAYING" and g and g.turn_idx != my_p_idx and not g.game_over)) %}
-    setTimeout(function() {
-        let inputs = document.querySelectorAll('input');
-        let isTyping = false;
-        inputs.forEach(i => { if(document.activeElement === i) isTyping = true; });
-        if (!isTyping) window.location.reload();
-    }, 3000); 
+    // ===== 小偷选人 =====
+    let selectedThiefTargets = [];
+    const MAX_THIEF = {{ g.players|length if room.status == "PLAYING" and g else 4 }} > 4 ? 3 : 999;
+
+    function openThiefModal() {
+        selectedThiefTargets = [];
+        document.querySelectorAll('.thief-target-btn').forEach(b => b.classList.remove('selected'));
+        updateThiefCount();
+        document.getElementById('thief-modal').style.display = 'flex';
+    }
+    function toggleThiefTarget(el) {
+        const idx = parseInt(el.dataset.idx);
+        if(el.classList.contains('selected')){
+            el.classList.remove('selected');
+            selectedThiefTargets = selectedThiefTargets.filter(x => x !== idx);
+        } else {
+            if(selectedThiefTargets.length >= MAX_THIEF) return;
+            el.classList.add('selected');
+            selectedThiefTargets.push(idx);
+        }
+        updateThiefCount();
+    }
+    function updateThiefCount() {
+        const el = document.getElementById('thief-count');
+        if(el) el.textContent = `已选 ${selectedThiefTargets.length} / ${MAX_THIEF === 999 ? '全部' : MAX_THIEF} 人`;
+    }
+    function confirmThiefTargets() {
+        if(selectedThiefTargets.length === 0){ alert('请至少选择 1 名目标！'); return; }
+        window.location.href = '/action/thief_targets?targets=' + selectedThiefTargets.join(',');
+    }
+
+    // ===== 自动刷新（非当前玩家） =====
+    {% if room.status == "WAITING" or (room.status == "PLAYING" and g and g.turn_idx != my_p_idx and not g.game_over) %}
+    setTimeout(function(){
+        if(document.activeElement && document.activeElement.tagName === 'INPUT') return;
+        window.location.reload();
+    }, 3000);
     {% endif %}
 </script>
 </body>
