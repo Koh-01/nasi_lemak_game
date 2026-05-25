@@ -33,23 +33,48 @@
         
         .log-feed { background: #1e293b; color: #38bdf8; font-family: monospace; height: 200px; overflow-y: auto; padding: 12px; border-radius: 8px; }
         .auto-refresh-indicator { position: fixed; top: 10px; right: 10px; font-size: 10px; color: rgba(255,255,255,0.5); z-index: 1000; }
-        
         .lobby-player { background: #e2e8f0; padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; font-weight: bold; font-size: 16px; border-left: 4px solid #10b981; }
+
+        .trade-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15,23,42,0.9); z-index: 9999; display: flex; align-items: center; justify-content: center; text-align: center; color: white; }
+        .trade-box { background: white; color: #1e293b; padding: 30px; border-radius: 16px; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 4px solid #e2b13c; }
+        .timer-text { font-size: 36px; font-weight: bold; color: #ef4444; }
     </style>
 </head>
 <body>
 
+{% if room.status == "PLAYING" and g.pending_trade and trade_time_left > 0 %}
+<div class="trade-overlay">
+    <div class="trade-box">
+        {% if my_name == g.pending_trade.to %}
+            <h4 class="text-primary fw-bold mb-3">🚨 收到交易请求！</h4>
+            <p class="fs-5">【{{ g.pending_trade.from }}】 想用他的 <strong>[{{ g.pending_trade.offer }}]</strong> <br>换取你的 <strong>[{{ g.pending_trade.want }}]</strong></p>
+            <p>剩余决定时间：<span class="timer-text" id="trade-timer">{{ trade_time_left }}</span> 秒</p>
+            <div class="d-flex gap-3 mt-4">
+                <a href="/resolve_trade/accept" class="btn btn-success btn-lg w-50 fw-bold shadow">✅ 接受互换</a>
+                <a href="/resolve_trade/reject" class="btn btn-danger btn-lg w-50 fw-bold shadow">❌ 无情拒绝</a>
+            </div>
+        {% elif my_name == g.pending_trade.from %}
+            <h4 class="text-warning fw-bold mb-3">⏳ 交易发送成功</h4>
+            <p>正在等待 【{{ g.pending_trade.to }}】 决定是否接受您的互换...</p>
+            <p>等待对方回应：<span class="timer-text" id="trade-timer">{{ trade_time_left }}</span> 秒</p>
+        {% else %}
+            <h4 class="text-secondary fw-bold mb-3">🤝 交易谈判中...</h4>
+            <p>【{{ g.pending_trade.from }}】 正在与 【{{ g.pending_trade.to }}】 进行私密交易谈判。</p>
+            <p>倒计时：<span class="timer-text" id="trade-timer">{{ trade_time_left }}</span> 秒</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
 <div class="game-header text-center mb-3 position-relative">
     <h2>🥣 椰浆饭大作战：联机大厅版 🥣</h2>
     {% if my_name %}<h5>本机身份：<span class="text-warning">{{ my_name }}</span></h5>{% endif %}
-    
-    {% if room.status == "WAITING" or (room.status == "PLAYING" and g and g.turn_idx != my_p_idx and not g.game_over) %}
+    {% if not g.pending_trade and (room.status == "WAITING" or (room.status == "PLAYING" and g and g.turn_idx != my_p_idx and not g.game_over)) %}
     <div class="auto-refresh-indicator">🔄 后台静默侦测中...</div>
     {% endif %}
 </div>
 
 <div class="container-fluid px-4">
-    
     {% if error %}
     <div class="alert alert-danger text-center fw-bold shadow-sm">{{ error }}</div>
     {% endif %}
@@ -58,7 +83,6 @@
     <div class="row justify-content-center">
         <div class="col-md-5 card p-4 shadow mt-5 text-center">
             <h4 class="mb-3 text-success">🏪 开启路边摊争霸赛</h4>
-            <p class="text-muted small">点击下方按钮创建一个空大厅，然后把网页链接发给朋友，大家就可以自己输入名字进来了！</p>
             <form action="/create_room" method="POST">
                 <button type="submit" class="btn btn-success btn-lg w-100 fw-bold">创建联机大厅</button>
             </form>
@@ -69,7 +93,6 @@
     <div class="row justify-content-center">
         <div class="col-md-5 card p-4 shadow mt-3">
             <h4 class="text-primary text-center mb-4">🚪 游戏等候大厅</h4>
-            
             {% if my_name not in room.joined_players %}
             <div class="border p-3 rounded bg-light mb-4 text-center">
                 <label class="form-label fw-bold">👇 请自定一个帅气的档主名字：</label>
@@ -78,11 +101,9 @@
                     <button type="submit" class="btn btn-primary fw-bold px-4">加入</button>
                 </form>
             </div>
-            
             {% else %}
             <div class="alert alert-success text-center mb-4">
                 <strong>✅ 加入成功！</strong> 你已锁定名字 <strong>【{{ my_name }}】</strong><br>
-                <small>请等待所有人进齐...</small>
             </div>
             {% endif %}
             
@@ -104,35 +125,21 @@
                 <button type="button" class="btn btn-secondary btn-lg w-100 disabled">至少需要 3 人才能开始游戏</button>
                 {% endif %}
             </form>
-            
-            <div class="text-center mt-3">
-                <a href="/reset" class="text-danger small" onclick="return confirm('确定要销毁房间吗？所有人都会被踢出。')">解散房间</a>
-            </div>
+            <div class="text-center mt-3"><a href="/reset" class="text-danger small">解散房间</a></div>
         </div>
     </div>
     
     {% elif room.status == "PLAYING" %}
-        {% if my_name not in room.joined_players %}
-        <div class="alert alert-warning text-center fw-bold m-4 shadow-sm">
-            游戏已经开始了，你来晚了！当前处于【旁观者视角】。
-            <br><a href="/reset" class="btn btn-sm btn-danger mt-2">强行终止并解散房间</a>
-        </div>
-        {% endif %}
-
-    {% set g = room.game %}
     <div class="row">
         <div class="col-lg-8">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <h5 class="fw-bold m-0">🏪 全街档口实况监控 (当前行动者: <span class="text-danger fw-bold">{{ g.current_player().name }}</span>)</h5>
-            </div>
-            
+            <h5 class="fw-bold mb-2">🏪 全街档口监控 (行动者: <span class="text-danger fw-bold">{{ g.current_player().name }}</span>)</h5>
             <div class="row g-3">
                 {% for p in g.players %}
                 {% set player_idx = loop.index0 %}
                 <div class="col-md-6">
                     <div class="stall-box {% if g.turn_idx == player_idx %}active-turn{% endif %}">
                         <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
-                            <h6 class="m-0 fw-bold">【{{ p.name }}】的摊位 {% if my_name == p.name %}<span class="badge bg-primary">本机设备</span>{% endif %}</h6>
+                            <h6 class="m-0 fw-bold">【{{ p.name }}】 {% if my_name == p.name %}<span class="badge bg-primary">我</span>{% endif %}</h6>
                             <span class="badge bg-dark">剩余手牌：{{ p.hand|length }} 张</span>
                         </div>
                         
@@ -152,7 +159,7 @@
                                             {% endif %}
                                         {% endif %}
                                         
-                                        {% if my_name == p.name and p.flies[food_idx] and g.turn_idx == my_p_idx and not g.game_over %}
+                                        {% if my_name == p.name and p.flies[food_idx] and g.turn_idx == my_p_idx and not g.game_over and not g.pending_trade %}
                                         <div class="mt-1 d-flex gap-1" style="z-index: 100;">
                                             <a href="/action/swat_fly?card_idx={{ food_idx }}" class="btn btn-danger btn-xs p-1" style="font-size:9px;">拍死</a>
                                             <button class="btn btn-info text-white btn-xs p-1 dropdown-toggle" style="font-size:9px;" data-bs-toggle="dropdown">扇走</button>
@@ -174,7 +181,7 @@
                             </div>
                         </div>
 
-                        {% if g.turn_idx == my_p_idx and my_name != p.name and g.has_drawn and not g.game_over and not g.active_inspection %}
+                        {% if g.turn_idx == my_p_idx and my_name != p.name and g.has_drawn and not g.game_over and not g.active_inspection and not g.pending_trade %}
                         <div class="border-top pt-1 text-end">
                             <a href="/action/officer?target={{ player_idx }}" class="btn btn-xs btn-outline-primary btn-sm">👮 彻查底牌</a>
                             {% if p.scored_cards %}
@@ -237,20 +244,20 @@
                         {% endfor %}
                     </div>
 
-                    {% if g.turn_idx == my_p_idx %}
+                    {% if g.turn_idx == my_p_idx and not g.pending_trade %}
                         {% if not g.has_drawn %}
                         <div class="text-center py-2">
-                            <a href="/draw" class="btn btn-success fw-bold px-4">📥 第一步：必须先摸 2 张牌</a>
+                            <a href="/draw" class="btn btn-success fw-bold px-4">📥 第一步：先摸 2 张牌</a>
                         </div>
                         {% else %}
                         
                         {% if g.active_inspection %}
                         <div class="alert alert-primary border-primary p-2 mb-3">
-                            <h6 class="fw-bold text-primary mb-1">👮 官员明盘：正在全方位彻查 【{{ g.active_inspection.target_name }}】</h6>
+                            <h6 class="fw-bold text-primary mb-1">👮 官员明盘：彻查 【{{ g.active_inspection.target_name }}】</h6>
                             <div class="d-flex flex-wrap gap-2">
                                 {% for card in g.active_inspection.hand_to_view %}
                                     {% if card in g.players[g.active_inspection.target_idx].hand %}
-                                    <a href="/action/officer_take?card={{ card }}" class="btn btn-sm btn-light border-primary fw-bold text-dark btn-sm small">➕ 抢夺：{{ card }}</a>
+                                    <a href="/action/officer_take?card={{ card }}" class="btn btn-sm btn-light border-primary fw-bold text-dark">➕ 抢夺：{{ card }}</a>
                                     {% endif %}
                                 {% endfor %}
                             </div>
@@ -258,14 +265,50 @@
                         {% endif %}
 
                         {% if not g.active_inspection %}
-                        <div class="d-flex flex-wrap gap-2 mb-2">
-                            <a href="/action/pack_standard" class="btn btn-success btn-sm">🍚 打包标配饭(耗5食材)</a>
-                            <a href="/action/pack_makcik" class="btn btn-outline-success btn-sm">🧑‍🍳 打出【大妈卡】(3食材)</a>
+                        
+                        <form action="/propose_trade" method="POST" class="row g-2 align-items-center mb-3 p-2 bg-light border rounded">
+                            <div class="col-auto"><span class="small text-primary fw-bold">🤝 发起限时交易：用我手里的</span></div>
+                            <div class="col-auto">
+                                <select name="offer" class="form-select form-select-sm border-primary" required>
+                                    <option value="">我愿意交出...</option>
+                                    {% for c in my_player.hand|sort %}
+                                        {% if c in ['Rice', 'Egg', 'Peanuts', 'Sambal', 'Cucumber'] %}
+                                        <option value="{{ c }}">{{ c }}</option>
+                                        {% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-auto"><span class="small">换取</span></div>
+                            <div class="col-auto">
+                                <select name="want" class="form-select form-select-sm border-primary" required>
+                                    <option value="">我想要得到...</option>
+                                    <option value="Rice">Rice (椰浆饭粒)</option>
+                                    <option value="Egg">Egg (水煮蛋)</option>
+                                    <option value="Peanuts">Peanuts (炸花生)</option>
+                                    <option value="Sambal">Sambal (三巴辣酱)</option>
+                                    <option value="Cucumber">Cucumber (黄瓜片)</option>
+                                </select>
+                            </div>
+                            <div class="col-auto"><span class="small">目标对象：</span></div>
+                            <div class="col-auto">
+                                <select name="target" class="form-select form-select-sm border-primary" required>
+                                    <option value="">选择场上摊主</option>
+                                    {% for p in g.players %}
+                                        {% if p.name != my_name %}<option value="{{ p.name }}">{{ p.name }}</option>{% endif %}
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-auto"><button type="submit" class="btn btn-sm btn-primary fw-bold">发起谈判(耗1动)</button></div>
+                        </form>
+
+                        <div class="d-flex flex-wrap gap-2 mb-2 pt-2 border-top">
+                            <a href="/action/pack_standard" class="btn btn-success btn-sm">🍚 打包标配饭(耗5不同食材)</a>
+                            <a href="/action/pack_makcik" class="btn btn-outline-success btn-sm">🧑‍🍳 打出【大妈卡】(3不同食材)</a>
                             <a href="/action/thief" class="btn btn-dark btn-sm">🥷 【小偷卡】全场各摸1张</a>
                             <a href="/action/wholesaler" class="btn btn-secondary btn-sm">🏪 【批发商】提纯牌堆</a>
                         </div>
-                        <form action="/action/supplier" method="GET" class="row g-2 align-items-center pt-2 border-top">
-                            <div class="col-auto"><span class="small text-muted fw-bold">📣 【供应商】垄断呼叫：</span></div>
+                        <form action="/action/supplier" method="GET" class="row g-2 align-items-center pt-2">
+                            <div class="col-auto"><span class="small text-muted fw-bold">📣 【供应商】垄断：</span></div>
                             <div class="col-auto">
                                 <select name="ingredient" class="form-select form-select-sm">
                                     <option value="Rice">Rice (饭粒)</option>
@@ -281,10 +324,6 @@
                         {% endif %}
                         
                         {% endif %}
-                    {% else %}
-                    <div class="text-center py-2 text-muted small italic bg-light rounded">
-                        🔒 面板锁定。等轮到你时，面板会自动解锁。
-                    </div>
                     {% endif %}
                 </div>
             </div>
@@ -294,7 +333,7 @@
             <div class="alert alert-success text-center p-4 shadow-sm">
                 <h3>👑 档口大盘清算完毕 👑</h3>
                 <h2 class="text-danger fw-bold">胜出摊主：【{{ g.winner }}】</h2>
-                <a href="/reset" class="btn btn-primary px-5 mt-2">强制解散房间重新开局</a>
+                <a href="/reset" class="btn btn-primary px-5 mt-2">强制解散房间</a>
             </div>
             {% endif %}
         </div>
@@ -306,7 +345,7 @@
                 <div class="mb-2 small border-bottom border-dark pb-1 {% if '❌' in log or '⚠️' in log %}text-warning fw-bold{% endif %}">&gt; {{ log }}</div>
                 {% endfor %}
             </div>
-            <a href="/reset" class="btn btn-outline-danger w-100 py-1 btn-sm fw-bold" onclick="return confirm('警告：这将强制销毁游戏并踢出所有人！确定吗？')">💥 强行解散大厅并踢人</a>
+            <a href="/reset" class="btn btn-outline-danger w-100 py-1 btn-sm fw-bold" onclick="return confirm('警告：这将踢出所有人！确定吗？')">💥 强行解散大厅并踢人</a>
         </div>
     </div>
     {% endif %}
@@ -314,42 +353,50 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // 1. 输入框草稿记忆功能（防止意外刷新清空打好的字）
+    // --- 1. 输入框防刷新的草稿保护记忆 ---
     document.addEventListener("DOMContentLoaded", function() {
         var nameInput = document.querySelector('input[name="player_name"]');
         if (nameInput) {
-            // 进网页时检查有没有之前打到一半的草稿
-            var draft = sessionStorage.getItem("nasi_lemak_draft_name");
-            if (draft) {
-                nameInput.value = draft;
-            }
-            // 每打一个字就偷偷存下来
+            var draft = sessionStorage.getItem("nasi_lemak_draft");
+            if (draft) nameInput.value = draft;
             nameInput.addEventListener("input", function() {
-                sessionStorage.setItem("nasi_lemak_draft_name", this.value);
+                sessionStorage.setItem("nasi_lemak_draft", this.value);
             });
         }
     });
 
-    // 2. 智能防打断刷新引擎
-    {% if room.status == "WAITING" or (room.status == "PLAYING" and g and g.turn_idx != my_p_idx and not g.game_over) %}
+    // --- 2. 高精度交易弹窗 15秒 JS 倒计时 ---
+    {% if room.status == "PLAYING" and g.pending_trade and trade_time_left > 0 %}
+        let timeLeft = {{ trade_time_left }};
+        let timerEl = document.querySelectorAll(".timer-text");
+        let tradeInterval = setInterval(function() {
+            timeLeft--;
+            timerEl.forEach(el => el.innerText = timeLeft);
+            if (timeLeft <= 0) {
+                clearInterval(tradeInterval);
+                {% if my_name == g.pending_trade.to %}
+                    window.location.href = "/resolve_trade/reject";
+                {% else %}
+                    window.location.reload();
+                {% endif %}
+            }
+        }, 1000);
+    {% endif %}
+
+    // --- 3. 智能防打断常规后台刷新 ---
+    {% if not g.pending_trade and (room.status == "WAITING" or (room.status == "PLAYING" and g and g.turn_idx != my_p_idx and not g.game_over)) %}
     function startSmartRefresh() {
         setTimeout(function() {
             var nameInput = document.querySelector('input[name="player_name"]');
-            
-            // 核心判断：用户的光标是不是正停留在输入框里（是不是正在打字/手机键盘弹出状态）
             var isTyping = (nameInput && document.activeElement === nameInput);
             
             if (isTyping) {
-                // 如果用户正在打字，不执行刷新，改为推迟到下个 3 秒再检查
                 startSmartRefresh();
             } else {
-                // 如果用户没有在打字，安全执行刷新，拉取大厅最新人数
                 window.location.reload();
             }
         }, 3000); 
     }
-    
-    // 启动引擎
     startSmartRefresh();
     {% endif %}
 </script>
