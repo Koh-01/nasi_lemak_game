@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import random
 
 app = Flask(__name__)
-# 线上部署安全密钥（防止本地与线上 Session 加密冲突）
+# 线上部署安全密钥
 app.secret_key = os.environ.get("SECRET_KEY", "nasilemak_multiplayer_secret_key_2026")
 
 CORE_5 = ["Rice", "Egg", "Peanuts", "Sambal", "Cucumber"]
@@ -17,7 +17,6 @@ def create_main_deck():
     deck = []
     for ing in CORE_5:
         deck.extend([ing] * 10)
-    # 功能行动卡（单行独立添加，防止 extend 多参数报错）
     deck.extend(["Wholesaler"] * 3)
     deck.extend(["Thief"] * 3)
     deck.extend(["Supplier"] * 3)
@@ -36,9 +35,6 @@ class OnlineGameState:
         self.discard = []
         self.players = []
         
-        # 记录已经被其他设备认领过的名字列表（防止一个角色被多人选）
-        self.claimed_roles = []
-        
         for name in player_names:
             self.players.append({
                 "name": name,
@@ -47,14 +43,14 @@ class OnlineGameState:
                 "flies": []
             })
             
-        # 【新增】：开局顺序完全随机打乱
+        # 开局顺序完全随机打乱
         self.turn_idx = random.randint(0, len(self.players) - 1)
         
         self.moves_left = 3
         self.has_drawn = False
         self.game_over = False
         self.winner = ""
-        self.log = [f"🎲 游戏房间已创建！系统随机抽签，由 【{self.players[self.turn_idx]['name']}】 率先开始！"]
+        self.log = [f"🎲 游戏正式开始！系统随机抽签，由 【{self.players[self.turn_idx]['name']}】 率先行动！"]
         self.active_inspection = None
 
         # 初始发 7 张牌
@@ -90,7 +86,7 @@ class OnlineGameState:
             self.end_turn()
 
     def end_turn(self):
-        # 胜利清算逻辑
+        # 胜利清算
         for p in self.players:
             net_packs = sum(val for idx, val in enumerate(p["scored_cards"]) if not p["flies"][idx])
             if net_packs >= 5:
@@ -99,7 +95,7 @@ class OnlineGameState:
                 self.log.append(f"👑 【{p['name']}】 成功售出 {net_packs} 包净椰浆饭，赢得了胜利！")
                 return
 
-        # 平局清算逻辑
+        # 平局清算
         if not self.gold_deck:
             self.game_over = True
             highest_packs = -1
@@ -115,69 +111,84 @@ class OnlineGameState:
             self.log.append(f"📦 金卡堆耗尽！平局清算获胜者：{self.winner}")
             return
 
-        # 正常换人
+        # 换人
         self.turn_idx = (self.turn_idx + 1) % len(self.players)
         self.moves_left = 3
         self.has_drawn = False
         self.active_inspection = None
-        self.log.append(f"🟢 轮到 【{self.players[self.turn_idx]['name']}】 的回合。请先摸牌。")
+        self.log.append(f"🟢 轮到 【{self.players[self.turn_idx]['name']}】 的回合。")
 
-# 线上安全的多进程全局共享类绑定
-class GlobalGameHolder:
+
+# 全局大厅状态管理器
+class GlobalRoom:
     def __init__(self):
-        self.instance = None
+        self.status = "EMPTY" # 状态：EMPTY(空闲), WAITING(大厅等人), PLAYING(游戏中)
+        self.joined_players = [] # 记录已加入大厅的玩家名字
+        self.game = None # 实际游戏引擎实例
 
-game_holder = GlobalGameHolder()
+room = GlobalRoom()
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def index():
-    # 1. 房东创建新游戏
-    if request.method == 'POST' and not game_holder.instance:
-        names_raw = request.form.get('player_names', '老板A, 老板B, 老板C')
-        names = [n.strip() for n in names_raw.split(',') if n.strip()]
-        if 3 <= len(names) <= 7:
-            game_holder.instance = OnlineGameState(names)
-        return redirect(url_for('index'))
-    
     my_name = session.get('my_name', None)
+    error_msg = request.args.get('error', None)
+    
     my_player_obj = None
     my_p_idx = -1
     
-    if game_holder.instance:
-        # 2. 【核心修改】玩家尝试认领角色身份
-        if 'join_name' in request.args:
-            join_name = request.args.get('join_name')
-            # 校验 1：如果这个设备已经认领过名字了，不允许再认领别人
-            if my_name:
-                pass # 忽略请求
-            # 校验 2：如果这个名字已经被别人抢先认领了，不允许认领
-            elif join_name in game_holder.instance.claimed_roles:
-                game_holder.instance.log.append(f"⚠️ 认领失败：角色【{join_name}】已被其他设备连接！")
-            else:
-                # 校验通过：绑定该设备
-                for idx, p in enumerate(game_holder.instance.players):
-                    if p["name"] == join_name:
-                        session['my_name'] = join_name
-                        game_holder.instance.claimed_roles.append(join_name) # 登记在册，锁定该角色
-                        game_holder.instance.log.append(f"👤 玩家【{join_name}】已成功上线连接！")
-                        break
-            return redirect(url_for('index'))
+    # 如果游戏正在进行，查找当前玩家的数据
+    if room.status == "PLAYING" and my_name:
+        for idx, p in enumerate(room.game.players):
+            if p["name"] == my_name:
+                my_player_obj = p
+                my_p_idx = idx
+                break
 
-        # 3. 刷新/获取当前 Session 绑定的角色指针
-        my_name = session.get('my_name', None)
-        if my_name:
-            for idx, p in enumerate(game_holder.instance.players):
-                if p["name"] == my_name:
-                    my_player_obj = p
-                    my_p_idx = idx
-                    break
+    return render_template('index.html', room=room, my_name=my_name, my_player=my_player_obj, my_p_idx=my_p_idx, error=error_msg)
 
-    return render_template('index.html', g=game_holder.instance, my_name=my_name, my_player=my_player_obj, my_p_idx=my_p_idx)
+# 1. 创建空房间大厅
+@app.route('/create_room', methods=['POST'])
+def create_room():
+    room.status = "WAITING"
+    room.joined_players = []
+    room.game = None
+    return redirect(url_for('index'))
 
-# 后续所有的 /action 和 /draw 路由保持不变，它们已经非常稳定了
+# 2. 玩家自定义名字加入大厅
+@app.route('/join_room', methods=['POST'])
+def join_room():
+    if room.status != "WAITING":
+        return redirect(url_for('index', error="房间当前不在等人状态，无法加入！"))
+        
+    player_name = request.form.get('player_name', '').strip()
+    
+    if not player_name:
+        return redirect(url_for('index', error="名字不能为空！"))
+    if player_name in room.joined_players:
+        return redirect(url_for('index', error="该名字已经被别人使用了，换一个吧！"))
+    if len(room.joined_players) >= 7:
+        return redirect(url_for('index', error="房间已满（最多7人），无法加入！"))
+        
+    # 加入大厅并锁定本机Session
+    room.joined_players.append(player_name)
+    session['my_name'] = player_name
+    return redirect(url_for('index'))
+
+# 3. 人齐了，正式发牌开始游戏
+@app.route('/start_game', methods=['POST'])
+def start_game():
+    if room.status == "WAITING" and len(room.joined_players) >= 3:
+        room.game = OnlineGameState(room.joined_players)
+        room.status = "PLAYING"
+    else:
+        return redirect(url_for('index', error="至少需要 3 名玩家才能开始游戏！"))
+    return redirect(url_for('index'))
+
+# --- 下面是原有的游戏内操作，只需把 game_holder 换成 room.game ---
+
 @app.route('/draw')
 def draw():
-    g = game_holder.instance
+    g = room.game
     if g and not g.has_drawn and not g.game_over:
         if session.get('my_name') == g.current_player()['name']:
             g.draw_from_deck(g.turn_idx, 2)
@@ -187,7 +198,7 @@ def draw():
 
 @app.route('/action/<action_type>')
 def play_action(action_type):
-    g = game_holder.instance
+    g = room.game
     if not g or not g.has_drawn or g.game_over: 
         return redirect(url_for('index'))
     
@@ -202,7 +213,7 @@ def play_action(action_type):
     except ValueError:
         return redirect(url_for('index'))
         
-    target_p = g.players[target_idx]
+    target_p = g.players[target_idx] if target_idx < len(g.players) else None
     
     if action_type == 'pack_standard':
         if all(i in p["hand"] for i in CORE_5):
@@ -228,7 +239,7 @@ def play_action(action_type):
         else: g.log.append("❌ 基础食材不足3种不同的！")
 
     elif action_type == 'officer':
-        if "Officer" not in p["hand"] or p["name"] == target_p["name"]: return redirect(url_for('index'))
+        if "Officer" not in p["hand"] or not target_p or p["name"] == target_p["name"]: return redirect(url_for('index'))
         p["hand"].remove("Officer")
         g.discard.append("Officer")
         g.active_inspection = {
@@ -251,7 +262,7 @@ def play_action(action_type):
             if len(g.active_inspection["taken_cards"]) == 2 or not t_p["hand"]:
                 taken_str = ", ".join(g.active_inspection["taken_cards"])
                 g.active_inspection = None
-                g.spend_move(f"【{p['name']}】 官员搜查并强占了卡牌：[{taken_str}]")
+                g.spend_move(f"【{p['name']}】 官员强占了卡牌：[{taken_str}]")
 
     elif action_type == 'thief':
         if "Thief" not in p["hand"]: return redirect(url_for('index'))
@@ -265,7 +276,7 @@ def play_action(action_type):
                 p["hand"].append(card)
                 stolen_count += 1
         p["hand"].sort()
-        g.spend_move(f"🥷 【{p['name']}】 派小偷成功从全场其他人手里共摸走了 {stolen_count} 张手牌！")
+        g.spend_move(f"🥷 【{p['name']}】 派小偷从全场共摸走了 {stolen_count} 张手牌！")
 
     elif action_type == 'wholesaler':
         if "Wholesaler" not in p["hand"]: return redirect(url_for('index'))
@@ -277,7 +288,7 @@ def play_action(action_type):
         for c in discarded:
             p["hand"].remove(c)
             g.discard.append(c)
-        g.spend_move(f"【{p['name']}】 批发商过滤了牌堆顶 3 张牌，只留下了食材")
+        g.spend_move(f"【{p['name']}】 批发商过滤了牌堆顶 3 张牌")
 
     elif action_type == 'supplier':
         if "Supplier" not in p["hand"]: return redirect(url_for('index'))
@@ -296,7 +307,7 @@ def play_action(action_type):
         g.spend_move(f"【{p['name']}】 供应商征收了全场所有的指定食材共 {total_collected} 张")
 
     elif action_type == 'play_fly':
-        if "Fly" not in p["hand"] or p["name"] == target_p["name"] or not target_p["scored_cards"]: return redirect(url_for('index'))
+        if "Fly" not in p["hand"] or not target_p or p["name"] == target_p["name"] or not target_p["scored_cards"]: return redirect(url_for('index'))
         if target_p["flies"][card_idx]: g.log.append("❌ 这包椰浆饭已经有苍蝇了！")
         else:
             p["hand"].remove("Fly")
@@ -312,7 +323,7 @@ def play_action(action_type):
         g.spend_move(f"💥 【{p['name']}】 用苍蝇拍打死了自己饭上的苍蝇")
 
     elif action_type == 'fan_fly':
-        if "Fan" not in p["hand"] or not p["flies"][card_idx] or p["name"] == target_p["name"] or not target_p["scored_cards"]: return redirect(url_for('index'))
+        if "Fan" not in p["hand"] or not target_p or not p["flies"][card_idx] or p["name"] == target_p["name"] or not target_p["scored_cards"]: return redirect(url_for('index'))
         assigned_idx = -1
         for idx, has_fly in enumerate(target_p["flies"]):
             if not has_fly:
@@ -333,7 +344,9 @@ def play_action(action_type):
 
 @app.route('/reset')
 def reset():
-    game_holder.instance = None
+    room.status = "EMPTY"
+    room.joined_players = []
+    room.game = None
     session.clear()
     return redirect(url_for('index'))
 
