@@ -130,6 +130,7 @@ class GlobalRoom:
         self.status = "EMPTY"
         self.joined_players = []
         self.game = None
+        self.chat_messages = []  # [{player, msg, ts}]
 
 room = GlobalRoom()
 
@@ -155,7 +156,7 @@ def index():
         if room.game.pending_trade:
             trade_time_left = int(room.game.pending_trade["expires_at"] - time.time())
             if trade_time_left <= 0:
-                room.game.log.append(f"⏱️ 交易超时！【{room.game.pending_trade['to']}】 未能在 15 秒内作出回应。")
+                room.game.log.append(f"⏱️ 交易超时！【{room.game.pending_trade['to']}】 未能在 30 秒内作出回应。")
                 room.game.pending_trade = None
                 trade_time_left = 0
                 # 核心修复：超时后，如果发起人动作没了，补发结束回合
@@ -166,7 +167,7 @@ def index():
                 if p["name"] == my_name:
                     my_player_obj = p; my_p_idx = idx; break
 
-    return render_template('index.html', room=room, g=room.game, my_name=my_name, my_player=my_player_obj, my_p_idx=my_p_idx, error=error_msg, trade_time_left=trade_time_left)
+    return render_template('index.html', room=room, g=room.game, my_name=my_name, my_player=my_player_obj, my_p_idx=my_p_idx, error=error_msg, trade_time_left=trade_time_left, chat_messages=room.chat_messages[-10:])
 
 @app.route('/create_room', methods=['POST'])
 def create_room():
@@ -225,8 +226,8 @@ def propose_trade():
         g.log.append("❌ 交易发起失败：你手里没有这张食材，或目标对象错误。")
         return redirect(url_for('index'))
 
-    g.pending_trade = {"from": p["name"], "to": target_name, "offer": offer_card, "want": want_card, "expires_at": time.time() + 15}
-    g.spend_move(f"向 【{target_name}】 发起 15 秒限时食材交易：用 [{offer_card}] 换取 [{want_card}]")
+    g.pending_trade = {"from": p["name"], "to": target_name, "offer": offer_card, "want": want_card, "expires_at": time.time() + 30}
+    g.spend_move(f"向 【{target_name}】 发起 30 秒限时食材交易：用 [{offer_card}] 换取 [{want_card}]")
     return redirect(url_for('index'))
 
 @app.route('/resolve_trade/<decision>')
@@ -436,6 +437,17 @@ def wholesaler_dismiss():
         g.wholesaler_reveal = None
         if g.moves_left <= 0: g.end_turn()
     return redirect(url_for('index'))
+
+@app.route('/quick_chat', methods=['POST'])
+def quick_chat():
+    my_name = session.get('my_name')
+    if not my_name: return ('', 204)
+    msg = request.form.get('msg', '').strip()
+    ALLOWED = ['🥚','🥒','🍚','🌶️','🥜','🙋','⏩']
+    if msg not in ALLOWED: return ('', 204)
+    room.chat_messages.append({"player": my_name, "msg": msg, "ts": time.time()})
+    room.chat_messages = room.chat_messages[-30:]  # keep last 30
+    return ('', 204)
 
 @app.route('/reset')
 def reset():
