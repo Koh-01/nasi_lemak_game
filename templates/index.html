@@ -527,7 +527,7 @@
                     {% if is_my_turn and card == 'Crow' %}
                         <a href="javascript:void(0);" onclick="alert('请点击对手头像框来放置乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% elif is_my_turn and card == 'Si Oyen' %}
-                        <a href="javascript:void(0);" onclick="alert('请点击对手头像框来使用Si Oyen捕获乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                        <a href="javascript:void(0);" onclick="alert('Si Oyen 会自动赶跑你面前的乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% elif is_my_turn and card == 'Thief' %}
                         <a href="javascript:void(0);" onclick="openThiefModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% elif is_my_turn and card == 'Wholesaler' %}
@@ -798,7 +798,7 @@
         if(siOyenBtn) {
             if(myHand.includes('Si Oyen') && targetHasCrow) {
                 siOyenBtn.style.display = '';
-                siOyenBtn.href = '/action/si_oyen?target=' + tIdx;
+                siOyenBtn.href = '/action/si_oyen';
             } else { siOyenBtn.style.display = 'none'; }
         }
 
