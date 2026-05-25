@@ -147,7 +147,6 @@
 </head>
 <body>
 
-<!-- 重启确认弹窗 -->
 <div id="restart-confirm-modal">
     <div class="restart-modal-box">
         <h5>⚠️ 强制重启确认</h5>
@@ -223,10 +222,8 @@
     {% set g = room.game %}
 
     {% if g.game_over %}
-    <!-- ===== 胜利界面 ===== -->
     <div style="position:fixed;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a5f,#0f172a);z-index:10000;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:20px 10px;">
 
-        <!-- 冠军横幅 -->
         <div style="text-align:center;margin-bottom:20px;">
             <div style="font-size:52px;animation:bounce 0.6s infinite alternate;">👑</div>
             <h2 style="color:#fde047;font-size:clamp(18px,4vw,28px);margin:6px 0 2px;text-shadow:0 0 20px #fde047;">
@@ -235,7 +232,6 @@
             <p style="color:#94a3b8;font-size:12px;">椰浆饭大作战已结束</p>
         </div>
 
-        <!-- 玩家总结卡片区 -->
         <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;width:100%;max-width:900px;margin-bottom:20px;">
             {% for p in g.players %}
             {% set net = [] %}
@@ -251,7 +247,6 @@
                     {{ p.name }}
                 </div>
 
-                <!-- 打包的饭 -->
                 <div style="margin-bottom:8px;">
                     <div style="font-size:10px;color:#64748b;margin-bottom:4px;">椰浆饭</div>
                     <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center;">
@@ -271,7 +266,6 @@
                     </div>
                 </div>
 
-                <!-- 手牌 -->
                 <div>
                     <div style="font-size:10px;color:#64748b;margin-bottom:4px;">剩余手牌 ({{ p.hand|length }}张)</div>
                     <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;">
@@ -288,7 +282,6 @@
             {% endfor %}
         </div>
 
-        <!-- 游戏日志 -->
         <div style="width:100%;max-width:700px;background:rgba(15,23,42,0.8);border:1px solid #334155;border-radius:10px;padding:12px;margin-bottom:20px;">
             <div style="font-size:11px;color:#64748b;margin-bottom:6px;">📜 对局记录（最近10条）</div>
             {% for line in g.log[-10:]|reverse %}
@@ -296,7 +289,6 @@
             {% endfor %}
         </div>
 
-        <!-- 重新开始 -->
         <a href="/reset" class="btn btn-warning fw-bold px-5" style="font-size:14px;">🔄 再来一局</a>
     </div>
 
@@ -305,9 +297,6 @@
     </style>
 
     {% else %}
-    <!-- ===== 正常游戏界面 ===== -->
-
-    <!-- 顶部栏 -->
     <div class="top-bar">
         <span class="text-muted" style="font-size:11px;">饭剩 <span class="text-warning">{{ g.gold_deck|length }}</span></span>
         <span class="turn-indicator">
@@ -318,7 +307,6 @@
         <button onclick="openRestartModal()" class="restart-btn">⚡重启</button>
     </div>
 
-    <!-- 交易待处理横幅（被交易方看到） -->
     {% if g.pending_trade %}
     {% set t = g.pending_trade %}
     <div id="trade-banner" style="background:linear-gradient(90deg,#1e3a5f,#1e293b);border-top:2px solid #38bdf8;border-bottom:2px solid #38bdf8;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;z-index:20;">
@@ -335,7 +323,6 @@
     </div>
     {% endif %}
 
-    <!-- 战场 -->
     <div class="battlefield">
         {% set opponents = [] %}
         {% for p in g.players %}{% if p.name != my_name %}{% set _ = opponents.append((loop.index0, p)) %}{% endif %}{% endfor %}
@@ -343,7 +330,7 @@
 
         <div class="opponents-col">
             {% for idx, opp in opponents[:mid] %}
-            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }},'{{ opp.name }}',{{ opp.scored_cards|length }})">
+            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }},'{{ opp.name }}',{{ opp.scored_cards|length }}, this.getAttribute('data-flies'))" data-flies='{{ opp.flies | tojson }}'>
                 <div class="mini-name">{{ opp.name }}</div>
                 <div class="mini-stats">
                     <span>🎴{{ opp.hand|length }}</span>
@@ -378,7 +365,7 @@
 
         <div class="opponents-col">
             {% for idx, opp in opponents[mid:] %}
-            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }}, this.getAttribute('data-flies'))" data-flies='{{ opp.flies | tojson }}">
+            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}" onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }}, this.getAttribute('data-flies'))" data-flies='{{ opp.flies | tojson }}'>
                 <div class="mini-name">{{ opp.name }}</div>
                 <div class="mini-stats">
                     <span>🎴{{ opp.hand|length }}</span>
@@ -390,7 +377,6 @@
         </div>
     </div>
 
-    <!-- 底部控制台 -->
     <div class="bottom-console">
         <div class="my-stall-zone">
             {% if my_player %}
@@ -402,7 +388,6 @@
             {% endif %}
         </div>
 
-        <!-- 交易按钮：仅当轮到自己且已抽牌时显示 -->
         {% if g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending and not g.pending_trade %}
         <button onclick="document.getElementById('trade-modal').style.display='flex'"
                 class="btn btn-sm btn-outline-primary mb-1 px-3"
@@ -449,7 +434,6 @@
         </div>
     </div>
 
-    <!-- 攻击目标弹窗 -->
     <div id="target-modal" class="action-modal">
         <div class="modal-box">
             <h5 class="text-warning mb-3">🎯 针对 <span id="tm-name"></span></h5>
@@ -461,7 +445,6 @@
         </div>
     </div>
 
-    <!-- 供应商弹窗 -->
     <div id="supplier-modal" class="action-modal">
         <div class="modal-box">
             <h5 class="text-info mb-3">📣 供应商垄断征收</h5>
@@ -479,7 +462,6 @@
         </div>
     </div>
 
-    <!-- 防守弹窗 -->
     <div id="defense-modal" class="action-modal">
         <div class="modal-box">
             <h5 class="text-danger mb-3">🪰 驱蝇除害</h5>
@@ -496,7 +478,6 @@
         </div>
     </div>
 
-    <!-- 小偷选人弹窗 (多人局) -->
     <div id="thief-modal" class="action-modal">
         <div class="modal-box">
             <h5 class="text-warning mb-1">🥷 小偷选目标</h5>
@@ -520,7 +501,6 @@
         </div>
     </div>
 
-    <!-- 批发商公示弹窗（所有玩家都能看到） -->
     {% if g.wholesaler_reveal %}
     <div class="action-modal" id="wholesaler-reveal-modal" style="display:flex;">
         <div class="modal-box">
@@ -547,7 +527,6 @@
     </div>
     {% endif %}
 
-    <!-- 小偷等待选人提示（其他玩家看到） -->
     {% if g.thief_pending and g.turn_idx != my_p_idx %}
     <div class="action-modal" style="display:flex;">
         <div class="modal-box">
@@ -557,7 +536,6 @@
     </div>
     {% endif %}
 
-    <!-- 官员搜查结果弹窗 -->
     {% if g.active_inspection and g.turn_idx == my_p_idx %}
     <div class="action-modal" style="display:flex;">
         <div class="modal-box" style="width:min(340px,92vw);">
@@ -573,7 +551,6 @@
     </div>
     {% endif %}
 
-    <!-- 交易发起弹窗 -->
     <div id="trade-modal" class="action-modal">
         <div class="modal-box">
             <h5 class="text-primary mb-3">🤝 15秒限时食材交易</h5>
@@ -608,11 +585,7 @@
         </div>
     </div>
 
-    {% endif %}<!-- end game_over else -->
-    {% endif %}<!-- end PLAYING -->
-</div><!-- end game-wrapper -->
-
-<script>
+    {% endif %}{% endif %}</div><script>
     // ===== 重启 =====
     function openRestartModal() { document.getElementById('restart-confirm-modal').style.display = 'flex'; }
     function closeRestartModal() { document.getElementById('restart-confirm-modal').style.display = 'none'; }
@@ -624,7 +597,7 @@
         document.getElementById('fan-target-list')?.classList.add('d-none');
     }
 
-// ===== 攻击目标弹窗（精准苍蝇雷达版） =====
+    // ===== 攻击目标弹窗（精准苍蝇雷达版） =====
     function openTargetModal(tIdx, name, foodCount, fliesStr) {
         {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending %}
         document.getElementById('tm-name').innerText = name;
