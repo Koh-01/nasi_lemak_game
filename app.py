@@ -444,18 +444,30 @@ def play_action(action_type):
 
     # ── Si Oyen：捕获乌鸦，领取其携带的食材 ──────────────────────────
     elif action_type == 'si_oyen':
-        if "Si Oyen" not in p["hand"]: return redirect(url_for('index'))
-        if not target_p or target_p.get("placed_crow") is None:
-            g.log.append("❌ 目标玩家面前没有乌鸦！")
+        if "Si Oyen" not in p["hand"]:
             return redirect(url_for('index'))
-        p["hand"].remove("Si Oyen"); g.discard.append("Si Oyen")
-        crow_ings = target_p["placed_crow"]["ingredients"]
-        target_p["placed_crow"] = None
+    
+        # 只能抓自己面前的乌鸦
+        if not p.get("placed_crow"):
+            g.log.append("❌ 你面前没有乌鸦！")
+            return redirect(url_for('index'))
+    
+        p["hand"].remove("Si Oyen")
+        g.discard.append("Si Oyen")
+    
+        crow_ings = p["placed_crow"]["ingredients"]
+        p["placed_crow"] = None
+    
         for ing in crow_ings:
             p["hand"].append(ing)
+    
         p["hand"].sort()
+    
         reward_str = f"[{', '.join(crow_ings)}]" if crow_ings else "（无食材）"
-        g.spend_move(f"🐱 【{p['name']}】 的Si Oyen捕获了【{target_p['name']}】面前的乌鸦！获得食材：{reward_str}")
+    
+        g.spend_move(
+            f"🐱 【{p['name']}】 的Si Oyen赶跑了自己面前的乌鸦！获得食材：{reward_str}"
+        )
 
     elif action_type == 'end_turn_manual':
         g.end_turn()
