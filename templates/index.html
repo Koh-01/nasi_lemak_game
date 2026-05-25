@@ -156,6 +156,12 @@
         .poker-card[data-type="action"] { background: linear-gradient(135deg,#e0f2fe,#bae6fd); border-color: #0ea5e9; }
         .poker-card[data-type="attack"] { background: linear-gradient(135deg,#fee2e2,#fecaca); border-color: #ef4444; }
         .poker-card[data-type="defense"] { background: linear-gradient(135deg,#dcfce7,#bbf7d0); border-color: #22c55e; }
+        .poker-card[data-type="wildcard"] { background: linear-gradient(135deg,#fff7ed,#fed7aa); border-color: #f97316; }
+        .poker-card[data-type="special"] { background: linear-gradient(135deg,#fdf4ff,#e9d5ff); border-color: #a855f7; }
+        .poker-card[data-type="crow"] { background: linear-gradient(135deg,#1c1917,#292524); border-color: #78716c; color: #e7e5e4; }
+        /* Crow blocking styles */
+        .mini-stall.crow-blocked { border-color: #eab308 !important; background: rgba(234,179,8,0.08) !important; }
+        .crow-on-stall { font-size: 13px; text-align: center; background: rgba(234,179,8,0.2); border-radius: 4px; padding: 1px 4px; margin-bottom: 2px; border: 1px solid #eab308; }
         .p-emoji { font-size: clamp(20px, 3vw, 30px); margin-bottom: 1px; }
         .p-title { font-size: clamp(8px, 1vw, 11px); font-weight: bold; text-align: center; line-height: 1.1; }
         .p-tag { position: absolute; bottom: 3px; font-size: 8px; background: rgba(0,0,0,.1); padding: 1px 3px; border-radius: 3px; }
@@ -313,7 +319,7 @@
                 <div>
                     <div style="font-size:10px;color:#64748b;margin-bottom:4px;">剩余手牌 ({{ p.hand|length }}张)</div>
                     <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;">
-                        {% set emoji_map = {"Rice":"🍚","Egg":"🥚","Peanuts":"🥜","Sambal":"🌶️","Cucumber":"🥒","Wholesaler":"🏪","Thief":"🥷","Supplier":"📣","Mak Cik":"🧑‍🍳","Officer":"👮","Fly":"🪰","Fly Swatter":"💥","Fan":"🪭"} %}
+                        {% set emoji_map = {"Rice":"🍚","Egg":"🥚","Peanuts":"🥜","Sambal":"🌶️","Cucumber":"🥒","Wholesaler":"🏪","Thief":"🥷","Supplier":"📣","Mak Cik":"🧑‍🍳","Officer":"👮","Fly":"🪰","Fly Swatter":"💥","Fan":"🪭","Rendang":"🍗","Si Oyen":"🐱","Crow":"🐦‍⬛"} %}
                         {% for card in p.hand %}
                         <span style="background:#1e293b;border:1px solid #334155;border-radius:3px;padding:1px 4px;font-size:10px;">
                             {{ emoji_map.get(card,'?') }}{{ card }}
@@ -377,14 +383,20 @@
 
         <div class="opponents-col">
             {% for idx, opp in opponents[:mid] %}
-            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}"
-                 onclick="openTargetModal({{ idx }},'{{ opp.name }}',{{ opp.scored_cards|length }}, this.getAttribute('data-flies'))"
+            {% set has_placed_crow = opp.placed_crow is not none %}
+            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %} {% if has_placed_crow %}crow-blocked{% endif %}"
+                 onclick="openTargetModal({{ idx }},'{{ opp.name }}',{{ opp.scored_cards|length }}, this.getAttribute('data-flies'), {{ has_placed_crow | lower }})"
                  data-flies='{{ opp.flies | tojson }}'>
+                {% if has_placed_crow %}
+                <div class="crow-on-stall">🐦‍⬛ <span style="font-size:8px;">食材×{{ opp.placed_crow.ingredients|length }}</span></div>
+                {% endif %}
                 <div class="mini-name">{% if g.turn_idx == idx %}▶ {% endif %}{{ opp.name }}</div>
                 <div class="mini-stats">
                     <span>🎴{{ opp.hand|length }}</span>
                     <span class="text-warning">📦{{ opp.scored_cards|length }}</span>
                     {% if true in opp.flies %}<span class="text-danger">🪰</span>{% endif %}
+                    {% set crow_in_hand = opp.hand | select("equalto", "Crow") | list | length %}
+                    {% if crow_in_hand > 0 %}<span style="opacity:0.6;font-size:9px;">🐦‍⬛×{{ crow_in_hand }}</span>{% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -428,14 +440,20 @@
 
         <div class="opponents-col">
             {% for idx, opp in opponents[mid:] %}
-            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %}"
-                 onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }}, this.getAttribute('data-flies'))"
+            {% set has_placed_crow = opp.placed_crow is not none %}
+            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %} {% if has_placed_crow %}crow-blocked{% endif %}"
+                 onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }}, this.getAttribute('data-flies'), {{ has_placed_crow | lower }})"
                  data-flies='{{ opp.flies | tojson }}'>
+                {% if has_placed_crow %}
+                <div class="crow-on-stall">🐦‍⬛ <span style="font-size:8px;">食材×{{ opp.placed_crow.ingredients|length }}</span></div>
+                {% endif %}
                 <div class="mini-name">{% if g.turn_idx == idx %}▶ {% endif %}{{ opp.name }}</div>
                 <div class="mini-stats">
                     <span>🎴{{ opp.hand|length }}</span>
                     <span class="text-warning">📦{{ opp.scored_cards|length }}</span>
                     {% if true in opp.flies %}<span class="text-danger">🪰</span>{% endif %}
+                    {% set crow_in_hand = opp.hand | select("equalto", "Crow") | list | length %}
+                    {% if crow_in_hand > 0 %}<span style="opacity:0.6;font-size:9px;">🐦‍⬛×{{ crow_in_hand }}</span>{% endif %}
                 </div>
             </div>
             {% endfor %}
@@ -445,6 +463,13 @@
     <div class="bottom-console">
         <div class="my-stall-zone">
             {% if my_player %}
+                {% if my_player.placed_crow is not none %}
+                <div style="background:rgba(234,179,8,0.2);border:2px solid #eab308;border-radius:8px;padding:4px 10px;font-size:11px;color:#fde047;width:100%;text-align:center;">
+                    🐦‍⬛ 乌鸦在你面前！你无法包Nasi Lemak。
+                    携带食材：{% if my_player.placed_crow.ingredients %}[{{ my_player.placed_crow.ingredients | join(', ') }}]（共{{ my_player.placed_crow.ingredients|length }}张）{% else %}无{% endif %}
+                    — 点击对手赶走乌鸦！
+                </div>
+                {% endif %}
                 {% for val in my_player.scored_cards %}{% set f_idx = loop.index0 %}
                 <div class="my-nasi {% if my_player.flies[f_idx] %}infected{% endif %}" onclick="openDefenseModal({{ f_idx }},{{ my_player.flies[f_idx]|lower }})">
                     📦{{ val }}包{% if my_player.flies[f_idx] %} 🪰{% endif %}
@@ -468,14 +493,22 @@
                     {% if card in ['Thief','Wholesaler','Supplier','Mak Cik'] %}{% set c_type = "action" %}{% endif %}
                     {% if card in ['Fly','Officer'] %}{% set c_type = "attack" %}{% endif %}
                     {% if card in ['Fly Swatter','Fan'] %}{% set c_type = "defense" %}{% endif %}
+                    {% if card == 'Rendang' %}{% set c_type = "wildcard" %}{% endif %}
+                    {% if card == 'Si Oyen' %}{% set c_type = "special" %}{% endif %}
+                    {% if card == 'Crow' %}{% set c_type = "crow" %}{% endif %}
                     {% set c_dict = {
                         "Rice":("椰浆饭","🍚"),"Egg":("鸡蛋","🥚"),"Peanuts":("花生","🥜"),"Sambal":("三巴","🌶️"),"Cucumber":("黄瓜","🥒"),
                         "Wholesaler":("批发商","🏪"),"Thief":("小偷","🥷"),"Supplier":("供应商","📣"),"Mak Cik":("大妈","🧑‍🍳"),
-                        "Officer":("官员","👮"),"Fly":("苍蝇","🪰"),"Fly Swatter":("蝇拍","💥"),"Fan":("风扇","🪭")
+                        "Officer":("官员","👮"),"Fly":("苍蝇","🪰"),"Fly Swatter":("蝇拍","💥"),"Fan":("风扇","🪭"),
+                        "Rendang":("Rendang","🍗"),"Si Oyen":("Si Oyen","🐱"),"Crow":("乌鸦","🐦‍⬛")
                     } %}
                     {% set is_my_turn = (g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending) %}
 
-                    {% if is_my_turn and card == 'Thief' %}
+                    {% if is_my_turn and card == 'Crow' %}
+                        <a href="javascript:void(0);" onclick="alert('请点击对手头像框来放置乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                    {% elif is_my_turn and card == 'Si Oyen' %}
+                        <a href="javascript:void(0);" onclick="alert('请点击对手头像框来使用Si Oyen捕获乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                    {% elif is_my_turn and card == 'Thief' %}
                         <a href="javascript:void(0);" onclick="openThiefModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% elif is_my_turn and card == 'Wholesaler' %}
                         <a href="/action/wholesaler" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
@@ -522,12 +555,19 @@
 
     <div id="target-modal" class="action-modal">
         <div class="modal-box">
-            <h5 class="text-warning mb-2">👤 <span id="tm-name"></span></h5>
+            <h5 class="text-warning mb-2">👤 <span id="tm-name"></span> <span id="tm-crow-badge" style="display:none;">🐦‍⬛</span></h5>
 
             <!-- 攻击选项（仅自己回合可见） -->
             <div id="tm-attack-section">
                 <div class="d-flex flex-column gap-2 mb-2">
                     <a id="btn-officer" href="#" class="btn btn-primary btn-sm">👮 派官员搜查手牌</a>
+                    <a id="btn-play-crow" href="#" class="btn btn-sm" style="display:none;background:#292524;color:#e7e5e4;border:1px solid #78716c;">🐦‍⬛ 放置乌鸦</a>
+                    <a id="btn-si-oyen" href="#" class="btn btn-sm" style="display:none;background:#7c3aed;color:white;border:none;">🐱 Si Oyen 捕获乌鸦</a>
+                    <!-- 赶乌鸦区域 -->
+                    <div id="crow-chase-section" style="display:none;">
+                        <p class="text-warning small mb-1">🐦‍⬛ 赶乌鸦到此玩家 — 选择一张食材喂乌鸦：</p>
+                        <div id="crow-chase-ingredients" class="d-flex flex-wrap gap-1 justify-content-center"></div>
+                    </div>
                     <div id="fly-targets" class="d-flex flex-wrap gap-2 justify-content-center mt-1"></div>
                 </div>
             </div>
@@ -620,7 +660,7 @@
             <p class="small text-muted mb-3">【{{ g.wholesaler_reveal.player }}】 从牌堆顶摸了 3 张牌：</p>
             <div class="d-flex gap-2 justify-content-center mb-3">
                 {% for card in g.wholesaler_reveal.cards %}
-                {% set emoji_map = {"Rice":"🍚","Egg":"🥚","Peanuts":"🥜","Sambal":"🌶️","Cucumber":"🥒","Wholesaler":"🏪","Thief":"🥷","Supplier":"📣","Mak Cik":"🧑‍🍳","Officer":"👮","Fly":"🪰","Fly Swatter":"💥","Fan":"🪭"} %}
+                {% set emoji_map = {"Rice":"🍚","Egg":"🥚","Peanuts":"🥜","Sambal":"🌶️","Cucumber":"🥒","Wholesaler":"🏪","Thief":"🥷","Supplier":"📣","Mak Cik":"🧑‍🍳","Officer":"👮","Fly":"🪰","Fly Swatter":"💥","Fan":"🪭","Rendang":"🍗","Si Oyen":"🐱","Crow":"🐦‍⬛"} %}
                 <div class="card-reveal {% if card in g.wholesaler_reveal.kept %}kept{% else %}gone{% endif %}">
                     <div style="font-size:22px;">{{ emoji_map.get(card,'❓') }}</div>
                     <div style="font-size:10px;">{{ card }}</div>
@@ -710,18 +750,59 @@
     }
 
     // ===== 攻击目标弹窗（始终可查看状态，仅自己回合可攻击） =====
-    function openTargetModal(tIdx, name, foodCount, fliesStr) {
+    function openTargetModal(tIdx, name, foodCount, fliesStr, targetHasCrow) {
         document.getElementById('tm-name').innerText = name;
-        
-        // 攻击按钮区域
+        const crowBadge = document.getElementById('tm-crow-badge');
+        if(crowBadge) crowBadge.style.display = targetHasCrow ? 'inline' : 'none';
+
         const attackSection = document.getElementById('tm-attack-section');
         const readonlySection = document.getElementById('tm-readonly-section');
-        
+
         {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending %}
-        // 我的回合 — 显示攻击选项
         if(attackSection) attackSection.style.display = '';
         if(readonlySection) readonlySection.style.display = 'none';
         document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
+
+        // ── Play Crow button (I have Crow in hand, target has no crow) ──
+        const myHand = {{ my_player.hand | tojson if my_player else '[]' }};
+        const playCrowBtn = document.getElementById('btn-play-crow');
+        if(playCrowBtn) {
+            if(myHand.includes('Crow') && !targetHasCrow) {
+                playCrowBtn.style.display = '';
+                playCrowBtn.href = '/action/play_crow?target=' + tIdx;
+            } else { playCrowBtn.style.display = 'none'; }
+        }
+
+        // ── Si Oyen button (I have Si Oyen, target has crow) ──
+        const siOyenBtn = document.getElementById('btn-si-oyen');
+        if(siOyenBtn) {
+            if(myHand.includes('Si Oyen') && targetHasCrow) {
+                siOyenBtn.style.display = '';
+                siOyenBtn.href = '/action/si_oyen?target=' + tIdx;
+            } else { siOyenBtn.style.display = 'none'; }
+        }
+
+        // ── Chase crow section (I have placed crow, target has no crow) ──
+        const myHasCrow = {{ 'true' if my_player and my_player.placed_crow is not none else 'false' }};
+        const chaseSection = document.getElementById('crow-chase-section');
+        const chaseIngs = document.getElementById('crow-chase-ingredients');
+        if(chaseSection && chaseIngs) {
+            if(myHasCrow && !targetHasCrow) {
+                chaseSection.style.display = '';
+                chaseIngs.innerHTML = '';
+                const ingEmoji = {'Rice':'🍚','Egg':'🥚','Peanuts':'🥜','Sambal':'🌶️','Cucumber':'🥒','Rendang':'🍗'};
+                const validIngs = ['Rice','Egg','Peanuts','Sambal','Cucumber','Rendang'];
+                const available = validIngs.filter(i => myHand.includes(i));
+                if(available.length > 0) {
+                    available.forEach(ing => {
+                        chaseIngs.innerHTML += `<a href="/action/chase_crow?target=${tIdx}&ingredient=${ing}" class="btn btn-sm btn-outline-warning">${ingEmoji[ing]||'?'} ${ing}</a>`;
+                    });
+                } else {
+                    chaseIngs.innerHTML = '<span class="text-muted small">你没有食材可喂乌鸦！</span>';
+                }
+            } else { chaseSection.style.display = 'none'; }
+        }
+
         let fa = document.getElementById('fly-targets');
         fa.innerHTML = '';
         if(foodCount > 0) {
@@ -737,10 +818,8 @@
             fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>';
         }
         {% else %}
-        // 非我的回合 — 仅查看状态
         if(attackSection) attackSection.style.display = 'none';
         if(readonlySection) readonlySection.style.display = '';
-        // 隐藏所有，只显示点击的那个
         document.querySelectorAll('[id^="tm-status-"]').forEach(el => el.classList.add('d-none'));
         const statusEl = document.getElementById('tm-status-' + tIdx);
         if(statusEl) statusEl.classList.remove('d-none');
