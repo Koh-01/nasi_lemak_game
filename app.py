@@ -443,10 +443,33 @@ def quick_chat():
     my_name = session.get('my_name')
     if not my_name: return ('', 204)
     msg = request.form.get('msg', '').strip()
-    ALLOWED = ['🥚','🥒','🍚','🌶️','🥜','🙋','⏩']
-    if msg not in ALLOWED: return ('', 204)
-    room.chat_messages.append({"player": my_name, "msg": msg, "ts": time.time()})
-    room.chat_messages = room.chat_messages[-30:]  # keep last 30
+    mode = request.form.get('mode', 'have').strip()
+
+    INGREDIENT_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'}
+    ALLOWED_INGREDIENTS = list(INGREDIENT_LABELS.keys())
+    ALLOWED_SPECIAL = ['🙋','⏩']
+
+    if msg not in ALLOWED_INGREDIENTS and msg not in ALLOWED_SPECIAL:
+        return ('', 204)
+
+    if msg in INGREDIENT_LABELS:
+        label = INGREDIENT_LABELS[msg]
+        if mode == 'want':
+            log_line = f"💬 【{my_name}】：我要 {msg} {label}！"
+        else:
+            log_line = f"💬 【{my_name}】：我有 {msg} {label}！"
+    elif msg == '🙋':
+        log_line = f"💬 【{my_name}】：🙋 举手！"
+    elif msg == '⏩':
+        log_line = f"💬 【{my_name}】：⏩ 快一点啦！"
+    else:
+        log_line = f"💬 【{my_name}】：{msg}"
+
+    if room.status == "PLAYING" and room.game:
+        room.game.log.append(log_line)
+
+    room.chat_messages.append({"player": my_name, "msg": msg, "mode": mode, "log_line": log_line, "ts": time.time()})
+    room.chat_messages = room.chat_messages[-30:]
     return ('', 204)
 
 @app.route('/reset')
