@@ -794,11 +794,15 @@ def quick_chat():
     if not my_name: return ('', 204)
     msg = request.form.get('msg', '').strip()
     mode = request.form.get('mode', 'have').strip()
+    
     INGREDIENT_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'}
     ALLOWED_INGREDIENTS = list(INGREDIENT_LABELS.keys())
-    ALLOWED_SPECIAL = ['🙋','⏩']
+    # 🔒 修复核心：在白名单里允许中指 🖕 符号通过
+    ALLOWED_SPECIAL = ['🙋','⏩','🖕']
+    
     if msg not in ALLOWED_INGREDIENTS and msg not in ALLOWED_SPECIAL:
         return ('', 204)
+        
     if msg in INGREDIENT_LABELS:
         label = INGREDIENT_LABELS[msg]
         log_line = f"💬 【{my_name}】：{'我要' if mode=='want' else '我有'} {msg} {label}！"
@@ -806,12 +810,14 @@ def quick_chat():
         log_line = f"💬 【{my_name}】：🙋 举手！"
     elif msg == '⏩':
         log_line = f"💬 【{my_name}】：⏩ 快一点啦！"
+    elif msg == '🖕':
+        # 🔒 修复核心：生成全场中指通告的系统日志
+        log_line = f"💬 【{my_name}】：🖕 送全场一个温暖的中指！"
     else:
-        log_line = f"💬 【{my_name}】：{msg}"
-    if room.status == "PLAYING" and room.game:
-        room.game.log.append(log_line)
-    room.chat_messages.append({"player": my_name, "msg": msg, "mode": mode, "log_line": log_line, "ts": time.time()})
-    room.chat_messages = room.chat_messages[-30:]
+        log_line = f"💬 【{my_name}】发出了：{msg}"
+
+    # 广播加入房间消息流
+    room.add_chat_message(my_name, msg, log_line)
     return ('', 204)
 
 @app.route('/reset')
