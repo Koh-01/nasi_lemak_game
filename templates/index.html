@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>椰浆饭大作战</title>
+    <title>椰浆饭大作战 - 手游重置版</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         /* ===== 横屏强制 ===== */
@@ -17,151 +17,183 @@
             #game-wrapper { display: none !important; }
         }
 
-        /* ===== 全局 ===== */
+        /* ===== 全局手游质感 ===== */
         *, *::before, *::after { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1e293b; color: white; font-family: 'PingFang SC', 'Helvetica Neue', sans-serif; }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0f172a; color: white; font-family: 'PingFang SC', 'Helvetica Neue', sans-serif; }
         
-        /* ===== 游戏框架 ===== */
-        #game-wrapper { display: flex; flex-direction: column; width: 100vw; height: 100dvh; }
+        /* ===== 游戏主框架 ===== */
+        #game-wrapper { display: flex; flex-direction: column; width: 100vw; height: 100dvh; background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); }
 
-        /* ===== 顶部栏 ===== */
+        /* ===== 顶部状态栏 ===== */
         .top-bar {
-            flex: 0 0 36px; height: 36px;
-            background: linear-gradient(180deg, #0f172a 60%, transparent);
+            flex: 0 0 38px; height: 38px;
+            background: linear-gradient(180deg, rgba(15,23,42,0.95) 80%, transparent);
             display: flex; align-items: center; justify-content: center;
-            font-size: 12px; font-weight: bold; z-index: 10; position: relative;
-            padding: 0 8px;
+            font-size: 12px; font-weight: bold; z-index: 100; position: relative;
+            padding: 0 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
-        .turn-indicator { color: #f59e0b; font-size: 13px; margin: 0 8px; white-space: nowrap; }
+        .turn-indicator { color: #f59e0b; font-size: 14px; margin: 0 8px; white-space: nowrap; text-shadow: 0 0 8px rgba(245,158,11,0.5); animation: textPulse 1.5s infinite alternate; }
+        @keyframes textPulse { from { transform: scale(0.98); } to { transform: scale(1.02); } }
+        
         .restart-btn {
-            position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
-            background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444;
-            border-radius: 5px; padding: 1px 7px; font-size: 10px; font-weight: bold;
-            cursor: pointer; white-space: nowrap;
+            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+            background: linear-gradient(135deg, #7f1d1d, #b91c1c); color: #fca5a5; border: 1px solid #ef4444;
+            border-radius: 20px; padding: 2px 10px; font-size: 10px; font-weight: bold;
+            cursor: pointer; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: 0.2s;
         }
+        .restart-btn:active { transform: translateY(-50%) scale(0.9); }
 
         /* ===== 战场区 ===== */
         .battlefield {
             flex: 1 1 0; min-height: 0;
             display: flex; justify-content: space-between; align-items: stretch;
-            padding: 4px 6px; overflow: hidden;
+            padding: 6px 8px; overflow: hidden; position: relative;
         }
 
-        /* ===== 对手列 ===== */
-        .opponents-col { display: flex; flex-direction: column; justify-content: space-evenly; width: 110px; gap: 4px; flex-shrink: 0; }
+        /* ===== 手游卡牌化摊位 ===== */
+        .opponents-col { display: flex; flex-direction: column; justify-content: space-evenly; width: 115px; gap: 6px; flex-shrink: 0; z-index: 10; }
         .mini-stall {
-            background: rgba(30,41,59,0.85); border: 2px solid #475569;
-            border-radius: 7px; padding: 4px 5px; text-align: center;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.3); transition: .25s; cursor: pointer;
+            background: linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.9)); border: 2px solid #475569;
+            border-radius: 10px; padding: 5px 6px; text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.4); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); cursor: pointer;
         }
-        .mini-stall.active { border-color: #e2b13c; box-shadow: 0 0 12px rgba(226,177,60,.6); background: rgba(226,177,60,.1); }
-        .mini-name { font-size: 11px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #38bdf8; margin-bottom: 3px; border-bottom: 1px solid #334155; padding-bottom: 2px; }
-        .mini-stats { display: flex; justify-content: space-around; font-size: 10px; }
+        .mini-stall.active { 
+            border-color: #f59e0b; 
+            box-shadow: 0 0 15px rgba(245,158,11,0.7); 
+            background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(15,23,42,0.9));
+            animation: activeStall 2s infinite alternate;
+        }
+        @keyframes activeStall { from { border-color: #d97706; } to { border-color: #fde047; } }
+        
+        .mini-name { font-size: 11px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #38bdf8; margin-bottom: 4px; border-bottom: 1px solid #334155; padding-bottom: 2px; }
+        .mini-stats { display: flex; justify-content: space-around; font-size: 10px; font-weight: bold; }
 
-        /* ===== 中央牌堆 ===== */
-        .center-decks { flex: 1; display: flex; justify-content: center; align-items: center; gap: clamp(6px, 2vw, 20px); }
+        /* ===== 中央区域组 ===== */
+        .center-decks { flex: 1; display: flex; justify-content: center; align-items: center; gap: clamp(6px, 1.5vw, 15px); position: relative; }
         .deck {
-            width: clamp(65px, 8vw, 90px); height: clamp(95px, 12vh, 130px);
-            border-radius: 10px; display: flex; flex-direction: column;
+            width: clamp(65px, 8vw, 85px); height: clamp(95px, 12vh, 125px);
+            border-radius: 12px; display: flex; flex-direction: column;
             justify-content: center; align-items: center; font-weight: bold;
-            font-size: 11px; cursor: pointer; transition: .2s; text-decoration: none;
-            box-shadow: -3px 4px 10px rgba(0,0,0,.5);
+            font-size: 11px; cursor: pointer; transition: all 0.2s ease; text-decoration: none;
+            box-shadow: -4px 6px 12px rgba(0,0,0,0.6); position: relative;
         }
-        .deck:hover { transform: scale(1.05) translateY(-4px); }
         .gold-deck { background: linear-gradient(135deg,#d4af37,#996515); color: white; border: 3px solid #fde047; }
         .main-deck { background: linear-gradient(135deg,#22c55e,#14532d); color: white; border: 3px solid #86efac; }
-        .deck span:first-child { font-size: clamp(18px, 2.5vw, 24px); }
-        .deck-badge { background: rgba(0,0,0,.6); padding: 1px 5px; border-radius: 8px; font-size: 9px; margin-top: 4px; }
+        .main-deck.pulse-glow { animation: deckGlow 1.2s infinite alternate; }
+        @keyframes deckGlow { from { box-shadow: 0 0 4px #22c55e; transform: scale(1); } to { box-shadow: 0 0 20px #22c55e; transform: scale(1.04); } }
+        
+        .deck span:first-child { font-size: clamp(20px, 2.5vw, 26px); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
+        .deck-badge { background: rgba(0,0,0,.7); padding: 1px 6px; border-radius: 10px; font-size: 9px; margin-top: 5px; border: 1px solid rgba(255,255,255,0.1); }
 
-        /* ===== 中央对局记录 ===== */
+        /* ===== 中央动态对局记录 ===== */
         .center-log {
-            width: clamp(90px, 14vw, 160px); height: clamp(95px, 12vh, 130px);
-            background: rgba(15,23,42,0.9); border: 1px solid #334155; border-radius: 10px;
-            display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0;
+            width: clamp(95px, 15vw, 150px); height: clamp(95px, 12vh, 125px);
+            background: rgba(15,23,42,0.95); border: 1px solid #334155; border-radius: 12px;
+            display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
         }
-        .center-log-title { font-size: 9px; color: #64748b; text-align: center; padding: 3px 0 2px; border-bottom: 1px solid #1e293b; flex-shrink: 0; letter-spacing: 0.5px; }
-        .center-log-body { flex: 1; overflow-y: auto; padding: 3px 5px; scrollbar-width: none; }
+        .center-log-title { font-size: 9px; color: #64748b; text-align: center; padding: 4px 0 2px; border-bottom: 1px solid #1e293b; flex-shrink: 0; letter-spacing: 0.5px; font-weight: bold; }
+        .center-log-body { flex: 1; overflow-y: auto; padding: 3px 6px; scrollbar-width: none; }
         .center-log-body::-webkit-scrollbar { display: none; }
-        .center-log-line { font-size: 9px; color: #94a3b8; line-height: 1.4; padding: 1px 0; border-bottom: 1px solid rgba(51,65,85,0.4); }
+        .center-log-line { font-size: 9px; color: #94a3b8; line-height: 1.4; padding: 2px 0; border-bottom: 1px solid rgba(51,65,85,0.3); animation: fadeInLine 0.3s ease-out; }
+        @keyframes fadeInLine { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* ===== 快捷沟通 ===== */
+        /* ===== 💥 特效图层：全场中指大招大效果区域 ===== */
+        #middle-finger-overlay {
+            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0);
+            z-index: 999; font-size: min(100px, 20dvh); pointer-events: none; opacity: 0;
+            filter: drop-shadow(0 0 25px #ef4444) drop-shadow(0 10px 10px rgba(0,0,0,0.7));
+        }
+        .finger-blast-anim { animation: fingerBlast 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.5) forwards; }
+        @keyframes fingerBlast {
+            0% { transform: translate(-50%, -50%) scale(0) rotate(-45deg); opacity: 0; }
+            20% { transform: translate(-50%, -50%) scale(1.3) rotate(10deg); opacity: 1; }
+            35% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+            75% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 25px #ef4444); }
+            100% { transform: translate(-50%, -50%) scale(0.4) translateY(-80px); opacity: 0; }
+        }
+
+        /* ===== 快捷沟通操作栏 ===== */
         .quick-chat-bar {
-            display: flex; align-items: center; gap: 4px; padding: 3px 8px;
-            background: rgba(15,23,42,0.8); border-top: 1px solid #1e3a5f;
-            flex-shrink: 0; flex-wrap: nowrap; overflow-x: auto;
+            display: flex; align-items: center; gap: 4px; padding: 4px 8px;
+            background: linear-gradient(0deg, rgba(15,23,42,0.95) 0%, rgba(30,41,59,0.9) 100%); 
+            border-top: 1px solid #1e3a8a; flex-shrink: 0; flex-wrap: nowrap; overflow-x: auto;
         }
         .quick-chat-bar::-webkit-scrollbar { display: none; }
-        .qc-label { font-size: 9px; color: #475569; white-space: nowrap; flex-shrink: 0; }
+        .qc-label { font-size: 9px; color: #94a3b8; white-space: nowrap; flex-shrink: 0; font-weight: bold; }
         .qc-btn {
-            background: rgba(30,58,95,0.8); border: 1px solid #1d4ed8;
-            border-radius: 12px; padding: 2px 7px; font-size: 13px; cursor: pointer;
-            transition: .15s; flex-shrink: 0; line-height: 1.4;
+            background: linear-gradient(180deg, #1e40af, #1d4ed8); border: 1px solid #3b82f6;
+            border-radius: 14px; padding: 3px 8px; font-size: 13px; cursor: pointer;
+            transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); flex-shrink: 0; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
-        .qc-btn:hover, .qc-btn:active { background: rgba(59,130,246,0.3); transform: scale(1.15); }
-        .qc-btn.urge { border-color: #f59e0b; background: rgba(120,53,15,0.5); }
+        .qc-btn:hover { transform: scale(1.1) translateY(-2px); }
+        .qc-btn:active { transform: scale(0.9); }
+        .qc-btn.urge { border-color: #f59e0b; background: linear-gradient(180deg, #b45309, #d97706); }
+        .qc-btn.finger { border-color: #ef4444; background: linear-gradient(180deg, #991b1b, #dc2626); font-weight: bold; animation: fingerPulse 1s infinite alternate; }
+        @keyframes fingerPulse { from { box-shadow: 0 0 2px #ef4444; } to { box-shadow: 0 0 8px #ef4444; } }
 
         /* ===== 聊天气泡浮层 ===== */
-        .chat-bubble-layer { position: fixed; top: 38px; right: 6px; z-index: 500; display: flex; flex-direction: column; gap: 3px; pointer-events: none; max-width: 160px; }
-        .chat-bubble { background: rgba(30,41,59,0.95); border: 1px solid #334155; border-radius: 10px; padding: 3px 8px; font-size: 11px; color: #e2e8f0; animation: bubblein .3s ease, bubbleout .4s 3.5s forwards; white-space: nowrap; }
-        @keyframes bubblein { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
-        @keyframes bubbleout { from{opacity:1} to{opacity:0} }
+        .chat-bubble-layer { position: fixed; top: 42px; right: 8px; z-index: 500; display: flex; flex-direction: column; gap: 4px; pointer-events: none; max-width: 170px; }
+        .chat-bubble { background: rgba(15,23,42,0.95); border: 1px solid #475569; border-radius: 12px; padding: 4px 10px; font-size: 11px; color: #e2e8f0; animation: bubblein .3s cubic-bezier(0.175, 0.885, 0.32, 1.275) ease, bubbleout .4s 3.5s forwards; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
+        @keyframes bubblein { from{opacity:0;transform:translateX(30px) scale(0.8)} to{opacity:1;transform:translateX(0) scale(1)} }
+        @keyframes bubbleout { from{opacity:1} to{opacity:0;transform:scale(0.8)} }
 
-        .trade-banner-highlight { animation: tradepulse 1s infinite alternate; }
-        @keyframes tradepulse { from{box-shadow:0 0 8px rgba(56,189,248,0.3)} to{box-shadow:0 0 20px rgba(56,189,248,0.8)} }
+        /* ===== 乌鸦阻挡样式 ===== */
+        .mini-stall.crow-blocked { border-color: #eab308 !important; background: rgba(234,179,8,0.12) !important; }
+        .crow-on-stall { font-size: 12px; text-align: center; background: linear-gradient(90deg, rgba(234,179,8,0.3), rgba(0,0,0,0.5)); border-radius: 5px; padding: 2px 4px; margin-bottom: 3px; border: 1px solid #eab308; font-weight: bold; }
 
-        .mini-stall .mini-hand-pills { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; margin-top: 3px; }
-        .hand-pill { font-size: 8px; background: rgba(51,65,85,0.8); border-radius: 3px; padding: 0 3px; color: #94a3b8; }
-
+        /* ===== 底部控制台与手牌组合 ===== */
         .bottom-console {
-            flex: 0 0 auto; height: clamp(170px, 32dvh, 220px); display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: clamp(8px, 2dvh, 14px); background: linear-gradient(0deg, rgba(0,0,0,.75), transparent); z-index: 30; position: relative;
+            flex: 0 0 auto; height: clamp(170px, 32dvh, 220px);
+            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+            padding-bottom: clamp(6px, 1.5dvh, 12px); background: linear-gradient(0deg, rgba(15,23,42,0.95) 70%, transparent);
+            z-index: 30; position: relative;
         }
 
-        /* ===== 已打包的饭 ===== */
         .my-stall-zone {
-            display: flex; gap: 6px; margin-bottom: 10px; align-items: center; flex-wrap: wrap; justify-content: center; min-height: 52px; max-height: 80px; overflow-y: auto; position: relative; z-index: 80;
+            display: flex; gap: 6px; margin-bottom: 6px; align-items: center; flex-wrap: wrap; justify-content: center; min-height: 45px; max-height: 75px; overflow-y: auto; position: relative; z-index: 80; width: 100%; padding: 0 10px;
         }
         .my-nasi {
-            background: #d4af37; color: #000; font-weight: bold; padding: 2px 8px; border-radius: 5px; font-size: 11px; display: flex; align-items: center; gap: 3px; border: 2px solid #fff; box-shadow: 0 3px 5px rgba(0,0,0,.4); cursor: pointer; white-space: nowrap;
+            background: linear-gradient(135deg, #fde047, #d4af37); color: #000; font-weight: bold;
+            padding: 3px 10px; border-radius: 6px; font-size: 11px;
+            display: flex; align-items: center; gap: 3px; border: 2px solid #fff;
+            box-shadow: 0 4px 6px rgba(0,0,0,.4); cursor: pointer; white-space: nowrap; transition: 0.2s;
         }
-        .my-nasi.infected { background: #475569; color: #ef4444; border-color: #ef4444; }
+        .my-nasi:active { transform: scale(0.95); }
+        .my-nasi.infected { background: linear-gradient(135deg, #475569, #334155); color: #ef4444; border-color: #ef4444; animation: shakeInfected 0.5s infinite alternate; }
+        @keyframes shakeInfected { from { transform: rotate(-1deg); } to { transform: rotate(1deg); } }
 
-        /* ===== 手牌交叠 ===== */
+        /* ===== 手牌物理交叠动效 ===== */
         .poker-hand {
-            display: flex; justify-content: center; align-items: flex-end; height: clamp(90px, 18dvh, 125px); padding: 0 10px; position: relative; z-index: 10; margin-top: 4px;
+            display: flex; justify-content: center; align-items: flex-end; height: clamp(90px, 18dvh, 125px); padding: 0 15px; position: relative; z-index: 10; margin-top: 2px; width: 100%;
         }
         .poker-card {
-            width: clamp(55px, 7vw, 80px); height: clamp(85px, 17dvh, 120px); border-radius: 7px; margin-left: clamp(-45px, -4vw, -28px); background: white; border: 1px solid #cbd5e1; box-shadow: -2px 0 6px rgba(0,0,0,.4); display: flex; flex-direction: column; align-items: center; padding-top: 6px; text-decoration: none; transition: transform .2s cubic-bezier(.34,1.56,.64,1); position: relative; color: #1e293b; flex-shrink: 0;
+            width: clamp(56px, 7.5vw, 82px); height: clamp(88px, 17.5dvh, 122px);
+            border-radius: 8px; margin-left: clamp(-42px, -3.8vw, -25px);
+            background: white; border: 1px solid #cbd5e1;
+            box-shadow: -3px -1px 8px rgba(0,0,0,.5);
+            display: flex; flex-direction: column; align-items: center;
+            padding-top: 8px; text-decoration: none;
+            transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s ease, z-index 0s;
+            position: relative; color: #1e293b; flex-shrink: 0;
         }
         .poker-hand .poker-card:first-child { margin-left: 0; }
-        .poker-card:hover, .poker-card:active { transform: translateY(-18px); z-index: 50 !important; box-shadow: 0 8px 18px rgba(0,0,0,.6); }
+        .poker-card:hover, .poker-card:active { transform: translateY(-24px) scale(1.08) rotate(1deg); z-index: 150 !important; box-shadow: 0 12px 24px rgba(0,0,0,.7); }
+        
+        /* 卡牌按功能上色 */
         .poker-card[data-type="action"] { background: linear-gradient(135deg,#e0f2fe,#bae6fd); border-color: #0ea5e9; }
         .poker-card[data-type="attack"] { background: linear-gradient(135deg,#fee2e2,#fecaca); border-color: #ef4444; }
         .poker-card[data-type="defense"] { background: linear-gradient(135deg,#dcfce7,#bbf7d0); border-color: #22c55e; }
         .poker-card[data-type="wildcard"] { background: linear-gradient(135deg,#fff7ed,#fed7aa); border-color: #f97316; }
         .poker-card[data-type="special"] { background: linear-gradient(135deg,#fdf4ff,#e9d5ff); border-color: #a855f7; }
         .poker-card[data-type="crow"] { background: linear-gradient(135deg,#1c1917,#292524); border-color: #78716c; color: #e7e5e4; }
-        .mini-stall.crow-blocked { border-color: #eab308 !important; background: rgba(234,179,8,0.08) !important; }
-        .crow-on-stall { font-size: 13px; text-align: center; background: rgba(234,179,8,0.2); border-radius: 4px; padding: 1px 4px; margin-bottom: 2px; border: 1px solid #eab308; }
-        .p-emoji { font-size: clamp(20px, 3vw, 30px); margin-bottom: 1px; }
-        .p-title { font-size: clamp(8px, 1vw, 11px); font-weight: bold; text-align: center; line-height: 1.1; }
-        .p-tag { position: absolute; bottom: 3px; font-size: 8px; background: rgba(0,0,0,.1); padding: 1px 3px; border-radius: 3px; }
+        
+        .p-emoji { font-size: clamp(22px, 3.2vw, 32px); margin-bottom: 2px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2)); }
+        .p-title { font-size: clamp(8px, 0.9vw, 11px); font-weight: bold; text-align: center; line-height: 1.1; }
+        .p-tag { position: absolute; bottom: 4px; font-size: 7px; background: rgba(0,0,0,.08); padding: 1px 4px; border-radius: 4px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3px; }
 
-        /* ===== 弹窗 ===== */
-        .action-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 9999; justify-content: center; align-items: center; }
-        .modal-box { background: #1e293b; border: 2px solid #38bdf8; border-radius: 12px; padding: 16px; width: min(320px, 90vw); text-align: center; max-height: 90dvh; overflow-y: auto; }
-        .card-reveal { display: inline-flex; flex-direction: column; align-items: center; background: white; color: #1e293b; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: bold; min-width: 52px; }
-        .card-reveal.kept { border: 2px solid #22c55e; }
-        .card-reveal.gone { border: 2px solid #94a3b8; opacity: .5; text-decoration: line-through; }
-        .thief-target-btn { cursor: pointer; transition: .15s; }
-        .thief-target-btn.selected { border-color: #f59e0b !important; background: rgba(245,158,11,.15) !important; }
-        #restart-confirm-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 99998; justify-content: center; align-items: center; }
-        .restart-modal-box { background: linear-gradient(135deg,#1e293b,#0f172a); border: 2px solid #ef4444; border-radius: 14px; padding: 20px 24px; text-align: center; width: min(280px, 85vw); box-shadow: 0 0 28px rgba(239,68,68,.3); }
-        .restart-modal-box h5 { color: #ef4444; margin-bottom: 8px; }
-        .restart-modal-box p { color: #94a3b8; font-size: 11px; margin-bottom: 14px; }
-        .lobby-screen { background: #0f172a; height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow-y: auto; padding: 16px; }
-        a.disabled-card { pointer-events: none; opacity: .7; }
-        .lobby-restart-btn { margin-top: 10px; background: transparent; color: #64748b; border: 1px solid #334155; border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer; transition: .2s; width: 100%; }
-        .lobby-restart-btn:hover { color: #ef4444; border-color: #ef4444; }
+        /* ===== 全局大弹窗 ===== */
+        .action-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+        .modal-box { background: linear-gradient(135deg, #1e293b, #0f172a); border: 2px solid #38bdf8; border-radius: 16px; padding: 18px; width: min(320px, 90vw); text-align: center; max-height: 90dvh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
     </style>
 </head>
 <body>
@@ -196,7 +228,7 @@
 {% endif %}
 
 <div id="game-wrapper">
-<div id="chat-bubble-layer" class="chat-bubble-layer"></div>
+    <div id="chat-bubble-layer" class="chat-bubble-layer"></div>
 
     {% if error %}
     <div style="position:fixed;top:40px;left:50%;transform:translateX(-50%);z-index:9999;" class="alert alert-danger py-1 px-3 fs-6">{{ error }}</div>
@@ -204,11 +236,11 @@
 
     {% if room.status == "EMPTY" or room.status == "WAITING" %}
     <div class="lobby-screen">
-        <h2 class="text-warning mb-3">🥣 椰浆饭大作战</h2>
-        <div class="card bg-dark text-white border-secondary p-4 shadow" style="width:min(320px,95vw);">
+        <h2 class="text-warning mb-3" style="text-shadow: 0 0 10px rgba(245,158,11,0.5);">🥣 椰浆饭大作战</h2>
+        <div class="card bg-dark text-white border-secondary p-4 shadow" style="width:min(320px,95vw); border-radius:16px;">
             {% if room.status == "EMPTY" %}
                 <form action="/create_room" method="POST">
-                    <button type="submit" class="btn btn-warning w-100 fw-bold">👉 创建新对局</button>
+                    <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow">👉 创建新对局</button>
                 </form>
             {% else %}
                 {% if not my_name %}
@@ -246,7 +278,7 @@
                 </div>
                 <form action="/start_game" method="POST">
                     {% if room.joined_players|length >= 3 %}
-                    <button type="submit" class="btn btn-warning w-100 fw-bold">🚀 立即开战</button>
+                    <button type="submit" class="btn btn-warning w-100 fw-bold shadow py-2">🚀 立即开战</button>
                     {% else %}
                     <button type="button" class="btn btn-secondary w-100 disabled small">需满3人开战</button>
                     {% endif %}
@@ -288,8 +320,6 @@
                         <span style="background:{% if p.flies[idx] %}#374151{% else %}#d4af37{% endif %}; color:{% if p.flies[idx] %}#ef4444{% else %}#000{% endif %}; border-radius:4px;padding:1px 6px;font-size:11px;font-weight:bold; border:1px solid {% if p.flies[idx] %}#ef4444{% else %}#fff{% endif %};">
                             📦{{ p.scored_cards[idx] }}包{% if p.flies[idx] %} 🪰{% endif %}
                         </span>
-                        {% else %}
-                        <span style="font-size:11px;color:#475569;">（无）</span>
                         {% endfor %}
                     </div>
                     <div style="font-size:12px;color:#22c55e;margin-top:4px;font-weight:bold;">
@@ -329,14 +359,14 @@
             {% if g.turn_idx == my_p_idx %}🟢 你的回合 (剩{{ g.moves_left }}动)
             {% else %}⏳ 等待【{{ g.current_player().name }}】{% endif %}
         </span>
-        <a href="/action/end_turn_manual" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2" style="font-size:10px;">结束回合</a>
+        <a href="/action/end_turn_manual" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2" style="font-size:10px; border-radius: 10px;">结束回合</a>
         <button onclick="openRestartModal()" class="restart-btn">⚡重启</button>
     </div>
 
     {% if g.pending_trade %}
     {% set t = g.pending_trade %}
     <div id="trade-banner" class="trade-banner-highlight" style="background:linear-gradient(90deg,#1e3a5f,#1e293b);border-top:2px solid #38bdf8;border-bottom:2px solid #38bdf8;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;z-index:20;">
-        <span style="font-size:12px;">🤝 <strong class="text-warning">{{ t.from }}</strong> 要用 <strong class="text-success">{{ t.offer }}</strong>换 <strong class="text-danger">{{ t.to }}</strong> 的 <strong class="text-info">{{ t.want }}</strong>
+        <span style="font-size:12px;">🤝 <strong class="text-warning">{{ t.from }}</strong> 要用 <strong class="text-success">{{ t.offer }}</strong> 换 <strong class="text-danger">{{ t.to }}</strong> 的 <strong class="text-info">{{ t.want }}</strong>
         {% if my_name != t.to and my_name != t.from %}<span style="font-size:10px;color:#64748b;"> （旁观）</span>{% endif %}
         </span>
         {% if my_name == t.to %}
@@ -353,6 +383,8 @@
     {% endif %}
 
     <div class="battlefield">
+        <div id="middle-finger-overlay">🖕</div>
+
         {% set opponents = [] %}
         {% for p in g.players %}{% if p.name != my_name %}{% set _ = opponents.append((loop.index0, p)) %}{% endif %}{% endfor %}
         {% set mid = (opponents|length / 2)|round(0,'ceil')|int %}
@@ -399,7 +431,7 @@
 
             {% if g.turn_idx == my_p_idx %}
                 {% if not g.has_drawn %}
-                <a href="/draw" class="deck main-deck" style="box-shadow:0 0 16px #22c55e;">
+                <a href="/draw" class="deck main-deck pulse-glow">
                     <span>📥</span><span>摸2张牌</span>
                     <span class="deck-badge">必须执行</span>
                 </a>
@@ -479,7 +511,7 @@
 
                     {% if is_my_turn and card == 'Crow' %}
                         <a href="javascript:void(0);" onclick="alert('请点击对手头像框来放置乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                    {% elif is_my_turn and card == 'Si Oyen' %}
+                    {% elif is_my_turn Glen card == 'Si Oyen' %}
                         <a href="javascript:void(0);" onclick="alert('Si Oyen 会自动赶跑你面前的乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% elif is_my_turn and card == 'Thief' %}
                         <a href="javascript:void(0);" onclick="openThiefModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
@@ -507,20 +539,21 @@
         {% if my_name %}
         <div class="quick-chat-bar">
             <span class="qc-label">我有：</span>
-            <button class="qc-btn" onclick="sendQuickChat('🥚','have')" title="我有鸡蛋">🥚</button>
-            <button class="qc-btn" onclick="sendQuickChat('🥒','have')" title="我有黄瓜">🥒</button>
-            <button class="qc-btn" onclick="sendQuickChat('🍚','have')" title="我有白饭">🍚</button>
-            <button class="qc-btn" onclick="sendQuickChat('🌶️','have')" title="我有Sambal">🌶️</button>
-            <button class="qc-btn" onclick="sendQuickChat('🥜','have')" title="我有花生">🥜</button>
-            <span class="qc-label" style="margin-left:4px;border-left:1px solid #334155;padding-left:6px;">我要：</span>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥚','want')" title="我要鸡蛋">🥚</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥒','want')" title="我要黄瓜">🥒</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🍚','want')" title="我要白饭">🍚</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🌶️','want')" title="我要Sambal">🌶️</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥜','want')" title="我要花生">🥜</button>
-            <span class="qc-label" style="margin-left:4px;border-left:1px solid #334155;padding-left:6px;"></span>
-            <button class="qc-btn" onclick="sendQuickChat('🙋','special')" title="举手">🙋</button>
-            <button class="qc-btn urge" onclick="sendQuickChat('⏩','special')" title="快一点！">⏩</button>
+            <button class="qc-btn" onclick="sendQuickChat('🥚','have')">🥚</button>
+            <button class="qc-btn" onclick="sendQuickChat('🥒','have')">🥒</button>
+            <button class="qc-btn" onclick="sendQuickChat('🍚','have')">🍚</button>
+            <button class="qc-btn" onclick="sendQuickChat('🌶️','have')">🌶️</button>
+            <button class="qc-btn" onclick="sendQuickChat('🥜','have')">🥜</button>
+            <span class="qc-label" style="margin-left:4px;border-left:1px solid #334155;padding-left:4px;">我要：</span>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥚','want')">🥚</button>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥒','want')">🥒</button>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🍚','want')">🍚</button>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🌶️','want')">🌶️</button>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥜','want')">🥜</button>
+            <span class="qc-label" style="margin-left:4px;border-left:1px solid #334155;padding-left:4px;"></span>
+            <button class="qc-btn" onclick="sendQuickChat('🙋','special')">🙋</button>
+            <button class="qc-btn urge" onclick="sendQuickChat('⏩','special')">⏩</button>
+            <button class="qc-btn finger" onclick="sendQuickChat('🖕','special')" title="送你个中指">🖕</button>
         </div>
         {% endif %}
     </div>
@@ -730,11 +763,9 @@
         if(readonlySection) readonlySection.style.display = 'none';
         document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
         {% if not g.has_drawn %}
-        document.getElementById('btn-officer').classList.add('disabled');
         document.getElementById('btn-officer').style.opacity = '0.4';
         document.getElementById('btn-officer').onclick = function(e){ e.preventDefault(); alert('请先摸牌再使用官员！'); };
         {% else %}
-        document.getElementById('btn-officer').classList.remove('disabled');
         document.getElementById('btn-officer').style.opacity = '';
         document.getElementById('btn-officer').onclick = null;
         {% endif %}
@@ -863,18 +894,28 @@
     }, 3000);
     {% endif %}
 
+    // ===== 快捷沟通与全场特效联动 =====
     const ING_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'};
-    const SPECIAL_LABELS = {'🙋':'举手！','⏩':'快一点啦！'};
+    const SPECIAL_LABELS = {'🙋':'举手！','⏩':'快一点啦！','🖕':'送全场一个温暖的中指！'};
+
     function sendQuickChat(msg, mode) {
         const fd = new FormData();
         fd.append('msg', msg);
         fd.append('mode', mode || 'have');
         fetch('/quick_chat', {method:'POST', body:fd});
+        
         let text;
         if(ING_LABELS[msg]) {
             text = (mode === 'want' ? '我要 ' : '我有 ') + msg + ' ' + ING_LABELS[msg] + '！';
         } else { text = SPECIAL_LABELS[msg] || msg; }
+        
         showLocalBubble('你', text);
+        
+        // 本地立即播放大招特效
+        if (msg === '🖕') {
+            triggerMiddleFingerEffect();
+        }
+
         const logBody = document.getElementById('center-log-body');
         if(logBody) {
             const line = document.createElement('div');
@@ -884,6 +925,7 @@
             logBody.insertBefore(line, logBody.firstChild);
         }
     }
+
     function showLocalBubble(player, text) {
         const layer = document.getElementById('chat-bubble-layer');
         if(!layer) return;
@@ -892,6 +934,19 @@
         b.innerHTML = `<strong style="color:#38bdf8;">${player}</strong>：${text}`;
         layer.appendChild(b);
         setTimeout(() => b.remove(), 4000);
+    }
+
+    // ⚡ 核心动效：触发全场中指大招爆裂动画
+    function triggerMiddleFingerEffect() {
+        const overlay = document.getElementById('middle-finger-overlay');
+        if (!overlay) return;
+        // 克隆节点强行重置动画流
+        const newOverlay = overlay.cloneNode(true);
+        overlay.parentNode.replaceChild(newOverlay, overlay);
+        newOverlay.classList.add('finger-blast-anim');
+        setTimeout(() => {
+            newOverlay.classList.remove('finger-blast-anim');
+        }, 1200);
     }
 
     {% if chat_messages %}
@@ -904,6 +959,12 @@
             const b = document.createElement('div');
             b.className = 'chat-bubble';
             const logLine = m.log_line || m.msg;
+            
+            // 实时监听来自其他选手的“中指信号”
+            if (m.msg === '🖕' && (now - m.ts < 1.5)) {
+                triggerMiddleFingerEffect();
+            }
+
             const display = logLine.replace(/^💬 【.*?】：/, '');
             b.innerHTML = `<strong style="color:#38bdf8;">${m.player}</strong>：${display}`;
             layer.appendChild(b);
