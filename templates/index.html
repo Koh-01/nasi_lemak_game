@@ -1082,7 +1082,7 @@
     }, 500);
 
     // ==========================================
-    // 👑 终极核心引擎：无感抓取替换（告别闪烁刷新！）
+    // 👑 终极核心引擎：无感抓取替换（修复 center-decks 缺失）
     // ==========================================
     {% if room.status == "WAITING" or (room.status == "PLAYING" and g and not g.game_over) %}
     
@@ -1148,6 +1148,13 @@
                     if(isScrolledToBottom) oldLog.scrollTop = oldLog.scrollHeight;
                 }
                 
+                // ⭐ 关键修复：更新中央的摸牌/打包区域
+                let centerDecksOld = document.querySelector('.center-decks');
+                let centerDecksNew = doc.querySelector('.center-decks');
+                if (centerDecksOld && centerDecksNew) {
+                    centerDecksOld.innerHTML = centerDecksNew.innerHTML;
+                }
+
                 let oppColsOld = document.querySelectorAll('.opponents-col');
                 let oppColsNew = doc.querySelectorAll('.opponents-col');
                 if(oppColsOld.length === 2 && oppColsNew.length === 2) {
@@ -1191,6 +1198,8 @@
                         localStorage.setItem('last_handled_turn_idx', turnIdx);
                         playYourTurnSound();
                         if(navigator.vibrate) navigator.vibrate([120,60,120]);
+                        // 显示吐司提示“轮到你了”
+                        showNasiToast("🔥 轮到你了！");
                     }
                 } else {
                     if(localStorage.getItem('last_handled_turn_idx') === turnIdx) {
