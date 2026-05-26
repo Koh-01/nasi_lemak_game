@@ -795,9 +795,9 @@ def quick_chat():
     msg = request.form.get('msg', '').strip()
     mode = request.form.get('mode', 'have').strip()
     
-    INGREDIENT_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'}
+    INGREDIENT_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🌶':'Sambal','🥜':'花生'}
     ALLOWED_INGREDIENTS = list(INGREDIENT_LABELS.keys())
-    # 🔒 必须把中指加进白名单，否则后端会直接拦截
+    # 🔒 必须把中指加进白名单
     ALLOWED_SPECIAL = ['🙋','⏩','🖕']
     
     if msg not in ALLOWED_INGREDIENTS and msg not in ALLOWED_SPECIAL:
@@ -815,11 +815,9 @@ def quick_chat():
     else:
         log_line = f"💬 【{my_name}】发出了：{msg}"
 
-    # 1. 发送到顶部气泡流
-    room.add_chat_message(my_name, msg, log_line)
-    
-    # 2. 👑 核心修复：直接写入游戏中央大厅的对局记录！
-    if room.status == "PLAYING" and room.game:
+    # 👑 核心修复：直接将聊天记录永久写入游戏的中央对局记录中！
+    global room
+    if 'room' in globals() and room.status == "PLAYING" and room.game:
         room.game.log.append(log_line)
         
     return ('', 204)
