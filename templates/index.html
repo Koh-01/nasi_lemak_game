@@ -1061,7 +1061,20 @@
     // ==========================================
     // 👑 终极核心引擎：无感抓取替换（告别闪烁刷新！）
     // ==========================================
-    {% if room.status == "WAITING" or (room.status == "PLAYING" and g and not g.game_over) %}
+{% if room.status == "PLAYING" and g and g.turn_idx != my_p_idx and not g.game_over %}
+    setTimeout(function(){
+        // 1. 获取当前焦点元素
+        const activeElement = document.activeElement;
+        const isInputting = (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA');
+        
+        // 2. 只有当用户没有在输入名字，且没有开启弹窗时，才自动刷新
+        if (!isInputting && document.querySelectorAll('.action-modal[style*="flex"]').length === 0) {
+            window.location.reload();
+        } else {
+            // 如果用户正在输入，推迟 5 秒再检查
+            setTimeout(arguments.callee, 5000);
+        }
+    }, 3000);
     
     // 初始化首屏数据判定
     const initDataNode = document.getElementById('game-state-data');
