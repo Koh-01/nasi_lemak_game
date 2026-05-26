@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>椰浆饭大作战 - 全感官手游版</title>
+    <title>椰浆饭大作战</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         /* ===== 横屏强制 ===== */
@@ -17,248 +17,199 @@
             #game-wrapper { display: none !important; }
         }
 
-        /* ===== 全局手游质感 ===== */
+        /* ===== 全局 ===== */
         *, *::before, *::after { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0f172a; color: white; font-family: 'PingFang SC', 'Helvetica Neue', sans-serif; user-select: none; }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #1e293b; color: white; font-family: 'PingFang SC', 'Helvetica Neue', sans-serif; }
         
-        /* ===== 游戏主框架 ===== */
-        #game-wrapper { display: flex; flex-direction: column; width: 100vw; height: 100dvh; background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); }
+        /* ===== 游戏框架：用 dvh 适配移动端地址栏 ===== */
+        #game-wrapper { display: flex; flex-direction: column; width: 100vw; height: 100dvh; }
 
-        /* ===== 顶部状态栏 ===== */
+        /* ===== 顶部栏：固定高度 ===== */
         .top-bar {
-            flex: 0 0 38px; height: 38px;
-            background: linear-gradient(180deg, rgba(15,23,42,0.95) 80%, transparent);
+            flex: 0 0 36px; height: 36px;
+            background: linear-gradient(180deg, #0f172a 60%, transparent);
             display: flex; align-items: center; justify-content: center;
-            font-size: 12px; font-weight: bold; z-index: 100; position: relative;
-            padding: 0 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            font-size: 12px; font-weight: bold; z-index: 10; position: relative;
+            padding: 0 8px;
         }
-        .turn-indicator { color: #f59e0b; font-size: 14px; margin: 0 8px; white-space: nowrap; text-shadow: 0 0 8px rgba(245,158,11,0.5); animation: textPulse 1.5s infinite alternate; }
-        @keyframes textPulse { from { transform: scale(0.98); } to { transform: scale(1.02); } }
-        
+        .turn-indicator { color: #f59e0b; font-size: 13px; margin: 0 8px; white-space: nowrap; }
         .restart-btn {
-            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-            background: linear-gradient(135deg, #7f1d1d, #b91c1c); color: #fca5a5; border: 1px solid #ef4444;
-            border-radius: 20px; padding: 2px 10px; font-size: 10px; font-weight: bold;
-            cursor: pointer; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: 0.2s;
+            position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+            background: #7f1d1d; color: #fca5a5; border: 1px solid #ef4444;
+            border-radius: 5px; padding: 1px 7px; font-size: 10px; font-weight: bold;
+            cursor: pointer; white-space: nowrap;
         }
-        .restart-btn:active { transform: translateY(-50%) scale(0.9); }
 
-        /* ===== 战场区 ===== */
+        /* ===== 战场区：自动填满剩余高度 ===== */
         .battlefield {
             flex: 1 1 0; min-height: 0;
             display: flex; justify-content: space-between; align-items: stretch;
-            padding: 6px 8px; overflow: hidden; position: relative;
+            padding: 4px 6px; overflow: hidden;
         }
 
-        /* ===== 手游卡牌化摊位 ===== */
-        .opponents-col { display: flex; flex-direction: column; justify-content: space-evenly; width: 115px; gap: 6px; flex-shrink: 0; z-index: 10; }
+        /* ===== 对手列 ===== */
+        .opponents-col { display: flex; flex-direction: column; justify-content: space-evenly; width: 110px; gap: 4px; flex-shrink: 0; }
         .mini-stall {
-            background: linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.9)); border: 2px solid #475569;
-            border-radius: 10px; padding: 5px 6px; text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.4); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); cursor: pointer;
+            background: rgba(30,41,59,0.85); border: 2px solid #475569;
+            border-radius: 7px; padding: 4px 5px; text-align: center;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3); transition: .25s; cursor: pointer;
         }
-        .mini-stall.active { 
-            border-color: #f59e0b; 
-            box-shadow: 0 0 15px rgba(245,158,11,0.7); 
-            background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(15,23,42,0.9));
-            animation: activeStall 2s infinite alternate;
-        }
-        @keyframes activeStall { from { border-color: #d97706; } to { border-color: #fde047; } }
-        
-        .mini-name { font-size: 11px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #38bdf8; margin-bottom: 4px; border-bottom: 1px solid #334155; padding-bottom: 2px; }
-        .mini-stats { display: flex; justify-content: space-around; font-size: 10px; font-weight: bold; }
+        .mini-stall.active { border-color: #e2b13c; box-shadow: 0 0 12px rgba(226,177,60,.6); background: rgba(226,177,60,.1); }
+        .mini-name { font-size: 11px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #38bdf8; margin-bottom: 3px; border-bottom: 1px solid #334155; padding-bottom: 2px; }
+        .mini-stats { display: flex; justify-content: space-around; font-size: 10px; }
 
-        /* ===== 中央区域组 ===== */
-        .center-decks { flex: 1; display: flex; justify-content: center; align-items: center; gap: clamp(6px, 1.5vw, 15px); position: relative; }
+        /* ===== 中央牌堆 ===== */
+        .center-decks { flex: 1; display: flex; justify-content: center; align-items: center; gap: clamp(6px, 2vw, 20px); }
         .deck {
-            width: clamp(65px, 8vw, 85px); height: clamp(95px, 12vh, 125px);
-            border-radius: 12px; display: flex; flex-direction: column;
+            width: clamp(65px, 8vw, 90px); height: clamp(95px, 12vh, 130px);
+            border-radius: 10px; display: flex; flex-direction: column;
             justify-content: center; align-items: center; font-weight: bold;
-            font-size: 11px; cursor: pointer; transition: all 0.2s ease; text-decoration: none;
-            box-shadow: -4px 6px 12px rgba(0,0,0,0.6); position: relative;
+            font-size: 11px; cursor: pointer; transition: .2s; text-decoration: none;
+            box-shadow: -3px 4px 10px rgba(0,0,0,.5);
         }
+        .deck:hover { transform: scale(1.05) translateY(-4px); }
         .gold-deck { background: linear-gradient(135deg,#d4af37,#996515); color: white; border: 3px solid #fde047; }
         .main-deck { background: linear-gradient(135deg,#22c55e,#14532d); color: white; border: 3px solid #86efac; }
-        .main-deck.pulse-glow { animation: deckGlow 1.2s infinite alternate; }
-        @keyframes deckGlow { from { box-shadow: 0 0 4px #22c55e; transform: scale(1); } to { box-shadow: 0 0 20px #22c55e; transform: scale(1.04); } }
-        
-        .deck span:first-child { font-size: clamp(20px, 2.5vw, 26px); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
-        .deck-badge { background: rgba(0,0,0,.7); padding: 1px 6px; border-radius: 10px; font-size: 9px; margin-top: 5px; border: 1px solid rgba(255,255,255,0.1); }
+        .deck span:first-child { font-size: clamp(18px, 2.5vw, 24px); }
+        .deck-badge { background: rgba(0,0,0,.6); padding: 1px 5px; border-radius: 8px; font-size: 9px; margin-top: 4px; }
 
-        /* ===== 中央动态对局记录 ===== */
+        /* ===== 中央对局记录 ===== */
         .center-log {
-            width: clamp(120px, 22vw, 220px); height: clamp(110px, 18vh, 160px);
-            background: rgba(15,23,42,0.95); border: 1px solid #334155; border-radius: 12px;
-            display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
+            width: clamp(90px, 14vw, 160px); height: clamp(95px, 12vh, 130px);
+            background: rgba(15,23,42,0.9); border: 1px solid #334155; border-radius: 10px;
+            display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0;
         }
-        .center-log-title { font-size: 10px; color: #64748b; text-align: center; padding: 4px 0 2px; border-bottom: 1px solid #1e293b; flex-shrink: 0; letter-spacing: 0.5px; font-weight: bold; }
-        .center-log-body { flex: 1; overflow-y: auto; padding: 3px 8px; scrollbar-width: none; }
+        .center-log-title { font-size: 9px; color: #64748b; text-align: center; padding: 3px 0 2px; border-bottom: 1px solid #1e293b; flex-shrink: 0; letter-spacing: 0.5px; }
+        .center-log-body { flex: 1; overflow-y: auto; padding: 3px 5px; scrollbar-width: none; }
         .center-log-body::-webkit-scrollbar { display: none; }
-        .center-log-line { font-size: 10px; color: #94a3b8; line-height: 1.4; padding: 3px 0; border-bottom: 1px solid rgba(51,65,85,0.3); }
+        .center-log-line { font-size: 9px; color: #94a3b8; line-height: 1.4; padding: 1px 0; border-bottom: 1px solid rgba(51,65,85,0.4); }
 
-        /* ===== 🖕 全场中指大招效果区域 ===== */
-        #middle-finger-overlay {
-            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0);
-            z-index: 999; font-size: min(100px, 20dvh); pointer-events: none; opacity: 0;
-            filter: drop-shadow(0 0 25px #ef4444) drop-shadow(0 10px 10px rgba(0,0,0,0.7));
-        }
-        .finger-blast-anim { animation: fingerBlast 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.5) forwards; }
-        @keyframes fingerBlast {
-            0% { transform: translate(-50%, -50%) scale(0) rotate(-45deg); opacity: 0; }
-            20% { transform: translate(-50%, -50%) scale(1.3) rotate(10deg); opacity: 1; }
-            35% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
-            75% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 25px #ef4444); }
-            100% { transform: translate(-50%, -50%) scale(0.4) translateY(-80px); opacity: 0; }
-        }
-
-        /* ===== 快捷沟通操作栏 ===== */
+        /* ===== 快捷沟通 ===== */
         .quick-chat-bar {
-            display: flex; align-items: center; gap: 4px; padding: 4px 8px;
-            background: linear-gradient(0deg, rgba(15,23,42,0.95) 0%, rgba(30,41,59,0.9) 100%); 
-            border-top: 1px solid #1e3a8a; flex-shrink: 0; flex-wrap: nowrap; overflow-x: auto;
+            display: flex; align-items: center; gap: 4px; padding: 3px 8px;
+            background: rgba(15,23,42,0.8); border-top: 1px solid #1e3a5f;
+            flex-shrink: 0; flex-wrap: nowrap; overflow-x: auto;
         }
         .quick-chat-bar::-webkit-scrollbar { display: none; }
-        .qc-label { font-size: 9px; color: #94a3b8; white-space: nowrap; flex-shrink: 0; font-weight: bold; }
+        .qc-label { font-size: 9px; color: #475569; white-space: nowrap; flex-shrink: 0; }
         .qc-btn {
-            background: linear-gradient(180deg, #1e40af, #1d4ed8); border: 1px solid #3b82f6;
-            border-radius: 14px; padding: 3px 8px; font-size: 13px; cursor: pointer;
-            transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); flex-shrink: 0; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            background: rgba(30,58,95,0.8); border: 1px solid #1d4ed8;
+            border-radius: 12px; padding: 2px 7px; font-size: 13px; cursor: pointer;
+            transition: .15s; flex-shrink: 0; line-height: 1.4;
         }
-        .qc-btn:hover { transform: scale(1.1) translateY(-2px); }
-        .qc-btn:active { transform: scale(0.9); }
-        .qc-btn.urge { border-color: #f59e0b; background: linear-gradient(180deg, #b45309, #d97706); }
-        .qc-btn.finger { border-color: #ef4444; background: linear-gradient(180deg, #991b1b, #dc2626); font-weight: bold; animation: fingerPulse 1s infinite alternate; }
-        @keyframes fingerPulse { from { box-shadow: 0 0 2px #ef4444; } to { box-shadow: 0 0 8px #ef4444; } }
+        .qc-btn:hover, .qc-btn:active { background: rgba(59,130,246,0.3); transform: scale(1.15); }
+        .qc-btn.urge { border-color: #f59e0b; background: rgba(120,53,15,0.5); }
 
         /* ===== 聊天气泡浮层 ===== */
-        .chat-bubble-layer { position: fixed; top: 42px; right: 8px; z-index: 500; display: flex; flex-direction: column; gap: 4px; pointer-events: none; max-width: 170px; }
-        .chat-bubble { background: rgba(15,23,42,0.95); border: 1px solid #475569; border-radius: 12px; padding: 4px 10px; font-size: 11px; color: #e2e8f0; animation: bubblein .3s cubic-bezier(0.175, 0.885, 0.32, 1.275) ease, bubbleout .4s 3.5s forwards; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
-        @keyframes bubblein { from{opacity:0;transform:translateX(30px) scale(0.8)} to{opacity:1;transform:translateX(0) scale(1)} }
-        @keyframes bubbleout { from{opacity:1} to{opacity:0;transform:scale(0.8)} }
+        .chat-bubble-layer { position: fixed; top: 38px; right: 6px; z-index: 500; display: flex; flex-direction: column; gap: 3px; pointer-events: none; max-width: 160px; }
+        .chat-bubble { background: rgba(30,41,59,0.95); border: 1px solid #334155; border-radius: 10px; padding: 3px 8px; font-size: 11px; color: #e2e8f0; animation: bubblein .3s ease, bubbleout .4s 3.5s forwards; white-space: nowrap; }
+        @keyframes bubblein { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes bubbleout { from{opacity:1} to{opacity:0} }
 
-        /* ===== 乌鸦阻挡样式 ===== */
-        .mini-stall.crow-blocked { border-color: #eab308 !important; background: rgba(234,179,8,0.12) !important; }
-        .crow-on-stall { font-size: 12px; text-align: center; background: linear-gradient(90deg, rgba(234,179,8,0.3), rgba(0,0,0,0.5)); border-radius: 5px; padding: 2px 4px; margin-bottom: 3px; border: 1px solid #eab308; font-weight: bold; }
+        /* ===== 交易通知横幅强化 ===== */
+        .trade-banner-highlight { animation: tradepulse 1s infinite alternate; }
+        @keyframes tradepulse { from{box-shadow:0 0 8px rgba(56,189,248,0.3)} to{box-shadow:0 0 20px rgba(56,189,248,0.8)} }
 
-        /* ===== 👑 需求 4：重构底部布局，乌鸦状态并排在手牌右侧，绝不遮挡对手 ===== */
+        /* ===== 玩家状态卡片始终可见的增强 ===== */
+        .mini-stall .mini-hand-pills { display: flex; flex-wrap: wrap; gap: 2px; justify-content: center; margin-top: 3px; }
+        .hand-pill { font-size: 8px; background: rgba(51,65,85,0.8); border-radius: 3px; padding: 0 3px; color: #94a3b8; }
+
         .bottom-console {
-            flex: 0 0 auto; height: clamp(170px, 32dvh, 220px);
-            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-            padding-bottom: clamp(6px, 1.5dvh, 12px); background: linear-gradient(0deg, rgba(15,23,42,0.95) 70%, transparent);
-            z-index: 30; position: relative;
+            flex: 0 0 auto;
+            height: clamp(170px, 32dvh, 220px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: clamp(8px, 2dvh, 14px);
+            background: linear-gradient(0deg, rgba(0,0,0,.75), transparent);
+            z-index: 30;
+            position: relative;
         }
 
+        /* ===== 已打包的饭 ===== */
         .my-stall-zone {
-            display: flex; gap: 6px; margin-bottom: 6px; align-items: center; flex-wrap: wrap; justify-content: center; min-height: 45px; max-height: 75px; overflow-y: auto; position: relative; z-index: 80; width: 100%; padding: 0 10px;
+            display: flex;
+            gap: 6px;
+            margin-bottom: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            min-height: 52px;
+            max-height: 80px;
+            overflow-y: auto;
+            position: relative;
+            z-index: 80;
         }
         .my-nasi {
-            background: linear-gradient(135deg, #fde047, #d4af37); color: #000; font-weight: bold;
-            padding: 3px 10px; border-radius: 6px; font-size: 11px;
+            background: #d4af37; color: #000; font-weight: bold;
+            padding: 2px 8px; border-radius: 5px; font-size: 11px;
             display: flex; align-items: center; gap: 3px; border: 2px solid #fff;
-            box-shadow: 0 4px 6px rgba(0,0,0,.4); cursor: pointer; white-space: nowrap; transition: 0.2s;
+            box-shadow: 0 3px 5px rgba(0,0,0,.4); cursor: pointer; white-space: nowrap;
         }
-        .my-nasi:active { transform: scale(0.95); }
-        .my-nasi.infected { background: linear-gradient(135deg, #475569, #334155); color: #ef4444; border-color: #ef4444; animation: shakeInfected 0.5s infinite alternate; }
-        @keyframes shakeInfected { from { transform: rotate(-1deg); } to { transform: rotate(1deg); } }
+        .my-nasi.infected { background: #475569; color: #ef4444; border-color: #ef4444; }
 
-        /* 手牌与乌鸦内联排版容器 */
-        .hand-and-status-wrapper {
-            display: flex; justify-content: center; align-items: flex-end; width: 100%; position: relative; margin-top: 2px;
-        }
-
+        /* ===== 手牌（斗地主交叠） ===== */
         .poker-hand {
-            display: flex; justify-content: center; align-items: flex-end; height: clamp(90px, 18dvh, 125px); padding: 0 10px; position: relative; z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            height: clamp(90px, 18dvh, 125px);
+            padding: 0 10px;
+            position: relative;
+            z-index: 10;
+            margin-top: 4px;
         }
         .poker-card {
-            width: clamp(56px, 7.5vw, 82px); height: clamp(88px, 17.5dvh, 122px);
-            border-radius: 8px; margin-left: clamp(-42px, -3.8vw, -25px);
+            width: clamp(55px, 7vw, 80px);
+            height: clamp(85px, 17dvh, 120px);
+            border-radius: 7px; margin-left: clamp(-45px, -4vw, -28px);
             background: white; border: 1px solid #cbd5e1;
-            box-shadow: -3px -1px 8px rgba(0,0,0,.5);
+            box-shadow: -2px 0 6px rgba(0,0,0,.4);
             display: flex; flex-direction: column; align-items: center;
-            padding-top: 8px; text-decoration: none;
-            transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s ease, z-index 0s;
+            padding-top: 6px; text-decoration: none;
+            transition: transform .2s cubic-bezier(.34,1.56,.64,1);
             position: relative; color: #1e293b; flex-shrink: 0;
         }
         .poker-hand .poker-card:first-child { margin-left: 0; }
-        .poker-card:hover, .poker-card:active { transform: translateY(-24px) scale(1.08) rotate(1deg); z-index: 150 !important; box-shadow: 0 12px 24px rgba(0,0,0,.7); }
-        
+        .poker-card:hover, .poker-card:active { transform: translateY(-18px); z-index: 50 !important; box-shadow: 0 8px 18px rgba(0,0,0,.6); }
         .poker-card[data-type="action"] { background: linear-gradient(135deg,#e0f2fe,#bae6fd); border-color: #0ea5e9; }
         .poker-card[data-type="attack"] { background: linear-gradient(135deg,#fee2e2,#fecaca); border-color: #ef4444; }
         .poker-card[data-type="defense"] { background: linear-gradient(135deg,#dcfce7,#bbf7d0); border-color: #22c55e; }
         .poker-card[data-type="wildcard"] { background: linear-gradient(135deg,#fff7ed,#fed7aa); border-color: #f97316; }
         .poker-card[data-type="special"] { background: linear-gradient(135deg,#fdf4ff,#e9d5ff); border-color: #a855f7; }
         .poker-card[data-type="crow"] { background: linear-gradient(135deg,#1c1917,#292524); border-color: #78716c; color: #e7e5e4; }
-        
-        .p-emoji { font-size: clamp(22px, 3.2vw, 32px); margin-bottom: 2px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2)); }
-        .p-title { font-size: clamp(8px, 0.9vw, 11px); font-weight: bold; text-align: center; line-height: 1.1; }
-        .p-tag { position: absolute; bottom: 4px; font-size: 7px; background: rgba(0,0,0,.08); padding: 1px 4px; border-radius: 4px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3px; }
+        /* Crow blocking styles */
+        .mini-stall.crow-blocked { border-color: #eab308 !important; background: rgba(234,179,8,0.08) !important; }
+        .crow-on-stall { font-size: 13px; text-align: center; background: rgba(234,179,8,0.2); border-radius: 4px; padding: 1px 4px; margin-bottom: 2px; border: 1px solid #eab308; }
+        .p-emoji { font-size: clamp(20px, 3vw, 30px); margin-bottom: 1px; }
+        .p-title { font-size: clamp(8px, 1vw, 11px); font-weight: bold; text-align: center; line-height: 1.1; }
+        .p-tag { position: absolute; bottom: 3px; font-size: 8px; background: rgba(0,0,0,.1); padding: 1px 3px; border-radius: 3px; }
 
-        /* 乌鸦状态内联模块（在手牌右侧） */
-        .my-crow-status-inline {
-            background: linear-gradient(135deg, rgba(41,37,36,0.95), rgba(28,25,23,0.95));
-            border: 2px solid #eab308; border-radius: 12px; padding: 6px 12px;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.6), 0 0 10px rgba(234,179,8,0.3);
-            font-size: 11px; color: #fde047;
-            width: 140px; flex-shrink: 0; margin-left: 15px; margin-bottom: 6px;
-            animation: crowFloat 2s infinite alternate ease-in-out;
-        }
-        @keyframes crowFloat { from { transform: translateY(0); } to { transform: translateY(-4px); } }
-        .crow-ing-badge { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 1px 4px; font-size: 10px; color: white; display: inline-block; margin: 1px; }
+        /* ===== 弹窗 ===== */
+        .action-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.8); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-box { background: #1e293b; border: 2px solid #38bdf8; border-radius: 12px; padding: 16px; width: min(320px, 90vw); text-align: center; max-height: 90dvh; overflow-y: auto; }
 
-        /* ===== 全局大弹窗 ===== */
-        .action-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
-        .modal-box { background: linear-gradient(135deg, #1e293b, #0f172a); border: 2px solid #38bdf8; border-radius: 16px; padding: 18px; width: min(320px, 90vw); text-align: center; max-height: 90dvh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
+        /* ===== 批发商公示弹窗 ===== */
+        .card-reveal { display: inline-flex; flex-direction: column; align-items: center; background: white; color: #1e293b; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: bold; min-width: 52px; }
+        .card-reveal.kept { border: 2px solid #22c55e; }
+        .card-reveal.gone { border: 2px solid #94a3b8; opacity: .5; text-decoration: line-through; }
 
-        #restart-confirm-modal { display: none !important; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 99998; justify-content: center; align-items: center; }
+        /* ===== 小偷选人弹窗 ===== */
+        .thief-target-btn { cursor: pointer; transition: .15s; }
+        .thief-target-btn.selected { border-color: #f59e0b !important; background: rgba(245,158,11,.15) !important; }
+
+        /* ===== 重启确认 ===== */
+        #restart-confirm-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 99998; justify-content: center; align-items: center; }
         .restart-modal-box { background: linear-gradient(135deg,#1e293b,#0f172a); border: 2px solid #ef4444; border-radius: 14px; padding: 20px 24px; text-align: center; width: min(280px, 85vw); box-shadow: 0 0 28px rgba(239,68,68,.3); }
         .restart-modal-box h5 { color: #ef4444; margin-bottom: 8px; }
         .restart-modal-box p { color: #94a3b8; font-size: 11px; margin-bottom: 14px; }
 
-        /* ===== 全屏绝对居中大厅 ===== */
-        .lobby-screen { 
-            background: linear-gradient(135deg, #090d16, #111827); 
-            height: 100dvh; width: 100vw;
-            display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; 
-            padding: 16px; position: fixed; inset: 0; z-index: 999;
-        }
-        .lobby-container {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            width: min(340px, 92vw); animation: lobbyPodIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-        @keyframes lobbyPodIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-        .lobby-restart-btn {
-            margin-top: 20px; 
-            background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(153,27,27,0.2)); 
-            color: #fca5a5; border: 1px solid rgba(239,68,68,0.5); 
-            border-radius: 12px; padding: 10px 12px; 
-            font-size: 13px; font-weight: bold; letter-spacing: 1px;
-            cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-            width: 100%; box-shadow: 0 4px 15px rgba(239,68,68,0.15);
-        }
-        .lobby-restart-btn:hover, .lobby-restart-btn:active { 
-            background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; border-color: #fca5a5;
-            box-shadow: 0 8px 25px rgba(239,68,68,0.4); transform: translateY(-3px); 
-        }
-
-        /* 动态生成的吐司通知动画 */
-        .nasi-toast-anim {
-            position: fixed; top: 50px; left: 50%; transform: translateX(-50%);
-            background: rgba(34,197,94,0.95); color: white; padding: 10px 25px; border-radius: 30px;
-            font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100000;
-            animation: popin 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, fadeout 0.5s 2.5s forwards;
-            white-space: nowrap; border: 2px solid #bbf7d0;
-        }
-        @keyframes popin { from { top: -50px; opacity: 0; } to { top: 50px; opacity: 1; } }
-        @keyframes fadeout { from { opacity: 1; } to { opacity: 0; display: none; } }
-
-        /* 攻击牌未摸牌时禁用样式 */
-        .poker-card.disabled-attack {
-            opacity: 0.5;
-            filter: grayscale(0.2);
-            pointer-events: none;
-        }
+        /* ===== 大厅 ===== */
+        .lobby-screen { background: #0f172a; height: 100dvh; display: flex; flex-direction: column; justify-content: center; align-items: center; overflow-y: auto; padding: 16px; }
+        a.disabled-card { pointer-events: none; opacity: .7; }
+        .lobby-restart-btn { margin-top: 10px; background: transparent; color: #64748b; border: 1px solid #334155; border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer; transition: .2s; width: 100%; }
+        .lobby-restart-btn:hover { color: #ef4444; border-color: #ef4444; }
     </style>
 </head>
 <body>
@@ -280,9 +231,22 @@
     <p class="text-muted small">本游戏为横屏模式</p>
 </div>
 
+{% set latest_log = g.log[-1] if room.status == "PLAYING" and g and g.log else "" %}
+{% if "打包了一份标准" in latest_log or "使用大妈代工速成了" in latest_log %}
+<div id="nasi-toast" style="position:fixed; top:50px; left:50%; transform:translateX(-50%); background:rgba(34,197,94,0.95); color:white; padding:10px 25px; border-radius:30px; font-weight:bold; box-shadow:0 10px 25px rgba(0,0,0,0.5); z-index:100000; animation: popin 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, fadeout 0.5s 2.5s forwards; white-space:nowrap; border: 2px solid #bbf7d0;">
+    🎉 突发：【{{ latest_log.split('】')[0].split('【')[1] }}】成功包出了一份椰浆饭！
+</div>
+<style>
+    @keyframes popin { from { top: -50px; opacity: 0; } to { top: 50px; opacity: 1; } }
+    @keyframes fadeout { from { opacity: 1; } to { opacity: 0; display: none; } }
+</style>
+<script>setTimeout(() => { document.getElementById('nasi-toast')?.remove(); }, 3000);</script>
+{% endif %}
+
 <div id="game-wrapper">
-    <div id="chat-bubble-layer" class="chat-bubble-layer"></div>
-    <div id="middle-finger-overlay">🖕</div>
+
+<!-- 聊天气泡浮层（始终悬浮右上角） -->
+<div id="chat-bubble-layer" class="chat-bubble-layer"></div>
 
     {% if error %}
     <div style="position:fixed;top:40px;left:50%;transform:translateX(-50%);z-index:9999;" class="alert alert-danger py-1 px-3 fs-6">{{ error }}</div>
@@ -290,58 +254,37 @@
 
     {% if room.status == "EMPTY" or room.status == "WAITING" %}
     <div class="lobby-screen">
-        <div class="lobby-container">
-            <h2 class="text-warning mb-3" style="text-shadow: 0 0 15px rgba(245,158,11,0.6); font-weight: 900; letter-spacing: 1px;">🥣 椰浆饭大作战</h2>
-            <div class="card bg-dark text-white border-secondary p-4 shadow w-100" style="border-radius:20px; box-shadow: 0 15px 35px rgba(0,0,0,0.8) !important;">
-                {% if room.status == "EMPTY" %}
-                    <form action="/create_room" method="POST">
-                        <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow" style="border-radius:12px;">👉 创建新对局舱</button>
-                    </form>
+        <h2 class="text-warning mb-3">🥣 椰浆饭大作战</h2>
+        <div class="card bg-dark text-white border-secondary p-4 shadow" style="width:min(320px,95vw);">
+            {% if room.status == "EMPTY" %}
+                <form action="/create_room" method="POST">
+                    <button type="submit" class="btn btn-warning w-100 fw-bold">👉 创建新对局</button>
+                </form>
+            {% else %}
+                {% if not my_name %}
+                <label class="form-label small text-info">请输入大名以入座：</label>
+                <form action="/join_room" method="POST" class="d-flex gap-2 mb-3">
+                    <input type="text" class="form-control form-control-sm" name="player_name" autocomplete="off" required>
+                    <button type="submit" class="btn btn-primary btn-sm fw-bold">入座</button>
+                </form>
                 {% else %}
-                    {% if not my_name %}
-                    <label class="form-label small text-info fw-bold mb-2">请输入大名以入座摊位：</label>
-                    <form action="/join_room" method="POST" class="d-flex gap-2 mb-3">
-                        <input type="text" class="form-control form-control-sm px-3" name="player_name" style="border-radius:10px; background:#1e293b; color:white; border-color:#475569;" autocomplete="off" required>
-                        <button type="submit" class="btn btn-primary btn-sm fw-bold px-3" style="border-radius:10px;">入座</button>
-                    </form>
-                    {% else %}
-                    <div class="text-center text-success mb-3 fw-bold fs-5">✅ 已就绪：{{ my_name }}</div>
-                    {% endif %}
-                    
-                    <div class="border-top border-secondary pt-3 mb-3" id="lobby-players-list">
-                        <div class="small text-muted mb-2 fw-bold">已就位摊主 ({{ room.joined_players|length }}/7)：</div>
-                        <div class="d-flex flex-wrap gap-1 mb-3">
-                            {% for p in room.joined_players %}
-                            <span class="badge p-2 {% if '🤖Bot_' in p %}bg-info text-dark{% else %}bg-secondary{% endif %}" style="border-radius:6px;">
-                                {{ p }}{% if '🤖Bot_' in p %} 🤖{% endif %}
-                            </span>
-                            {% endfor %}
-                        </div>
-                        {% if room.joined_players|length < 7 %}
-                        <div class="d-flex gap-2 mb-2">
-                            <form action="/add_bot" method="POST" style="flex:1;">
-                                <button type="submit" class="btn btn-info btn-sm w-100 fw-bold py-1.5" style="border-radius:8px;">🤖 加入机器人</button>
-                            </form>
-                            {% set has_bot = namespace(v=false) %}
-                            {% for p in room.joined_players %}{% if '🤖Bot_' in p %}{% set has_bot.v = true %}{% endif %}{% endfor %}
-                            {% if has_bot.v %}
-                            <form action="/remove_bot" method="POST" style="flex:1;">
-                                <button type="submit" class="btn btn-outline-warning btn-sm w-100 py-1.5" style="border-radius:8px;">➖ 驱逐机器人</button>
-                            </form>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                    </div>
-                    <form action="/start_game" method="POST">
-                        {% if room.joined_players|length >= 3 %}
-                        <button type="submit" class="btn btn-warning w-100 fw-bold shadow py-2" style="border-radius:12px; font-size:15px;">🚀 立即开战</button>
-                        {% else %}
-                        <button type="button" class="btn btn-secondary w-100 disabled small py-2" style="border-radius:12px;">需满3人方可开战</button>
-                        {% endif %}
-                    </form>
+                <div class="text-center text-success mb-3 fw-bold">✅ 已就绪：{{ my_name }}</div>
                 {% endif %}
-                <button onclick="openRestartModal()" class="lobby-restart-btn">⚠️ 强制重启房间</button>
-            </div>
+                <div class="border-top border-secondary pt-2 mb-3">
+                    <div class="small text-muted mb-2">已就位 ({{ room.joined_players|length }}/7)：</div>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% for p in room.joined_players %}<span class="badge bg-secondary">{{ p }}</span>{% endfor %}
+                    </div>
+                </div>
+                <form action="/start_game" method="POST">
+                    {% if room.joined_players|length >= 3 %}
+                    <button type="submit" class="btn btn-warning w-100 fw-bold">🚀 立即开战</button>
+                    {% else %}
+                    <button type="button" class="btn btn-secondary w-100 disabled small">需满3人开战</button>
+                    {% endif %}
+                </form>
+            {% endif %}
+            <button onclick="openRestartModal()" class="lobby-restart-btn">🔄 强制重启房间</button>
         </div>
     </div>
 
@@ -350,6 +293,7 @@
 
     {% if g.game_over %}
     <div style="position:fixed;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a5f,#0f172a);z-index:10000;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:20px 10px;">
+
         <div style="text-align:center;margin-bottom:20px;">
             <div style="font-size:52px;animation:bounce 0.6s infinite alternate;">👑</div>
             <h2 style="color:#fde047;font-size:clamp(18px,4vw,28px);margin:6px 0 2px;text-shadow:0 0 20px #fde047;">
@@ -365,24 +309,33 @@
                 {% if not p.flies[idx] %}{% set _ = net.append(p.scored_cards[idx]) %}{% endif %}
             {% endfor %}
             {% set is_winner = (p.name == g.winner) %}
-            <div style="background:{% if is_winner %}linear-gradient(135deg,rgba(253,224,71,0.15),rgba(234,179,8,0.08)){% else %}rgba(30,41,59,0.9){% endif %}; border:2px solid {% if is_winner %}#fde047{% else %}#334155{% endif %}; border-radius:12px;padding:14px;min-width:160px;flex:1;max-width:220px;text-align:center;">
+            <div style="background:{% if is_winner %}linear-gradient(135deg,rgba(253,224,71,0.15),rgba(234,179,8,0.08)){% else %}rgba(30,41,59,0.9){% endif %};
+                        border:2px solid {% if is_winner %}#fde047{% else %}#334155{% endif %};
+                        border-radius:12px;padding:14px;min-width:160px;flex:1;max-width:220px;text-align:center;">
                 {% if is_winner %}<div style="font-size:20px;margin-bottom:4px;">👑</div>{% endif %}
                 <div style="font-weight:bold;color:{% if is_winner %}#fde047{% else %}#38bdf8{% endif %};font-size:14px;margin-bottom:8px;">
                     {{ p.name }}
                 </div>
+
                 <div style="margin-bottom:8px;">
                     <div style="font-size:10px;color:#64748b;margin-bottom:4px;">椰浆饭</div>
                     <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center;">
                         {% for idx in range(p.scored_cards|length) %}
-                        <span style="background:{% if p.flies[idx] %}#374151{% else %}#d4af37{% endif %}; color:{% if p.flies[idx] %}#ef4444{% else %}#000{% endif %}; border-radius:4px;padding:1px 6px;font-size:11px;font-weight:bold; border:1px solid {% if p.flies[idx] %}#ef4444{% else %}#fff{% endif %};">
+                        <span style="background:{% if p.flies[idx] %}#374151{% else %}#d4af37{% endif %};
+                                     color:{% if p.flies[idx] %}#ef4444{% else %}#000{% endif %};
+                                     border-radius:4px;padding:1px 6px;font-size:11px;font-weight:bold;
+                                     border:1px solid {% if p.flies[idx] %}#ef4444{% else %}#fff{% endif %};">
                             📦{{ p.scored_cards[idx] }}包{% if p.flies[idx] %} 🪰{% endif %}
                         </span>
+                        {% else %}
+                        <span style="font-size:11px;color:#475569;">（无）</span>
                         {% endfor %}
                     </div>
                     <div style="font-size:12px;color:#22c55e;margin-top:4px;font-weight:bold;">
                         净计：{{ net|sum }} 包
                     </div>
                 </div>
+
                 <div>
                     <div style="font-size:10px;color:#64748b;margin-bottom:4px;">剩余手牌 ({{ p.hand|length }}张)</div>
                     <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;">
@@ -398,8 +351,20 @@
             </div>
             {% endfor %}
         </div>
+
+        <div style="width:100%;max-width:700px;background:rgba(15,23,42,0.8);border:1px solid #334155;border-radius:10px;padding:12px;margin-bottom:20px;">
+            <div style="font-size:11px;color:#64748b;margin-bottom:6px;">📜 对局记录（最近10条）</div>
+            {% for line in g.log[-10:]|reverse %}
+            <div style="font-size:11px;color:#94a3b8;padding:2px 0;border-bottom:1px solid #1e293b;">{{ line }}</div>
+            {% endfor %}
+        </div>
+
         <a href="/reset" class="btn btn-warning fw-bold px-5" style="font-size:14px;">🔄 再来一局</a>
     </div>
+
+    <style>
+    @keyframes bounce { from{transform:translateY(0)} to{transform:translateY(-8px)} }
+    </style>
 
     {% else %}
     <div class="top-bar">
@@ -408,8 +373,7 @@
             {% if g.turn_idx == my_p_idx %}🟢 你的回合 (剩{{ g.moves_left }}动)
             {% else %}⏳ 等待【{{ g.current_player().name }}】{% endif %}
         </span>
-        <a href="/action/end_turn_manual" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2" style="font-size:10px; border-radius: 10px;">结束回合</a>
-        <button onclick="toggleFullScreen()" class="btn btn-sm btn-outline-info py-0 px-2 ms-2" style="font-size:10px; border-radius: 10px;">🔲 全屏</button>
+        <a href="/action/end_turn_manual" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2" style="font-size:10px;">结束回合</a>
         <button onclick="openRestartModal()" class="restart-btn">⚡重启</button>
     </div>
 
@@ -441,12 +405,12 @@
             {% for idx, opp in opponents[:mid] %}
             {% set has_placed_crow = opp.placed_crow is not none %}
             <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %} {% if has_placed_crow %}crow-blocked{% endif %}"
-                 onclick="openTargetModal({{ idx }},'{{ opp.name }}',{{ opp.scored_cards|length }}, this.getAttribute('data-flies'), {% if has_placed_crow %}true{% else %}false{% endif %})"
+                 onclick="openTargetModal({{ idx }},'{{ opp.name }}',{{ opp.scored_cards|length }}, this.getAttribute('data-flies'), {{ has_placed_crow | lower }})"
                  data-flies='{{ opp.flies | tojson }}'>
-                {% if has_placed_crow and opp.placed_crow %}
-                <div class="crow-on-stall">🐦‍⬛ <span style="font-size:8px;">食材×{{ opp.placed_crow.ingredients|length if opp.placed_crow.ingredients else 0 }}</span></div>
+                {% if has_placed_crow %}
+                <div class="crow-on-stall">🐦‍⬛ <span style="font-size:8px;">食材×{{ opp.placed_crow.ingredients|length }}</span></div>
                 {% endif %}
-                <div class="mini-name">{% if g.turn_idx == idx %}▶ {% endif %}{{ opp.name }}{% if '🤖Bot_' in opp.name %} <span style="font-size:8px;color:#67e8f9;">AI</span>{% endif %}</div>
+                <div class="mini-name">{% if g.turn_idx == idx %}▶ {% endif %}{{ opp.name }}</div>
                 <div class="mini-stats">
                     <span>🎴{{ opp.hand|length }}</span>
                     <span class="text-warning">📦{{ opp.scored_cards|length }}</span>
@@ -468,10 +432,11 @@
                 <div class="deck gold-deck disabled-card"><span>📦</span><span>Nasi Lemak</span></div>
             {% endif %}
 
+            <!-- 对局记录 — 两堆卡牌中间 -->
             <div class="center-log">
                 <div class="center-log-title">📜 对局记录</div>
                 <div class="center-log-body" id="center-log-body">
-                    {% for line in g.log[-25:]|reverse %}
+                    {% for line in g.log[-20:]|reverse %}
                     <div class="center-log-line">{{ line }}</div>
                     {% endfor %}
                 </div>
@@ -479,7 +444,7 @@
 
             {% if g.turn_idx == my_p_idx %}
                 {% if not g.has_drawn %}
-                <a href="/draw" class="deck main-deck pulse-glow">
+                <a href="/draw" class="deck main-deck" style="box-shadow:0 0 16px #22c55e;">
                     <span>📥</span><span>摸2张牌</span>
                     <span class="deck-badge">必须执行</span>
                 </a>
@@ -497,12 +462,12 @@
             {% for idx, opp in opponents[mid:] %}
             {% set has_placed_crow = opp.placed_crow is not none %}
             <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %} {% if has_placed_crow %}crow-blocked{% endif %}"
-                 onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }}, this.getAttribute('data-flies'), {% if has_placed_crow %}true{% else %}false{% endif %})"
+                 onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }}, this.getAttribute('data-flies'), {{ has_placed_crow | lower }})"
                  data-flies='{{ opp.flies | tojson }}'>
-                {% if has_placed_crow and opp.placed_crow %}
-                <div class="crow-on-stall">🐦‍⬛ <span style="font-size:8px;">食材×{{ opp.placed_crow.ingredients|length if opp.placed_crow.ingredients else 0 }}</span></div>
+                {% if has_placed_crow %}
+                <div class="crow-on-stall">🐦‍⬛ <span style="font-size:8px;">食材×{{ opp.placed_crow.ingredients|length }}</span></div>
                 {% endif %}
-                <div class="mini-name">{% if g.turn_idx == idx %}▶ {% endif %}{{ opp.name }}{% if '🤖Bot_' in opp.name %} <span style="font-size:8px;color:#67e8f9;">AI</span>{% endif %}</div>
+                <div class="mini-name">{% if g.turn_idx == idx %}▶ {% endif %}{{ opp.name }}</div>
                 <div class="mini-stats">
                     <span>🎴{{ opp.hand|length }}</span>
                     <span class="text-warning">📦{{ opp.scored_cards|length }}</span>
@@ -517,9 +482,16 @@
 
     <div class="bottom-console">
         <div class="my-stall-zone">
-            {% if my_player and my_player.scored_cards %}
+            {% if my_player %}
+                {% if my_player.placed_crow is not none %}
+                <div style="background:rgba(234,179,8,0.2);border:2px solid #eab308;border-radius:8px;padding:6px 12px;font-size:11px;color:#fde047;width:100%;text-align:center;position:relative;z-index:120;margin-bottom:6px;box-shadow: 0 0 12px rgba(234,179,8,.35);">
+                    🐦‍⬛ 乌鸦在你面前！你无法包Nasi Lemak。
+                    携带食材：{% if my_player.placed_crow.ingredients %}[{{ my_player.placed_crow.ingredients | join(', ') }}]（共{{ my_player.placed_crow.ingredients|length }}张）{% else %}无{% endif %}
+                    — 点击对手赶走乌鸦！
+                </div>
+                {% endif %}
                 {% for val in my_player.scored_cards %}{% set f_idx = loop.index0 %}
-                <div class="my-nasi {% if my_player.flies[f_idx] %}infected{% endif %}" onclick="openDefenseModal({{ f_idx }},{% if my_player.flies[f_idx] %}true{% else %}false{% endif %})">
+                <div class="my-nasi {% if my_player.flies[f_idx] %}infected{% endif %}" onclick="openDefenseModal({{ f_idx }},{{ my_player.flies[f_idx]|lower }})">
                     📦{{ val }}包{% if my_player.flies[f_idx] %} 🪰{% endif %}
                 </div>
                 {% endfor %}
@@ -527,97 +499,76 @@
         </div>
 
         {% if g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending and not g.pending_trade %}
-        <button onclick="document.getElementById('trade-modal').style.display='flex'; window.__interactionLock=true;" class="btn btn-sm btn-outline-primary mb-1 px-3" style="font-size:11px;border-radius:20px;opacity:0.85;">
+        <button onclick="document.getElementById('trade-modal').style.display='flex'"
+                class="btn btn-sm btn-outline-primary mb-1 px-3"
+                style="font-size:11px;border-radius:20px;opacity:0.85;">
             🤝 发起食材交易
         </button>
         {% endif %}
 
-        <div class="hand-and-status-wrapper">
-            <div class="poker-hand">
-                {% if my_player and my_player.hand %}
-                    {% for card in my_player.hand %}
-                        {% set c_type = "food" %}
-                        {% if card in ['Thief','Wholesaler','Supplier','Mak Cik'] %}{% set c_type = "action" %}{% endif %}
-                        {% if card in ['Fly','Officer'] %}{% set c_type = "attack" %}{% endif %}
-                        {% if card in ['Fly Swatter','Fan'] %}{% set c_type = "defense" %}{% endif %}
-                        {% if card == 'Rendang' %}{% set c_type = "wildcard" %}{% endif %}
-                        {% if card == 'Si Oyen' %}{% set c_type = "special" %}{% endif %}
-                        {% if card == 'Crow' %}{% set c_type = "crow" %}{% endif %}
-                        {% set c_dict = {
-                            "Rice":("椰浆饭","🍚"),"Egg":("鸡蛋","🥚"),"Peanuts":("花生","🥜"),"Sambal":("三巴","🌶️"),"Cucumber":("黄瓜","🥒"),
-                            "Wholesaler":("批发商","🏪"),"Thief":("小偷","🥷"),"Supplier":("供应商","📣"),"Mak Cik":("大妈","🧑‍🍳"),
-                            "Officer":("官员","👮"),"Fly":("苍蝇","🪰"),"Fly Swatter":("蝇拍","💥"),"Fan":("风扇","🪭"),
-                            "Rendang":("Rendang","🍗"),"Si Oyen":("Si Oyen","🐱"),"Crow":("乌鸦","🐦‍⬛")
-                        } %}
-                        {% set is_my_turn = (g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending) %}
-                        {% set attack_disabled = (card in ['Officer','Fly']) and (not g.has_drawn) %}
-                        {% if is_my_turn and card == 'Crow' %}
-                            <a href="javascript:void(0);" onclick="alert('请点击对手头像框来放置乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% elif is_my_turn and card == 'Si Oyen' %}
-                            <a href="javascript:void(0);" onclick="alert('Si Oyen 会自动赶跑你面前的乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% elif is_my_turn and card == 'Thief' %}
-                            <a href="javascript:void(0);" onclick="openThiefModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% elif is_my_turn and card == 'Wholesaler' %}
-                            <a href="/action/wholesaler" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% elif is_my_turn and card == 'Mak Cik' %}
-                            <a href="/action/pack_makcik" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% elif is_my_turn and card == 'Supplier' %}
-                            <a href="javascript:void(0);" onclick="openSupplierModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% elif is_my_turn and card in ['Officer','Fly'] %}
-                            {% if attack_disabled %}
-                                <a href="javascript:void(0);" class="poker-card disabled-attack" data-type="{{ c_type }}" onclick="alert('请先摸牌才能使用攻击牌！')">
-                            {% else %}
-                                <a href="javascript:void(0);" onclick="alert('请点击对手头像框发起攻击！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                            {% endif %}
-                        {% elif is_my_turn and card in ['Fly Swatter','Fan'] %}
-                            <a href="javascript:void(0);" onclick="alert('请点击自己被污染的椰浆饭！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% else %}
-                            <a href="javascript:void(0);" class="poker-card {% if not is_my_turn %}disabled-card{% endif %}" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% endif %}
-                            <div class="p-emoji">{{ c_dict[card][1] if card in c_dict else '❓' }}</div>
-                            <div class="p-title">{{ c_dict[card][0] if card in c_dict else card }}</div>
-                            <div class="p-tag">{{ c_type }}</div>
-                        </a>
-                    {% endfor %}
-                {% endif %}
-            </div>
+        <div class="poker-hand">
+            {% if my_player %}
+                {% for card in my_player.hand %}
+                    {% set c_type = "food" %}
+                    {% if card in ['Thief','Wholesaler','Supplier','Mak Cik'] %}{% set c_type = "action" %}{% endif %}
+                    {% if card in ['Fly','Officer'] %}{% set c_type = "attack" %}{% endif %}
+                    {% if card in ['Fly Swatter','Fan'] %}{% set c_type = "defense" %}{% endif %}
+                    {% if card == 'Rendang' %}{% set c_type = "wildcard" %}{% endif %}
+                    {% if card == 'Si Oyen' %}{% set c_type = "special" %}{% endif %}
+                    {% if card == 'Crow' %}{% set c_type = "crow" %}{% endif %}
+                    {% set c_dict = {
+                        "Rice":("椰浆饭","🍚"),"Egg":("鸡蛋","🥚"),"Peanuts":("花生","🥜"),"Sambal":("三巴","🌶️"),"Cucumber":("黄瓜","🥒"),
+                        "Wholesaler":("批发商","🏪"),"Thief":("小偷","🥷"),"Supplier":("供应商","📣"),"Mak Cik":("大妈","🧑‍🍳"),
+                        "Officer":("官员","👮"),"Fly":("苍蝇","🪰"),"Fly Swatter":("蝇拍","💥"),"Fan":("风扇","🪭"),
+                        "Rendang":("Rendang","🍗"),"Si Oyen":("Si Oyen","🐱"),"Crow":("乌鸦","🐦‍⬛")
+                    } %}
+                    {% set is_my_turn = (g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending) %}
 
-            {% if my_player and my_player.placed_crow is not none %}
-            <div class="my-crow-status-inline">
-                <div class="fw-bold mb-1">🐦‍⬛ 乌鸦拦截中！</div>
-                <div class="text-white-50" style="font-size:9px; line-height:1.2; margin-bottom:4px;">无法包饭！点击右侧对手赶走。</div>
-                <div class="mt-1">
-                    <span class="text-warning">肚中食材：</span>
-                    {% if my_player.placed_crow.ingredients %}
-                        {% for ing in my_player.placed_crow.ingredients %}
-                        <span class="crow-ing-badge">{{ ing }}</span>
-                        {% endfor %}
+                    {% if is_my_turn and card == 'Crow' %}
+                        <a href="javascript:void(0);" onclick="alert('请点击对手头像框来放置乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                    {% elif is_my_turn and card == 'Si Oyen' %}
+                        <a href="javascript:void(0);" onclick="alert('Si Oyen 会自动赶跑你面前的乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                    {% elif is_my_turn and card == 'Thief' %}
+                        <a href="javascript:void(0);" onclick="openThiefModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                    {% elif is_my_turn and card == 'Wholesaler' %}
+                        <a href="/action/wholesaler" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                    {% elif is_my_turn and card == 'Mak Cik' %}
+                        <a href="/action/pack_makcik" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                    {% elif is_my_turn and card == 'Supplier' %}
+                        <a href="javascript:void(0);" onclick="openSupplierModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                    {% elif is_my_turn and card in ['Officer','Fly'] %}
+                        <a href="javascript:void(0);" onclick="alert('请点击对手头像框发起攻击！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                    {% elif is_my_turn and card in ['Fly Swatter','Fan'] %}
+                        <a href="javascript:void(0);" onclick="alert('请点击自己被污染的椰浆饭！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% else %}
-                        <span class="text-muted" style="font-size:10px;">暂无</span>
+                        <a href="javascript:void(0);" class="poker-card {% if not is_my_turn %}disabled-card{% endif %}" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% endif %}
-                </div>
-            </div>
+                        <div class="p-emoji">{{ c_dict[card][1] }}</div>
+                        <div class="p-title">{{ c_dict[card][0] }}</div>
+                        <div class="p-tag">{{ c_type }}</div>
+                    </a>
+                {% endfor %}
             {% endif %}
         </div>
 
+        <!-- ===== 快捷沟通栏 ===== -->
         {% if my_name %}
         <div class="quick-chat-bar">
             <span class="qc-label">我有：</span>
-            <button class="qc-btn" onclick="sendQuickChat('🥚','have')">🥚</button>
-            <button class="qc-btn" onclick="sendQuickChat('🥒','have')">🥒</button>
-            <button class="qc-btn" onclick="sendQuickChat('🍚','have')">🍚</button>
-            <button class="qc-btn" onclick="sendQuickChat('🌶️','have')">🌶️</button>
-            <button class="qc-btn" onclick="sendQuickChat('🥜','have')">🥜</button>
-            <span class="qc-label" style="margin-left:4px;border-left:1px solid #334155;padding-left:4px;">我要：</span>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥚','want')">🥚</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥒','want')">🥒</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🍚','want')">🍚</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🌶️','want')">🌶️</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥜','want')">🥜</button>
-            <span class="qc-label" style="margin-left:4px;border-left:1px solid #334155;padding-left:4px;"></span>
-            <button class="qc-btn" onclick="sendQuickChat('🙋','special')">🙋</button>
-            <button class="qc-btn urge" onclick="sendQuickChat('⏩','special')">⏩</button>
-            <button class="qc-btn finger" onclick="sendQuickChat('🖕','special')" title="送你个中指">🖕</button>
+            <button class="qc-btn" onclick="sendQuickChat('🥚','have')" title="我有鸡蛋">🥚</button>
+            <button class="qc-btn" onclick="sendQuickChat('🥒','have')" title="我有黄瓜">🥒</button>
+            <button class="qc-btn" onclick="sendQuickChat('🍚','have')" title="我有白饭">🍚</button>
+            <button class="qc-btn" onclick="sendQuickChat('🌶️','have')" title="我有Sambal">🌶️</button>
+            <button class="qc-btn" onclick="sendQuickChat('🥜','have')" title="我有花生">🥜</button>
+            <span class="qc-label" style="margin-left:4px;border-left:1px solid #334155;padding-left:6px;">我要：</span>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥚','want')" title="我要鸡蛋">🥚</button>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥒','want')" title="我要黄瓜">🥒</button>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🍚','want')" title="我要白饭">🍚</button>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🌶️','want')" title="我要Sambal">🌶️</button>
+            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥜','want')" title="我要花生">🥜</button>
+            <span class="qc-label" style="margin-left:4px;border-left:1px solid #334155;padding-left:6px;"></span>
+            <button class="qc-btn" onclick="sendQuickChat('🙋','special')" title="举手">🙋</button>
+            <button class="qc-btn urge" onclick="sendQuickChat('⏩','special')" title="快一点！">⏩</button>
         </div>
         {% endif %}
     </div>
@@ -625,11 +576,14 @@
     <div id="target-modal" class="action-modal">
         <div class="modal-box">
             <h5 class="text-warning mb-2">👤 <span id="tm-name"></span> <span id="tm-crow-badge" style="display:none;">🐦‍⬛</span></h5>
+
+            <!-- 攻击选项（仅自己回合可见） -->
             <div id="tm-attack-section">
                 <div class="d-flex flex-column gap-2 mb-2">
                     <a id="btn-officer" href="#" class="btn btn-primary btn-sm">👮 派官员搜查手牌</a>
                     <a id="btn-play-crow" href="#" class="btn btn-sm" style="display:none;background:#292524;color:#e7e5e4;border:1px solid #78716c;">🐦‍⬛ 放置乌鸦</a>
                     <a id="btn-si-oyen" href="#" class="btn btn-sm" style="display:none;background:#7c3aed;color:white;border:none;">🐱 Si Oyen 捕获乌鸦</a>
+                    <!-- 赶乌鸦区域 -->
                     <div id="crow-chase-section" style="display:none;">
                         <p class="text-warning small mb-1">🐦‍⬛ 赶乌鸦到此玩家 — 选择一张食材喂乌鸦：</p>
                         <div id="crow-chase-ingredients" class="d-flex flex-wrap gap-1 justify-content-center"></div>
@@ -638,6 +592,7 @@
                 </div>
             </div>
 
+            <!-- 只读状态（非自己回合） -->
             <div id="tm-readonly-section" style="display:none;">
                 <p class="text-muted small mb-1">👁️ 查看模式（非你的回合）</p>
                 {% for p in g.players %}{% if p.name != my_name %}
@@ -657,6 +612,7 @@
                 </div>
                 {% endif %}{% endfor %}
             </div>
+
             <button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">关闭</button>
         </div>
     </div>
@@ -743,6 +699,15 @@
     </div>
     {% endif %}
 
+    {% if g.thief_pending and g.turn_idx != my_p_idx %}
+    <div class="action-modal" style="display:flex;">
+        <div class="modal-box">
+            <h5 class="text-warning">🥷 小偷出动！</h5>
+            <p class="text-muted small">【{{ g.current_player().name }}】 正在选择偷窃目标…<br>请等待。</p>
+        </div>
+    </div>
+    {% endif %}
+
     {% if g.active_inspection and g.turn_idx == my_p_idx %}
     <div class="action-modal" style="display:flex;">
         <div class="modal-box" style="width:min(340px,92vw);">
@@ -792,156 +757,19 @@
         </div>
     </div>
 
-    <div id="game-state-data" style="display:none;"
-         data-turn-idx="{{ g.turn_idx }}"
-         data-is-my-turn="{{ 'true' if g.turn_idx == my_p_idx else 'false' }}"
-         data-chat="{{ chat_messages|default([])|tojson|forceescape }}"
-         data-logs="{{ g.log|default([])|tojson|forceescape }}"
-         data-trade-expires="{{ g.pending_trade.expires_at if g.pending_trade else 0 }}">
-    </div>
+    {% endif %}{% endif %}</div><script>
+    // ===== 重启 =====
+    function openRestartModal() { document.getElementById('restart-confirm-modal').style.display = 'flex'; }
+    function closeRestartModal() { document.getElementById('restart-confirm-modal').style.display = 'none'; }
+    document.getElementById('restart-confirm-modal').addEventListener('click', function(e){ if(e.target===this) closeRestartModal(); });
 
-    {% endif %}{% endif %}
-</div>
-
-<script>
-    // ===== 🔲 需求 3：网页全屏功能 =====
-    function toggleFullScreen() {
-        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-            let el = document.documentElement;
-            if (el.requestFullscreen) el.requestFullscreen();
-            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-            else if (el.msRequestFullscreen) el.msRequestFullscreen();
-        } else {
-            if (document.exitFullscreen) document.exitFullscreen();
-            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-            else if (document.msExitFullscreen) document.msExitFullscreen();
-        }
-    }
-
-    // ===== 🔊 手游音频引擎 =====
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playSynthSound(freq, type, duration, vol=0.2) {
-        try {
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            let osc = audioCtx.createOscillator();
-            let gainNode = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
-        } catch(e) {}
-    }
-
-    function playCrowSound() {
-        playSynthSound(280, 'sawtooth', 0.15, 0.25);
-        setTimeout(() => playSynthSound(210, 'sawtooth', 0.2, 0.2), 100);
-        setTimeout(() => playSynthSound(160, 'sawtooth', 0.3, 0.25), 250);
-    }
-    function playPackSound() {
-        playSynthSound(523.25, 'triangle', 0.08, 0.3); 
-        setTimeout(() => playSynthSound(659.25, 'triangle', 0.08, 0.3), 80); 
-        setTimeout(() => playSynthSound(783.99, 'triangle', 0.08, 0.3), 160); 
-        setTimeout(() => playSynthSound(1046.50, 'sine', 0.4, 0.4), 240); 
-    }
-    function playYourTurnSound() {
-        playSynthSound(880, 'sine', 0.1, 0.35); 
-        setTimeout(() => playSynthSound(1318.51, 'sine', 0.25, 0.4), 100); 
-    }
-    function playFingerExplode() {
-        playSynthSound(90, 'sawtooth', 0.5, 0.5);
-        playSynthSound(60, 'triangle', 0.7, 0.6);
-    }
-
-    // 动态生成打包吐司动画
-    function showNasiToast(msg) {
-        let toast = document.createElement('div');
-        toast.className = 'nasi-toast-anim';
-        toast.innerHTML = `🎉 突发：${msg}`;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-    }
-
-    // 中指爆炸大招 (防抖增强版：基于消息内容)
-    let lastFingerMsg = "";
-    let lastFingerTime = 0;
-    function triggerMiddleFingerEffect(msgText) {
-        const now = Date.now();
-        if (msgText === lastFingerMsg && (now - lastFingerTime) < 5000) return;
-        lastFingerMsg = msgText;
-        lastFingerTime = now;
-        playFingerExplode();
-        const overlay = document.getElementById('middle-finger-overlay');
-        if (!overlay) return;
-        const newOverlay = overlay.cloneNode(true);
-        overlay.parentNode.replaceChild(newOverlay, overlay);
-        newOverlay.classList.add('finger-blast-anim');
-        setTimeout(() => { newOverlay.classList.remove('finger-blast-anim'); }, 1200);
-    }
-
-    function showLocalBubble(player, text) {
-        const layer = document.getElementById('chat-bubble-layer');
-        if(!layer) return;
-        const b = document.createElement('div');
-        b.className = 'chat-bubble';
-        b.innerHTML = `<strong style="color:#38bdf8;">${player}</strong>：${text}`;
-        layer.appendChild(b);
-        setTimeout(() => b.remove(), 4000);
-    }
-
-    const ING_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'};
-    const SPECIAL_LABELS = {'🙋':'举手！','⏩':'快一点啦！','🖕':'送全场一个温暖的中指！'};
-
-    function sendQuickChat(msg, mode) {
-        console.log("sendQuickChat called with", msg, mode);
-        try {
-            const fd = new FormData();
-            fd.append('msg', msg);
-            fd.append('mode', mode || 'have');
-            fetch('/quick_chat', {method:'POST', body:fd}).catch(e => console.error("Chat fetch error:", e));
-            
-            let text = ING_LABELS[msg] ? `${mode === 'want' ? '我要' : '我有'} ${msg} ${ING_LABELS[msg]}！` : (SPECIAL_LABELS[msg] || msg);
-            showLocalBubble('你', text);
-            if (msg === '🖕') triggerMiddleFingerEffect(text);
-
-            const logBody = document.getElementById('center-log-body');
-            if(logBody) {
-                const line = document.createElement('div');
-                line.className = 'center-log-line';
-                line.style.color = '#fbbf24';
-                line.textContent = '💬 【你】：' + text;
-                logBody.insertBefore(line, logBody.firstChild);
-            }
-        } catch(e) { console.error("sendQuickChat error:", e); }
-    }
-
-    // 模态框控制逻辑 + 全局交互锁
-    window.__interactionLock = false;
-    function setInteractionLock(lock) {
-        window.__interactionLock = lock;
-    }
-
-    function openRestartModal() { 
-        document.getElementById('restart-confirm-modal').style.setProperty('display', 'flex', 'important');
-        setInteractionLock(true);
-    }
-    function closeRestartModal() { 
-        document.getElementById('restart-confirm-modal').style.setProperty('display', 'none', 'important');
-        setInteractionLock(false);
-    }
-    document.getElementById('restart-confirm-modal').addEventListener('click', function(e){ if(e.target === this) closeRestartModal(); });
-
+    // ===== 通用关弹窗 =====
     function closeModals() {
-        document.querySelectorAll('.action-modal').forEach(m => { 
-            if(m.id !== 'restart-confirm-modal' && !m.dataset.persistent) m.style.display='none'; 
-        });
+        document.querySelectorAll('.action-modal').forEach(m => { if(!m.dataset.persistent) m.style.display='none'; });
         document.getElementById('fan-target-list')?.classList.add('d-none');
-        setInteractionLock(false);
     }
 
+    // ===== 攻击目标弹窗（始终可查看状态，仅自己回合可攻击） =====
     function openTargetModal(tIdx, name, foodCount, fliesStr, targetHasCrow) {
         document.getElementById('tm-name').innerText = name;
         const crowBadge = document.getElementById('tm-crow-badge');
@@ -949,92 +777,91 @@
 
         const attackSection = document.getElementById('tm-attack-section');
         const readonlySection = document.getElementById('tm-readonly-section');
-        
-        let isMyTurn = false;
-        let myHandStr = "[]";
-        let myHasCrow = false;
 
-        const dataNode = document.getElementById('game-state-data');
-        if(dataNode) {
-            isMyTurn = dataNode.dataset.isMyTurn === 'true';
-        }
-
-        {% if room.status == "PLAYING" and g and not g.active_inspection and not g.thief_pending %}
-            isMyTurn = {{ 'true' if g.turn_idx == my_p_idx else 'false' }};
-            myHandStr = {{ my_player.hand | tojson if (my_player and my_player.hand) else '[]' }};
-            myHasCrow = {{ 'true' if (my_player and my_player.placed_crow is not none) else 'false' }};
+        {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.active_inspection and not g.thief_pending %}
+        if(attackSection) attackSection.style.display = '';
+        if(readonlySection) readonlySection.style.display = 'none';
+        document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
+        {% if not g.has_drawn %}
+        document.getElementById('btn-officer').classList.add('disabled');
+        document.getElementById('btn-officer').style.opacity = '0.4';
+        document.getElementById('btn-officer').onclick = function(e){ e.preventDefault(); alert('请先摸牌再使用官员！'); };
+        {% else %}
+        document.getElementById('btn-officer').classList.remove('disabled');
+        document.getElementById('btn-officer').style.opacity = '';
+        document.getElementById('btn-officer').onclick = null;
         {% endif %}
 
-        if(isMyTurn) {
-            if(attackSection) attackSection.style.display = '';
-            if(readonlySection) readonlySection.style.display = 'none';
-            document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
-            
-            {% if room.status == "PLAYING" and g and not g.has_drawn %}
-            document.getElementById('btn-officer').style.opacity = '0.4';
-            document.getElementById('btn-officer').onclick = function(e){ e.preventDefault(); alert('请先摸牌再使用官员！'); };
-            {% else %}
-            document.getElementById('btn-officer').style.opacity = '';
-            document.getElementById('btn-officer').onclick = null;
-            {% endif %}
-
-            const myHand = JSON.parse(myHandStr);
-            const playCrowBtn = document.getElementById('btn-play-crow');
-            if(playCrowBtn) {
-                if(myHand.includes('Crow') && !targetHasCrow) {
-                    playCrowBtn.style.display = '';
-                    playCrowBtn.href = '/action/play_crow?target=' + tIdx;
-                } else { playCrowBtn.style.display = 'none'; }
-            }
-
-            const siOyenBtn = document.getElementById('btn-si-oyen');
-            if(siOyenBtn) {
-                if(myHand.includes('Si Oyen') && myHasCrow) {
-                    siOyenBtn.style.display = '';
-                    siOyenBtn.href = '/action/si_oyen';
-                } else { siOyenBtn.style.display = 'none'; }
-            }
-
-            const chaseSection = document.getElementById('crow-chase-section');
-            const chaseIngs = document.getElementById('crow-chase-ingredients');
-            if(chaseSection && chaseIngs) {
-                if(myHasCrow && !targetHasCrow) {
-                    chaseSection.style.display = '';
-                    chaseIngs.innerHTML = '';
-                    const validIngs = ['Rice','Egg','Peanuts','Sambal','Cucumber','Rendang'];
-                    const available = validIngs.filter(i => myHand.includes(i));
-                    if(available.length > 0) {
-                        available.forEach(ing => {
-                            chaseIngs.innerHTML += `<a href="/action/chase_crow?target=${tIdx}&ingredient=${ing}" class="btn btn-sm btn-outline-warning">${ing}</a>`;
-                        });
-                    } else { chaseIngs.innerHTML = '<span class="text-muted small">你没有食材可喂乌鸦！</span>'; }
-                } else { chaseSection.style.display = 'none'; }
-            }
-
-            let fa = document.getElementById('fly-targets');
-            fa.innerHTML = '';
-            if(foodCount > 0) {
-                let flies = JSON.parse(fliesStr || "[]");
-                for(let i=0; i<foodCount; i++) {
-                    if(flies[i]) {
-                        fa.innerHTML += `<span class="btn btn-sm btn-secondary disabled" style="opacity:0.6;">第${i+1}包(已有🪰)</span>`;
-                    } else {
-                        fa.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger shadow-sm">砸在第${i+1}包</a>`;
-                    }
-                }
-            } else { fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>'; }
-        } else {
-            if(attackSection) attackSection.style.display = 'none';
-            if(readonlySection) readonlySection.style.display = '';
-            document.querySelectorAll('[id^="tm-status-"]').forEach(el => el.classList.add('d-none'));
-            const statusEl = document.getElementById('tm-status-' + tIdx);
-            if(statusEl) statusEl.classList.remove('d-none');
+        // ── Play Crow button (I have Crow in hand, target has no crow) ──
+        const myHand = {{ my_player.hand | tojson if my_player else '[]' }};
+        const playCrowBtn = document.getElementById('btn-play-crow');
+        if(playCrowBtn) {
+            if(myHand.includes('Crow') && !targetHasCrow) {
+                playCrowBtn.style.display = '';
+                playCrowBtn.href = '/action/play_crow?target=' + tIdx;
+            } else { playCrowBtn.style.display = 'none'; }
         }
+
+        // ── Si Oyen + Chase crow: use server-rendered crow state ──
+        const myHasCrow = {{ 'true' if my_player and my_player.placed_crow is not none else 'false' }};
+
+        const siOyenBtn = document.getElementById('btn-si-oyen');
+        if(siOyenBtn) {
+            if(myHand.includes('Si Oyen') && myHasCrow) {
+                siOyenBtn.style.display = '';
+                siOyenBtn.href = '/action/si_oyen';
+            } else {
+                siOyenBtn.style.display = 'none';
+            }
+        }
+        // ── Chase crow section (I have placed crow, target has no crow) ──
+        const chaseSection = document.getElementById('crow-chase-section');
+        const chaseIngs = document.getElementById('crow-chase-ingredients');
+        if(chaseSection && chaseIngs) {
+            if(myHasCrow && !targetHasCrow) {
+                chaseSection.style.display = '';
+                chaseIngs.innerHTML = '';
+                const ingEmoji = {'Rice':'🍚','Egg':'🥚','Peanuts':'🥜','Sambal':'🌶️','Cucumber':'🥒','Rendang':'🍗'};
+                const validIngs = ['Rice','Egg','Peanuts','Sambal','Cucumber','Rendang'];
+                const available = validIngs.filter(i => myHand.includes(i));
+                if(available.length > 0) {
+                    available.forEach(ing => {
+                        chaseIngs.innerHTML += `<a href="/action/chase_crow?target=${tIdx}&ingredient=${ing}" class="btn btn-sm btn-outline-warning">${ingEmoji[ing]||'?'} ${ing}</a>`;
+                    });
+                } else {
+                    chaseIngs.innerHTML = '<span class="text-muted small">你没有食材可喂乌鸦！</span>';
+                }
+            } else { chaseSection.style.display = 'none'; }
+        }
+
+        let fa = document.getElementById('fly-targets');
+        fa.innerHTML = '';
+        if(foodCount > 0) {
+            let flies = JSON.parse(fliesStr || "[]");
+            for(let i=0; i<foodCount; i++) {
+                if(flies[i]) {
+                    fa.innerHTML += `<span class="btn btn-sm btn-secondary disabled" style="opacity:0.6;">第${i+1}包(已有🪰)</span>`;
+                } else {
+                    fa.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger shadow-sm">砸在第${i+1}包</a>`;
+                }
+            }
+        } else {
+            fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>';
+        }
+        {% else %}
+        if(attackSection) attackSection.style.display = 'none';
+        if(readonlySection) readonlySection.style.display = '';
+        document.querySelectorAll('[id^="tm-status-"]').forEach(el => el.classList.add('d-none'));
+        const statusEl = document.getElementById('tm-status-' + tIdx);
+        if(statusEl) statusEl.classList.remove('d-none');
+        {% endif %}
         document.getElementById('target-modal').style.display = 'flex';
-        setInteractionLock(true);
     }
 
-    function openSupplierModal() { document.getElementById('supplier-modal').style.display = 'flex'; setInteractionLock(true); }
+    // ===== 供应商 =====
+    function openSupplierModal() { document.getElementById('supplier-modal').style.display = 'flex'; }
+
+    // ===== 防守 =====
     function openDefenseModal(fIdx, hasFly) {
         {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.active_inspection %}
         if(hasFly){
@@ -1043,20 +870,20 @@
                 btn.href = `/action/fan_fly?card_idx=${fIdx}&target=${btn.dataset.tidx}`;
             });
             document.getElementById('defense-modal').style.display = 'flex';
-            setInteractionLock(true);
         }
         {% endif %}
     }
     function showFanTargets() { document.getElementById('fan-target-list').classList.remove('d-none'); }
 
+    // ===== 小偷选人 =====
     let selectedThiefTargets = [];
-    const MAX_THIEF = {{ room.joined_players|length if room else 4 }} > 4 ? 3 : 999;
+    const MAX_THIEF = {{ g.players|length if room.status == "PLAYING" and g else 4 }} > 4 ? 3 : 999;
+
     function openThiefModal() {
         selectedThiefTargets = [];
         document.querySelectorAll('.thief-target-btn').forEach(b => b.classList.remove('selected'));
         updateThiefCount();
         document.getElementById('thief-modal').style.display = 'flex';
-        setInteractionLock(true);
     }
     function toggleThiefTarget(el) {
         const idx = parseInt(el.dataset.idx);
@@ -1079,184 +906,84 @@
         window.location.href = '/action/thief_targets?targets=' + selectedThiefTargets.join(',');
     }
 
-    // 全局倒计时独立运行
-    setInterval(() => {
+    // ===== 交易倒计时 =====
+    {% if room.status == "PLAYING" and g and g.pending_trade %}
+    (function(){
+        const expiresAt = {{ g.pending_trade.expires_at }};
         const timerEl = document.getElementById('trade-timer');
-        const dataNode = document.getElementById('game-state-data');
-        if(timerEl && dataNode) {
-            const exp = parseFloat(dataNode.dataset.tradeExpires || '0');
-            if (exp > 0) {
-                const left = Math.max(0, Math.ceil(exp - Date.now()/1000));
-                timerEl.textContent = left + 's';
-                timerEl.style.color = left <= 5 ? '#ef4444' : '#f59e0b';
-            }
+        function tick(){
+            if(!timerEl) return;
+            const left = Math.max(0, Math.ceil(expiresAt - Date.now()/1000));
+            timerEl.textContent = left + 's';
+            timerEl.style.color = left <= 5 ? '#ef4444' : '#f59e0b';
+            if(left > 0) setTimeout(tick, 500);
         }
-    }, 500);
+        tick();
+    })();
+    {% endif %}
 
-    // ==========================================
-    // 👑 终极核心引擎：无感抓取替换 + 强制刷新保障
-    // ==========================================
-    {% if room.status == "WAITING" or (room.status == "PLAYING" and g and not g.game_over) %}
-    
-    // 初始化首屏数据判定
-    const initDataNode = document.getElementById('game-state-data');
-    if (initDataNode) {
-        localStorage.setItem('game_log_count_{{ room.id|default("default") }}', JSON.parse(initDataNode.dataset.logs || '[]').length);
-        localStorage.setItem('last_handled_turn_idx', initDataNode.dataset.turnIdx);
-        if (initDataNode.dataset.isMyTurn === 'true') {
-             playYourTurnSound();
-             if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+    // ===== 自动刷新（非当前玩家） =====
+    {% if room.status == "WAITING" or (room.status == "PLAYING" and g and g.turn_idx != my_p_idx and not g.game_over) %}
+    setTimeout(function(){
+        if(document.activeElement && document.activeElement.tagName === 'INPUT') return;
+        window.location.reload();
+    }, 3000);
+    {% endif %}
+
+    // ===== 快捷沟通 =====
+    const ING_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'};
+    const SPECIAL_LABELS = {'🙋':'举手！','⏩':'快一点啦！'};
+    function sendQuickChat(msg, mode) {
+        const fd = new FormData();
+        fd.append('msg', msg);
+        fd.append('mode', mode || 'have');
+        fetch('/quick_chat', {method:'POST', body:fd});
+        let text;
+        if(ING_LABELS[msg]) {
+            text = (mode === 'want' ? '我要 ' : '我有 ') + msg + ' ' + ING_LABELS[msg] + '！';
+        } else {
+            text = SPECIAL_LABELS[msg] || msg;
+        }
+        showLocalBubble('你', text);
+        // Also inject into center log immediately for local feedback
+        const logBody = document.getElementById('center-log-body');
+        if(logBody) {
+            const line = document.createElement('div');
+            line.className = 'center-log-line';
+            line.style.color = '#fbbf24';
+            line.textContent = '💬 【你】：' + text;
+            logBody.insertBefore(line, logBody.firstChild);
         }
     }
-
-    async function pollState() {
-        const isModalOpen = Array.from(document.querySelectorAll('.action-modal')).some(m => m.style.display === 'flex' && m.id !== 'restart-confirm-modal');
-        if (window.__interactionLock || isModalOpen) {
-            setTimeout(pollState, 1500);
-            return;
-        }
-        
-        // 等待室专用快速刷新：如果当前在等待室且没有输入框焦点，直接刷新页面（保证同步）
-        if (document.querySelector('.lobby-screen')) {
-            const activeElement = document.activeElement;
-            if (!activeElement || (activeElement.tagName !== 'INPUT' && activeElement.name !== 'player_name')) {
-                window.location.reload();
-                return;
-            }
-        }
-        
-        try {
-            let res = await fetch(window.location.href);
-            let text = await res.text();
-            let parser = new DOMParser();
-            let doc = parser.parseFromString(text, 'text/html');
-
-            // 检测状态跃迁（游戏结束、房间被重置、进入游戏）
-            if ((doc.querySelector('.lobby-screen') && !document.querySelector('.lobby-screen')) ||
-                (!doc.querySelector('.battlefield') && document.querySelector('.battlefield')) ||
-                (doc.querySelector('.game-over-screen') && !document.querySelector('.game-over-screen'))) {
-                return window.location.reload();
-            }
-
-            if (document.querySelector('.lobby-container')) {
-                const active = document.activeElement;
-                if (!(active && active.name === 'player_name')) {
-                    document.querySelector('.lobby-container').innerHTML =
-                        doc.querySelector('.lobby-container').innerHTML;
-                }
-            }
-                
-            if (!isModalOpen && !window.__interactionLock) {
-                if (doc.querySelector('.top-bar')) {
-                    document.querySelector('.top-bar').innerHTML = doc.querySelector('.top-bar').innerHTML;
-                }
-                
-                let oldLog = document.getElementById('center-log-body');
-                let newLog = doc.getElementById('center-log-body');
-                if(oldLog && newLog) {
-                    let isScrolledToBottom = oldLog.scrollHeight - oldLog.clientHeight <= oldLog.scrollTop + 10;
-                    oldLog.innerHTML = newLog.innerHTML;
-                    const latestLine = newLog.querySelector('.center-log-line');
-                    if (latestLine && latestLine.textContent.includes('🖕')) {
-                        triggerMiddleFingerEffect(latestLine.textContent);
-                    }
-                    if(isScrolledToBottom) oldLog.scrollTop = oldLog.scrollHeight;
-                }
-                
-                let centerDecksOld = document.querySelector('.center-decks');
-                let centerDecksNew = doc.querySelector('.center-decks');
-                if (centerDecksOld && centerDecksNew) {
-                    centerDecksOld.innerHTML = centerDecksNew.innerHTML;
-                }
-
-                let oppColsOld = document.querySelectorAll('.opponents-col');
-                let oppColsNew = doc.querySelectorAll('.opponents-col');
-                if(oppColsOld.length === 2 && oppColsNew.length === 2) {
-                    oppColsOld[0].innerHTML = oppColsNew[0].innerHTML;
-                    oppColsOld[1].innerHTML = oppColsNew[1].innerHTML;
-                }
-
-                let bottomOld = document.querySelector('.bottom-console');
-                let bottomNew = doc.querySelector('.bottom-console');
-                if (bottomOld && bottomNew) {
-                    bottomOld.innerHTML = bottomNew.innerHTML;
-                }
-
-                let tradeBannerOld = document.getElementById('trade-banner');
-                let tradeBannerNew = doc.getElementById('trade-banner');
-                if (tradeBannerNew && !tradeBannerOld) {
-                    document.querySelector('.top-bar').insertAdjacentHTML('afterend', tradeBannerNew.outerHTML);
-                } else if (!tradeBannerNew && tradeBannerOld) {
-                    tradeBannerOld.remove();
-                } else if (tradeBannerNew && tradeBannerOld) {
-                    tradeBannerOld.innerHTML = tradeBannerNew.innerHTML;
-                }
-            }
-
-            let newData = doc.getElementById('game-state-data');
-            let oldData = document.getElementById('game-state-data');
-            
-            if(newData) {
-                if (oldData) oldData.replaceWith(newData);
-
-                let isMyTurn = newData.dataset.isMyTurn === 'true';
-                let turnIdx = newData.dataset.turnIdx;
-                
-                if (isMyTurn) {
-                    let lastTurn = localStorage.getItem('last_handled_turn_idx');
-                    if (lastTurn !== turnIdx) {
-                        localStorage.setItem('last_handled_turn_idx', turnIdx);
-                        playYourTurnSound();
-                        if(navigator.vibrate) navigator.vibrate([120,60,120]);
-                        showNasiToast("🔥 轮到你了！");
-                    }
-                } else {
-                    if(localStorage.getItem('last_handled_turn_idx') === turnIdx) {
-                        localStorage.removeItem('last_handled_turn_idx');
-                    }
-                }
-
-                let newChats = JSON.parse(newData.dataset.chat || '[]');
-                let lastProcessedTs = parseFloat(localStorage.getItem('last_chat_ts') || '0');
-                let maxTs = lastProcessedTs;
-                newChats.forEach(m => {
-                    if (m.ts > lastProcessedTs) {
-                        const display = (m.log_line || m.msg).replace(/^💬 【.*?】：/, '');
-                        if (m.player !== "{{ my_name }}") { 
-                            showLocalBubble(m.player, display);
-                            if (m.msg === '🖕') triggerMiddleFingerEffect(display);
-                        }
-                        if (m.ts > maxTs) maxTs = m.ts;
-                    }
-                });
-                localStorage.setItem('last_chat_ts', maxTs);
-
-                let newLogs = JSON.parse(newData.dataset.logs || '[]');
-                let logCount = newLogs.length;
-                let lastLogCount = parseInt(localStorage.getItem('game_log_count_{{ room.id|default("default") }}') || '0');
-                
-                if (logCount > lastLogCount) {
-                    let diff = newLogs.slice(lastLogCount);
-                    diff.forEach(logLine => {
-                        if (logLine.includes("打包了一份") || logLine.includes("速成了椰浆饭")) {
-                            playPackSound();
-                            const playerMatch = logLine.match(/【(.*?)】/);
-                            showNasiToast(playerMatch ? `${playerMatch[1]} 成功包饭！` : "有人成功包饭！");
-                        } else if (logLine.includes("把乌鸦放到了") || logLine.includes("赶到了")) {
-                            playCrowSound();
-                        }
-                    });
-                    localStorage.setItem('game_log_count_{{ room.id|default("default") }}', logCount);
-                } else if (logCount < lastLogCount) {
-                    localStorage.setItem('game_log_count_{{ room.id|default("default") }}', logCount);
-                }
-            }
-        } catch(e) { console.error("Poll Error:", e); }
-
-        setTimeout(pollState, 1500);
+    function showLocalBubble(player, text) {
+        const layer = document.getElementById('chat-bubble-layer');
+        if(!layer) return;
+        const b = document.createElement('div');
+        b.className = 'chat-bubble';
+        b.innerHTML = `<strong style="color:#38bdf8;">${player}</strong>：${text}`;
+        layer.appendChild(b);
+        setTimeout(() => b.remove(), 4000);
     }
-    
-    setTimeout(pollState, 1500);
+
+    // ===== 服务器聊天消息渲染 =====
+    {% if chat_messages %}
+    (function(){
+        const msgs = {{ chat_messages | tojson }};
+        const now = Date.now() / 1000;
+        const layer = document.getElementById('chat-bubble-layer');
+        if(!layer) return;
+        msgs.filter(m => now - m.ts < 4).slice(-3).forEach(m => {
+            const b = document.createElement('div');
+            b.className = 'chat-bubble';
+            const logLine = m.log_line || m.msg;
+            // Strip the 💬 【name】： prefix for bubble display
+            const display = logLine.replace(/^💬 【.*?】：/, '');
+            b.innerHTML = `<strong style="color:#38bdf8;">${m.player}</strong>：${display}`;
+            layer.appendChild(b);
+            const age = now - m.ts;
+            setTimeout(() => b.remove(), Math.max(500, (4 - age) * 1000));
+        });
+    })();
     {% endif %}
 </script>
 </body>
