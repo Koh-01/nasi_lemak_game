@@ -85,16 +85,17 @@
         .deck span:first-child { font-size: clamp(20px, 2.5vw, 26px); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
         .deck-badge { background: rgba(0,0,0,.7); padding: 1px 6px; border-radius: 10px; font-size: 9px; margin-top: 5px; border: 1px solid rgba(255,255,255,0.1); }
 
-        /* ===== 中央动态对局记录 ===== */
+        /* ===== 👑 优化：放大中央动态对局记录 ===== */
         .center-log {
-            width: clamp(95px, 15vw, 150px); height: clamp(95px, 12vh, 125px);
+            width: clamp(120px, 22vw, 220px); /* 加宽 */
+            height: clamp(110px, 18vh, 160px); /* 加高 */
             background: rgba(15,23,42,0.95); border: 1px solid #334155; border-radius: 12px;
             display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
         }
-        .center-log-title { font-size: 9px; color: #64748b; text-align: center; padding: 4px 0 2px; border-bottom: 1px solid #1e293b; flex-shrink: 0; letter-spacing: 0.5px; font-weight: bold; }
-        .center-log-body { flex: 1; overflow-y: auto; padding: 3px 6px; scrollbar-width: none; }
+        .center-log-title { font-size: 10px; color: #64748b; text-align: center; padding: 4px 0 2px; border-bottom: 1px solid #1e293b; flex-shrink: 0; letter-spacing: 0.5px; font-weight: bold; }
+        .center-log-body { flex: 1; overflow-y: auto; padding: 3px 8px; scrollbar-width: none; }
         .center-log-body::-webkit-scrollbar { display: none; }
-        .center-log-line { font-size: 9px; color: #94a3b8; line-height: 1.4; padding: 2px 0; border-bottom: 1px solid rgba(51,65,85,0.3); animation: fadeInLine 0.3s ease-out; }
+        .center-log-line { font-size: 10px; color: #94a3b8; line-height: 1.4; padding: 3px 0; border-bottom: 1px solid rgba(51,65,85,0.3); animation: fadeInLine 0.3s ease-out; }
         @keyframes fadeInLine { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
 
         /* ===== 🖕 全场中指大招效果区域 ===== */
@@ -141,7 +142,7 @@
         .mini-stall.crow-blocked { border-color: #eab308 !important; background: rgba(234,179,8,0.12) !important; }
         .crow-on-stall { font-size: 12px; text-align: center; background: linear-gradient(90deg, rgba(234,179,8,0.3), rgba(0,0,0,0.5)); border-radius: 5px; padding: 2px 4px; margin-bottom: 3px; border: 1px solid #eab308; font-weight: bold; }
 
-        /* ===== 🔒 需求 2：隔离排版，右下角独立悬浮乌鸦状态区 ===== */
+        /* ===== 右下角独立悬浮乌鸦状态区 ===== */
         .my-crow-status-bar {
             position: absolute; right: 10px; bottom: clamp(140px, 24vh, 175px);
             background: linear-gradient(135deg, rgba(41,37,36,0.95), rgba(28,25,23,0.95));
@@ -211,7 +212,7 @@
         .restart-modal-box h5 { color: #ef4444; margin-bottom: 8px; }
         .restart-modal-box p { color: #94a3b8; font-size: 11px; margin-bottom: 14px; }
 
-        /* ===== 🔒 需求 1：重构大厅布局，强行完全垂直水平居中 ===== */
+        /* ===== 全屏绝对居中大厅 ===== */
         .lobby-screen { 
             background: linear-gradient(135deg, #090d16, #111827); 
             height: 100dvh; width: 100vw;
@@ -456,7 +457,7 @@
             <div class="center-log">
                 <div class="center-log-title">📜 对局记录</div>
                 <div class="center-log-body" id="center-log-body">
-                    {% for line in g.log[-20:]|reverse %}
+                    {% for line in g.log[-25:]|reverse %}
                     <div class="center-log-line">{{ line }}</div>
                     {% endfor %}
                 </div>
@@ -784,9 +785,6 @@
 </div>
 
 <script>
-// ==========================================
-    // 🔊 手游极速音频合成与回合拦截引擎
-    // ==========================================
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     function playSynthSound(freq, type, duration, vol=0.2) {
@@ -802,7 +800,7 @@
             gainNode.connect(audioCtx.destination);
             osc.start();
             osc.stop(audioCtx.currentTime + duration);
-        } catch(e) { console.log("音频播放被浏览器拦截", e); }
+        } catch(e) { console.log("Audio play blocked", e); }
     }
 
     function playCrowSound() {
@@ -812,16 +810,15 @@
     }
 
     function playPackSound() {
-        playSynthSound(523.25, 'triangle', 0.08, 0.3); // C5
-        setTimeout(() => playSynthSound(659.25, 'triangle', 0.08, 0.3), 80); // E5
-        setTimeout(() => playSynthSound(783.99, 'triangle', 0.08, 0.3), 160); // G5
-        setTimeout(() => playSynthSound(1046.50, 'sine', 0.4, 0.4), 240); // C6 欢呼
+        playSynthSound(523.25, 'triangle', 0.08, 0.3); 
+        setTimeout(() => playSynthSound(659.25, 'triangle', 0.08, 0.3), 80); 
+        setTimeout(() => playSynthSound(783.99, 'triangle', 0.08, 0.3), 160); 
+        setTimeout(() => playSynthSound(1046.50, 'sine', 0.4, 0.4), 240); 
     }
 
-    // 🔔 回合高能清脆提示音（双音阶连鸣）
     function playYourTurnSound() {
-        playSynthSound(880, 'sine', 0.1, 0.35); // A5
-        setTimeout(() => playSynthSound(1318.51, 'sine', 0.25, 0.4), 100); // E6
+        playSynthSound(880, 'sine', 0.1, 0.35); 
+        setTimeout(() => playSynthSound(1318.51, 'sine', 0.25, 0.4), 100); 
     }
 
     function playFingerExplode() {
@@ -829,50 +826,30 @@
         playSynthSound(60, 'triangle', 0.7, 0.6);
     }
 
-    // 🔒 核心拦截逻辑：判定是否真正轮到我的回合
     const isMyTurnRightNow = {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.game_over %}true{% else %}false{% endif %};
     
     if (isMyTurnRightNow) {
-        // 从浏览器获取上次处理过的回合 ID 和动作剩余数
         const lastTurnHandled = localStorage.getItem('last_handled_turn_idx');
         const lastMovesLeft = localStorage.getItem('last_handled_moves_left');
-        
         const currentServerTurnIdx = "{{ g.turn_idx if g else -1 }}";
         const currentServerMoves = "{{ g.moves_left if g else 0 }}";
         
-        // 判定条件：要么是刚换人（回合索引变了），要么是当前玩家刚进行了操作导致动作数重置或改变
-        // 这里重点锁定：只要回合索引与上次缓存不同，就说明是“全新轮到你”的瞬间
         if (lastTurnHandled !== currentServerTurnIdx) {
             localStorage.setItem('last_handled_turn_idx', currentServerTurnIdx);
             localStorage.setItem('last_handled_moves_left', currentServerMoves);
-            
-            // 触发提示音
             playYourTurnSound();
-            
-            // 触发手机硬件双重震动
-            if (navigator.vibrate) {
-                navigator.vibrate([120, 60, 120]);
-            }
+            if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
         }
     } else {
-        // 如果当前不是你的回合，及时清除本地的回合索引缓存，以便下一次轮到你时灵敏响应
         const currentServerTurnIdx = "{{ g.turn_idx if g else -1 }}";
         if (localStorage.getItem('last_handled_turn_idx') === currentServerTurnIdx) {
-            // 别人正在操作时，确保清除，防止由于缓存残留导致下一轮漏响
             localStorage.removeItem('last_handled_turn_idx');
         }
     }
 
-    function openRestartModal() { 
-        document.getElementById('restart-confirm-modal').style.setProperty('display', 'flex', 'important'); 
-    }
-    function closeRestartModal() { 
-        document.getElementById('restart-confirm-modal').style.setProperty('display', 'none', 'important'); 
-    }
-    
-    document.getElementById('restart-confirm-modal').addEventListener('click', function(e){ 
-        if(e.target === this) closeRestartModal(); 
-    });
+    function openRestartModal() { document.getElementById('restart-confirm-modal').style.setProperty('display', 'flex', 'important'); }
+    function closeRestartModal() { document.getElementById('restart-confirm-modal').style.setProperty('display', 'none', 'important'); }
+    document.getElementById('restart-confirm-modal').addEventListener('click', function(e){ if(e.target === this) closeRestartModal(); });
 
     function closeModals() {
         document.querySelectorAll('.action-modal').forEach(m => { 
@@ -1041,10 +1018,12 @@
         
         showLocalBubble('你', text);
         
+        // 只有发送者会立刻本地触发，其他人依靠底部的智能同步器触发
         if (msg === '🖕') {
             triggerMiddleFingerEffect();
         }
 
+        // 因为已改由后端把聊天推到 g.log 中，这里只需为自己先插入一条快速反馈，别人刷新时也会从 g.log 中拿到。
         const logBody = document.getElementById('center-log-body');
         if(logBody) {
             const line = document.createElement('div');
@@ -1066,7 +1045,7 @@
     }
 
     function triggerMiddleFingerEffect() {
-        playFingerExplode(); // 播放中指音效
+        playFingerExplode();
         const overlay = document.getElementById('middle-finger-overlay');
         if (!overlay) return;
         const newOverlay = overlay.cloneNode(true);
@@ -1077,11 +1056,9 @@
         }, 1200);
     }
 
-    // 🔒 需求 3：多端同步对局音效分配机
     {% if room.status == "PLAYING" and g and g.log %}
     (function(){
         const lastLogLine = "{{ g.log[-1] | replace('\"', '\\\"') | replace('\n', '') }}";
-        // 提取并对比最后一条日志，动态分发音效
         if (lastLogLine.includes("打包了一份") || lastLogLine.includes("速成了椰浆饭")) {
             playPackSound();
         } else if (lastLogLine.includes("把乌鸦放到了") || lastLogLine.includes("赶到了")) {
@@ -1090,27 +1067,33 @@
     })();
     {% endif %}
 
-{% if chat_messages %}
+    // 👑 终极消息同步引擎：使用 localStorage 精准时间戳取代粗糙的时间减法
+    {% if chat_messages %}
     (function(){
         const msgs = {{ chat_messages | tojson }};
-        const now = Date.now() / 1000;
-        const layer = document.getElementById('chat-bubble-layer');
-        if(!layer) return;
-        msgs.filter(m => now - m.ts < 4).slice(-3).forEach(m => {
-            const b = document.createElement('div');
-            b.className = 'chat-bubble';
-            const logLine = m.log_line || m.msg;
-            
-            if (m.msg === '🖕' && (now - m.ts < 3.5)) {
-                triggerMiddleFingerEffect();
-            }
+        let lastProcessedTs = parseFloat(localStorage.getItem('last_chat_ts') || '0');
+        let maxTs = lastProcessedTs;
 
-            const display = logLine.replace(/^💬 【.*?】：/, '');
-            b.innerHTML = `<strong style="color:#38bdf8;">${m.player}</strong>：${display}`;
-            layer.appendChild(b);
-            const age = now - m.ts;
-            setTimeout(() => b.remove(), Math.max(500, (4 - age) * 1000));
+        msgs.forEach(m => {
+            // 只要消息的时间戳大于上一次处理过的时间，它就是新的！不会漏掉，也不会重复弹。
+            if (m.ts > lastProcessedTs) {
+                const logLine = m.log_line || m.msg;
+                const display = logLine.replace(/^💬 【.*?】：/, '');
+                
+                showLocalBubble(m.player, display);
+                
+                // 收到别人的中指时完美同步触发大招
+                if (m.msg === '🖕') {
+                    triggerMiddleFingerEffect();
+                }
+                if (m.ts > maxTs) {
+                    maxTs = m.ts;
+                }
+            }
         });
+        
+        // 缓存当前最新的处理进度
+        localStorage.setItem('last_chat_ts', maxTs);
     })();
     {% endif %}
 </script>
