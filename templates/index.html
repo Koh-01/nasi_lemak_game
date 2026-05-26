@@ -1094,7 +1094,7 @@
     }, 500);
 
     // ==========================================
-    // 👑 终极核心引擎：无感抓取替换
+    // 👑 终极核心引擎：无感抓取替换 + 强制刷新保障
     // ==========================================
     {% if room.status == "WAITING" or (room.status == "PLAYING" and g and not g.game_over) %}
     
@@ -1117,9 +1117,12 @@
         }
         
         // 等待室专用快速刷新：如果当前在等待室且没有输入框焦点，直接刷新页面（保证同步）
-        if (document.querySelector('.lobby-screen') && document.activeElement && document.activeElement.tagName !== 'INPUT') {
-            window.location.reload();
-            return;
+        if (document.querySelector('.lobby-screen')) {
+            const activeElement = document.activeElement;
+            if (!activeElement || (activeElement.tagName !== 'INPUT' && activeElement.name !== 'player_name')) {
+                window.location.reload();
+                return;
+            }
         }
         
         try {
@@ -1128,8 +1131,10 @@
             let parser = new DOMParser();
             let doc = parser.parseFromString(text, 'text/html');
 
+            // 检测状态跃迁（游戏结束、房间被重置、进入游戏）
             if ((doc.querySelector('.lobby-screen') && !document.querySelector('.lobby-screen')) ||
-                (!doc.querySelector('.battlefield') && document.querySelector('.battlefield'))) {
+                (!doc.querySelector('.battlefield') && document.querySelector('.battlefield')) ||
+                (doc.querySelector('.game-over-screen') && !document.querySelector('.game-over-screen'))) {
                 return window.location.reload();
             }
 
