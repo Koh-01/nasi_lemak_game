@@ -797,7 +797,7 @@ def quick_chat():
     
     INGREDIENT_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'}
     ALLOWED_INGREDIENTS = list(INGREDIENT_LABELS.keys())
-    # 🔒 修复核心：在白名单里允许中指 🖕 符号通过
+    # 🔒 必须把中指加进白名单，否则后端会直接拦截
     ALLOWED_SPECIAL = ['🙋','⏩','🖕']
     
     if msg not in ALLOWED_INGREDIENTS and msg not in ALLOWED_SPECIAL:
@@ -811,13 +811,17 @@ def quick_chat():
     elif msg == '⏩':
         log_line = f"💬 【{my_name}】：⏩ 快一点啦！"
     elif msg == '🖕':
-        # 🔒 修复核心：生成全场中指通告的系统日志
         log_line = f"💬 【{my_name}】：🖕 送全场一个温暖的中指！"
     else:
         log_line = f"💬 【{my_name}】发出了：{msg}"
 
-    # 广播加入房间消息流
+    # 1. 发送到顶部气泡流
     room.add_chat_message(my_name, msg, log_line)
+    
+    # 2. 👑 核心修复：直接写入游戏中央大厅的对局记录！
+    if room.status == "PLAYING" and room.game:
+        room.game.log.append(log_line)
+        
     return ('', 204)
 
 @app.route('/reset')
