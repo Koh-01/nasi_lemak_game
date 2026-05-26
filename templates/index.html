@@ -87,16 +87,14 @@
 
         /* ===== 中央动态对局记录 ===== */
         .center-log {
-            width: clamp(120px, 22vw, 220px);
-            height: clamp(110px, 18vh, 160px);
+            width: clamp(120px, 22vw, 220px); height: clamp(110px, 18vh, 160px);
             background: rgba(15,23,42,0.95); border: 1px solid #334155; border-radius: 12px;
             display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
         }
         .center-log-title { font-size: 10px; color: #64748b; text-align: center; padding: 4px 0 2px; border-bottom: 1px solid #1e293b; flex-shrink: 0; letter-spacing: 0.5px; font-weight: bold; }
         .center-log-body { flex: 1; overflow-y: auto; padding: 3px 8px; scrollbar-width: none; }
         .center-log-body::-webkit-scrollbar { display: none; }
-        .center-log-line { font-size: 10px; color: #94a3b8; line-height: 1.4; padding: 3px 0; border-bottom: 1px solid rgba(51,65,85,0.3); animation: fadeInLine 0.3s ease-out; }
-        @keyframes fadeInLine { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
+        .center-log-line { font-size: 10px; color: #94a3b8; line-height: 1.4; padding: 3px 0; border-bottom: 1px solid rgba(51,65,85,0.3); } /* 移除了闪烁的动效，让无感刷新更丝滑 */
 
         /* ===== 🖕 全场中指大招效果区域 ===== */
         #middle-finger-overlay {
@@ -142,19 +140,7 @@
         .mini-stall.crow-blocked { border-color: #eab308 !important; background: rgba(234,179,8,0.12) !important; }
         .crow-on-stall { font-size: 12px; text-align: center; background: linear-gradient(90deg, rgba(234,179,8,0.3), rgba(0,0,0,0.5)); border-radius: 5px; padding: 2px 4px; margin-bottom: 3px; border: 1px solid #eab308; font-weight: bold; }
 
-        /* ===== 右下角独立悬浮乌鸦状态区 ===== */
-        .my-crow-status-bar {
-            position: absolute; right: 10px; bottom: clamp(140px, 24vh, 175px);
-            background: linear-gradient(135deg, rgba(41,37,36,0.95), rgba(28,25,23,0.95));
-            border: 2px solid #eab308; border-radius: 12px; padding: 6px 12px;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.6), 0 0 10px rgba(234,179,8,0.3);
-            z-index: 100; font-size: 11px; color: #fde047;
-            max-width: 220px; animation: crowFloat 2s infinite alternate ease-in-out;
-        }
-        @keyframes crowFloat { from { transform: translateY(0); } to { transform: translateY(-4px); } }
-        .crow-ing-badge { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 1px 4px; font-size: 10px; color: white; display: inline-block; margin: 1px; }
-
-        /* ===== 底部控制台与手牌组合 ===== */
+        /* ===== 👑 需求 4：重构底部布局，乌鸦状态并排在手牌右侧，绝不遮挡对手 ===== */
         .bottom-console {
             flex: 0 0 auto; height: clamp(170px, 32dvh, 220px);
             display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
@@ -175,9 +161,13 @@
         .my-nasi.infected { background: linear-gradient(135deg, #475569, #334155); color: #ef4444; border-color: #ef4444; animation: shakeInfected 0.5s infinite alternate; }
         @keyframes shakeInfected { from { transform: rotate(-1deg); } to { transform: rotate(1deg); } }
 
-        /* ===== 手牌物理交叠动效 ===== */
+        /* 手牌与乌鸦内联排版容器 */
+        .hand-and-status-wrapper {
+            display: flex; justify-content: center; align-items: flex-end; width: 100%; position: relative; margin-top: 2px;
+        }
+
         .poker-hand {
-            display: flex; justify-content: center; align-items: flex-end; height: clamp(90px, 18dvh, 125px); padding: 0 15px; position: relative; z-index: 10; margin-top: 2px; width: 100%;
+            display: flex; justify-content: center; align-items: flex-end; height: clamp(90px, 18dvh, 125px); padding: 0 10px; position: relative; z-index: 10;
         }
         .poker-card {
             width: clamp(56px, 7.5vw, 82px); height: clamp(88px, 17.5dvh, 122px);
@@ -203,6 +193,18 @@
         .p-title { font-size: clamp(8px, 0.9vw, 11px); font-weight: bold; text-align: center; line-height: 1.1; }
         .p-tag { position: absolute; bottom: 4px; font-size: 7px; background: rgba(0,0,0,.08); padding: 1px 4px; border-radius: 4px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3px; }
 
+        /* 乌鸦状态内联模块（在手牌右侧） */
+        .my-crow-status-inline {
+            background: linear-gradient(135deg, rgba(41,37,36,0.95), rgba(28,25,23,0.95));
+            border: 2px solid #eab308; border-radius: 12px; padding: 6px 12px;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.6), 0 0 10px rgba(234,179,8,0.3);
+            font-size: 11px; color: #fde047;
+            width: 140px; flex-shrink: 0; margin-left: 15px; margin-bottom: 6px;
+            animation: crowFloat 2s infinite alternate ease-in-out;
+        }
+        @keyframes crowFloat { from { transform: translateY(0); } to { transform: translateY(-4px); } }
+        .crow-ing-badge { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 1px 4px; font-size: 10px; color: white; display: inline-block; margin: 1px; }
+
         /* ===== 全局大弹窗 ===== */
         .action-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
         .modal-box { background: linear-gradient(135deg, #1e293b, #0f172a); border: 2px solid #38bdf8; border-radius: 16px; padding: 18px; width: min(320px, 90vw); text-align: center; max-height: 90dvh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
@@ -226,7 +228,6 @@
         }
         @keyframes lobbyPodIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-        /* 👑 优化：大厅重置按钮手游风样式 */
         .lobby-restart-btn {
             margin-top: 20px; 
             background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(153,27,27,0.2)); 
@@ -237,11 +238,20 @@
             width: 100%; box-shadow: 0 4px 15px rgba(239,68,68,0.15);
         }
         .lobby-restart-btn:hover, .lobby-restart-btn:active { 
-            background: linear-gradient(135deg, #ef4444, #b91c1c); 
-            color: white; border-color: #fca5a5;
-            box-shadow: 0 8px 25px rgba(239,68,68,0.4); 
-            transform: translateY(-3px); 
+            background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; border-color: #fca5a5;
+            box-shadow: 0 8px 25px rgba(239,68,68,0.4); transform: translateY(-3px); 
         }
+
+        /* 动态生成的吐司通知动画 */
+        .nasi-toast-anim {
+            position: fixed; top: 50px; left: 50%; transform: translateX(-50%);
+            background: rgba(34,197,94,0.95); color: white; padding: 10px 25px; border-radius: 30px;
+            font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100000;
+            animation: popin 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, fadeout 0.5s 2.5s forwards;
+            white-space: nowrap; border: 2px solid #bbf7d0;
+        }
+        @keyframes popin { from { top: -50px; opacity: 0; } to { top: 50px; opacity: 1; } }
+        @keyframes fadeout { from { opacity: 1; } to { opacity: 0; display: none; } }
     </style>
 </head>
 <body>
@@ -263,20 +273,9 @@
     <p class="text-muted small">本游戏为横屏模式</p>
 </div>
 
-{% set latest_log = g.log[-1] if room.status == "PLAYING" and g and g.log else "" %}
-{% if "打包了一份标准" in latest_log or "使用大妈代工速成了" in latest_log %}
-<div id="nasi-toast" style="position:fixed; top:50px; left:50%; transform:translateX(-50%); background:rgba(34,197,94,0.95); color:white; padding:10px 25px; border-radius:30px; font-weight:bold; box-shadow:0 10px 25px rgba(0,0,0,0.5); z-index:100000; animation: popin 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, fadeout 0.5s 2.5s forwards; white-space:nowrap; border: 2px solid #bbf7d0;">
-    🎉 突发：【{{ latest_log.split('】')[0].split('【')[1] if '】' in latest_log else '有人' }}】成功包出了一份椰浆饭！
-</div>
-<style>
-    @keyframes popin { from { top: -50px; opacity: 0; } to { top: 50px; opacity: 1; } }
-    @keyframes fadeout { from { opacity: 1; } to { opacity: 0; display: none; } }
-</style>
-<script>setTimeout(() => { document.getElementById('nasi-toast')?.remove(); }, 3000);</script>
-{% endif %}
-
 <div id="game-wrapper">
     <div id="chat-bubble-layer" class="chat-bubble-layer"></div>
+    <div id="middle-finger-overlay">🖕</div>
 
     {% if error %}
     <div style="position:fixed;top:40px;left:50%;transform:translateX(-50%);z-index:9999;" class="alert alert-danger py-1 px-3 fs-6">{{ error }}</div>
@@ -392,16 +391,8 @@
             </div>
             {% endfor %}
         </div>
-
-        <div style="width:100%;max-width:700px;background:rgba(15,23,42,0.8);border:1px solid #334155;border-radius:10px;padding:12px;margin-bottom:20px;">
-            <div style="font-size:11px;color:#64748b;margin-bottom:6px;">📜 对局记录（最近10条）</div>
-            {% for line in g.log[-10:]|reverse %}
-            <div style="font-size:11px;color:#94a3b8;padding:2px 0;border-bottom:1px solid #1e293b;">{{ line }}</div>
-            {% endfor %}
-        </div>
         <a href="/reset" class="btn btn-warning fw-bold px-5" style="font-size:14px;">🔄 再来一局</a>
     </div>
-    <style>@keyframes bounce { from{transform:translateY(0)} to{transform:translateY(-8px)} }</style>
 
     {% else %}
     <div class="top-bar">
@@ -411,6 +402,7 @@
             {% else %}⏳ 等待【{{ g.current_player().name }}】{% endif %}
         </span>
         <a href="/action/end_turn_manual" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2" style="font-size:10px; border-radius: 10px;">结束回合</a>
+        <button onclick="toggleFullScreen()" class="btn btn-sm btn-outline-info py-0 px-2 ms-2" style="font-size:10px; border-radius: 10px;">🔲 全屏</button>
         <button onclick="openRestartModal()" class="restart-btn">⚡重启</button>
     </div>
 
@@ -434,8 +426,6 @@
     {% endif %}
 
     <div class="battlefield">
-        <div id="middle-finger-overlay">🖕</div>
-
         {% set opponents = [] %}
         {% for p in g.players %}{% if p.name != my_name %}{% set _ = opponents.append((loop.index0, p)) %}{% endif %}{% endfor %}
         {% set mid = (opponents|length / 2)|round(0,'ceil')|int %}
@@ -516,23 +506,6 @@
             </div>
             {% endfor %}
         </div>
-
-        {% if my_player and my_player.placed_crow is not none %}
-        <div class="my-crow-status-bar">
-            <div class="fw-bold mb-1">🐦‍⬛ 乌鸦压顶拦截中！</div>
-            <div class="text-white-50" style="font-size:9px; line-height:1.2; margin-bottom:4px;">无法包任何饭！请选择右侧对手点击赶走它。</div>
-            <div class="mt-1">
-                <span class="text-warning">肚中食材：</span>
-                {% if my_player.placed_crow.ingredients %}
-                    {% for ing in my_player.placed_crow.ingredients %}
-                    <span class="crow-ing-badge">{{ ing }}</span>
-                    {% endfor %}
-                {% else %}
-                    <span class="text-muted" style="font-size:10px;">暂无</span>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
     </div>
 
     <div class="bottom-console">
@@ -552,48 +525,67 @@
         </button>
         {% endif %}
 
-        <div class="poker-hand">
-            {% if my_player and my_player.hand %}
-                {% for card in my_player.hand %}
-                    {% set c_type = "food" %}
-                    {% if card in ['Thief','Wholesaler','Supplier','Mak Cik'] %}{% set c_type = "action" %}{% endif %}
-                    {% if card in ['Fly','Officer'] %}{% set c_type = "attack" %}{% endif %}
-                    {% if card in ['Fly Swatter','Fan'] %}{% set c_type = "defense" %}{% endif %}
-                    {% if card == 'Rendang' %}{% set c_type = "wildcard" %}{% endif %}
-                    {% if card == 'Si Oyen' %}{% set c_type = "special" %}{% endif %}
-                    {% if card == 'Crow' %}{% set c_type = "crow" %}{% endif %}
-                    {% set c_dict = {
-                        "Rice":("椰浆饭","🍚"),"Egg":("鸡蛋","🥚"),"Peanuts":("花生","🥜"),"Sambal":("三巴","🌶️"),"Cucumber":("黄瓜","🥒"),
-                        "Wholesaler":("批发商","🏪"),"Thief":("小偷","🥷"),"Supplier":("供应商","📣"),"Mak Cik":("大妈","🧑‍🍳"),
-                        "Officer":("官员","👮"),"Fly":("苍蝇","🪰"),"Fly Swatter":("蝇拍","💥"),"Fan":("风扇","🪭"),
-                        "Rendang":("Rendang","🍗"),"Si Oyen":("Si Oyen","🐱"),"Crow":("乌鸦","🐦‍⬛")
-                    } %}
-                    {% set is_my_turn = (g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending) %}
+        <div class="hand-and-status-wrapper">
+            <div class="poker-hand">
+                {% if my_player and my_player.hand %}
+                    {% for card in my_player.hand %}
+                        {% set c_type = "food" %}
+                        {% if card in ['Thief','Wholesaler','Supplier','Mak Cik'] %}{% set c_type = "action" %}{% endif %}
+                        {% if card in ['Fly','Officer'] %}{% set c_type = "attack" %}{% endif %}
+                        {% if card in ['Fly Swatter','Fan'] %}{% set c_type = "defense" %}{% endif %}
+                        {% if card == 'Rendang' %}{% set c_type = "wildcard" %}{% endif %}
+                        {% if card == 'Si Oyen' %}{% set c_type = "special" %}{% endif %}
+                        {% if card == 'Crow' %}{% set c_type = "crow" %}{% endif %}
+                        {% set c_dict = {
+                            "Rice":("椰浆饭","🍚"),"Egg":("鸡蛋","🥚"),"Peanuts":("花生","🥜"),"Sambal":("三巴","🌶️"),"Cucumber":("黄瓜","🥒"),
+                            "Wholesaler":("批发商","🏪"),"Thief":("小偷","🥷"),"Supplier":("供应商","📣"),"Mak Cik":("大妈","🧑‍🍳"),
+                            "Officer":("官员","👮"),"Fly":("苍蝇","🪰"),"Fly Swatter":("蝇拍","💥"),"Fan":("风扇","🪭"),
+                            "Rendang":("Rendang","🍗"),"Si Oyen":("Si Oyen","🐱"),"Crow":("乌鸦","🐦‍⬛")
+                        } %}
+                        {% set is_my_turn = (g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending) %}
 
-                    {% if is_my_turn and card == 'Crow' %}
-                        <a href="javascript:void(0);" onclick="alert('请点击对手头像框来放置乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                    {% elif is_my_turn and card == 'Si Oyen' %}
-                        <a href="javascript:void(0);" onclick="alert('Si Oyen 会自动赶跑你面前的乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                    {% elif is_my_turn and card == 'Thief' %}
-                        <a href="javascript:void(0);" onclick="openThiefModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                    {% elif is_my_turn and card == 'Wholesaler' %}
-                        <a href="/action/wholesaler" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                    {% elif is_my_turn and card == 'Mak Cik' %}
-                        <a href="/action/pack_makcik" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                    {% elif is_my_turn and card == 'Supplier' %}
-                        <a href="javascript:void(0);" onclick="openSupplierModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                    {% elif is_my_turn and card in ['Officer','Fly'] %}
-                        <a href="javascript:void(0);" onclick="alert('请点击对手头像框发起攻击！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                    {% elif is_my_turn and card in ['Fly Swatter','Fan'] %}
-                        <a href="javascript:void(0);" onclick="alert('请点击自己被污染的椰浆饭！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                        {% if is_my_turn and card == 'Crow' %}
+                            <a href="javascript:void(0);" onclick="alert('请点击对手头像框来放置乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                        {% elif is_my_turn and card == 'Si Oyen' %}
+                            <a href="javascript:void(0);" onclick="alert('Si Oyen 会自动赶跑你面前的乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                        {% elif is_my_turn and card == 'Thief' %}
+                            <a href="javascript:void(0);" onclick="openThiefModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                        {% elif is_my_turn and card == 'Wholesaler' %}
+                            <a href="/action/wholesaler" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                        {% elif is_my_turn and card == 'Mak Cik' %}
+                            <a href="/action/pack_makcik" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                        {% elif is_my_turn and card == 'Supplier' %}
+                            <a href="javascript:void(0);" onclick="openSupplierModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                        {% elif is_my_turn and card in ['Officer','Fly'] %}
+                            <a href="javascript:void(0);" onclick="alert('请点击对手头像框发起攻击！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                        {% elif is_my_turn and card in ['Fly Swatter','Fan'] %}
+                            <a href="javascript:void(0);" onclick="alert('请点击自己被污染的椰浆饭！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                        {% else %}
+                            <a href="javascript:void(0);" class="poker-card {% if not is_my_turn %}disabled-card{% endif %}" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                        {% endif %}
+                            <div class="p-emoji">{{ c_dict[card][1] if card in c_dict else '❓' }}</div>
+                            <div class="p-title">{{ c_dict[card][0] if card in c_dict else card }}</div>
+                            <div class="p-tag">{{ c_type }}</div>
+                        </a>
+                    {% endfor %}
+                {% endif %}
+            </div>
+
+            {% if my_player and my_player.placed_crow is not none %}
+            <div class="my-crow-status-inline">
+                <div class="fw-bold mb-1">🐦‍⬛ 乌鸦拦截中！</div>
+                <div class="text-white-50" style="font-size:9px; line-height:1.2; margin-bottom:4px;">无法包饭！点击右侧对手赶走。</div>
+                <div class="mt-1">
+                    <span class="text-warning">肚中食材：</span>
+                    {% if my_player.placed_crow.ingredients %}
+                        {% for ing in my_player.placed_crow.ingredients %}
+                        <span class="crow-ing-badge">{{ ing }}</span>
+                        {% endfor %}
                     {% else %}
-                        <a href="javascript:void(0);" class="poker-card {% if not is_my_turn %}disabled-card{% endif %}" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                        <span class="text-muted" style="font-size:10px;">暂无</span>
                     {% endif %}
-                        <div class="p-emoji">{{ c_dict[card][1] if card in c_dict else '❓' }}</div>
-                        <div class="p-title">{{ c_dict[card][0] if card in c_dict else card }}</div>
-                        <div class="p-tag">{{ c_type }}</div>
-                    </a>
-                {% endfor %}
+                </div>
+            </div>
             {% endif %}
         </div>
 
@@ -740,15 +732,6 @@
     </div>
     {% endif %}
 
-    {% if g.thief_pending and g.turn_idx != my_p_idx %}
-    <div class="action-modal" style="display:flex;">
-        <div class="modal-box">
-            <h5 class="text-warning">🥷 小偷出动！</h5>
-            <p class="text-muted small">【{{ g.current_player().name }}】 正在选择偷窃目标…<br>请等待。</p>
-        </div>
-    </div>
-    {% endif %}
-
     {% if g.active_inspection and g.turn_idx == my_p_idx %}
     <div class="action-modal" style="display:flex;">
         <div class="modal-box" style="width:min(340px,92vw);">
@@ -798,12 +781,34 @@
         </div>
     </div>
 
+    <div id="game-state-data" style="display:none;"
+         data-turn-idx="{{ g.turn_idx }}"
+         data-is-my-turn="{{ 'true' if g.turn_idx == my_p_idx else 'false' }}"
+         data-chat="{{ chat_messages|default([])|tojson|forceescape }}"
+         data-logs="{{ g.log|default([])|tojson|forceescape }}"
+         data-trade-expires="{{ g.pending_trade.expires_at if g.pending_trade else 0 }}">
+    </div>
+
     {% endif %}{% endif %}
 </div>
 
 <script>
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // ===== 🔲 需求 3：网页全屏功能 =====
+    function toggleFullScreen() {
+        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
+            let el = document.documentElement;
+            if (el.requestFullscreen) el.requestFullscreen();
+            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+            else if (el.msRequestFullscreen) el.msRequestFullscreen();
+        } else {
+            if (document.exitFullscreen) document.exitFullscreen();
+            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+            else if (document.msExitFullscreen) document.msExitFullscreen();
+        }
+    }
 
+    // ===== 🔊 手游音频引擎 =====
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playSynthSound(freq, type, duration, vol=0.2) {
         try {
             if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -817,7 +822,7 @@
             gainNode.connect(audioCtx.destination);
             osc.start();
             osc.stop(audioCtx.currentTime + duration);
-        } catch(e) { console.log("Audio play blocked", e); }
+        } catch(e) {}
     }
 
     function playCrowSound() {
@@ -825,41 +830,75 @@
         setTimeout(() => playSynthSound(210, 'sawtooth', 0.2, 0.2), 100);
         setTimeout(() => playSynthSound(160, 'sawtooth', 0.3, 0.25), 250);
     }
-
     function playPackSound() {
         playSynthSound(523.25, 'triangle', 0.08, 0.3); 
         setTimeout(() => playSynthSound(659.25, 'triangle', 0.08, 0.3), 80); 
         setTimeout(() => playSynthSound(783.99, 'triangle', 0.08, 0.3), 160); 
         setTimeout(() => playSynthSound(1046.50, 'sine', 0.4, 0.4), 240); 
     }
-
     function playYourTurnSound() {
         playSynthSound(880, 'sine', 0.1, 0.35); 
         setTimeout(() => playSynthSound(1318.51, 'sine', 0.25, 0.4), 100); 
     }
-
     function playFingerExplode() {
         playSynthSound(90, 'sawtooth', 0.5, 0.5);
         playSynthSound(60, 'triangle', 0.7, 0.6);
     }
 
-    const isMyTurnRightNow = {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.game_over %}true{% else %}false{% endif %};
-    
-    if (isMyTurnRightNow) {
-        const lastTurnHandled = localStorage.getItem('last_handled_turn_idx');
-        const currentServerTurnIdx = "{{ g.turn_idx if g else -1 }}";
-        if (lastTurnHandled !== currentServerTurnIdx) {
-            localStorage.setItem('last_handled_turn_idx', currentServerTurnIdx);
-            playYourTurnSound();
-            if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
-        }
-    } else {
-        const currentServerTurnIdx = "{{ g.turn_idx if g else -1 }}";
-        if (localStorage.getItem('last_handled_turn_idx') === currentServerTurnIdx) {
-            localStorage.removeItem('last_handled_turn_idx');
+    // 动态生成打包吐司动画
+    function showNasiToast(msg) {
+        let toast = document.createElement('div');
+        toast.className = 'nasi-toast-anim';
+        toast.innerHTML = `🎉 突发：${msg}`;
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+
+    // 中指爆炸大招
+    function triggerMiddleFingerEffect() {
+        playFingerExplode();
+        const overlay = document.getElementById('middle-finger-overlay');
+        if (!overlay) return;
+        const newOverlay = overlay.cloneNode(true);
+        overlay.parentNode.replaceChild(newOverlay, overlay);
+        newOverlay.classList.add('finger-blast-anim');
+        setTimeout(() => { newOverlay.classList.remove('finger-blast-anim'); }, 1200);
+    }
+
+    function showLocalBubble(player, text) {
+        const layer = document.getElementById('chat-bubble-layer');
+        if(!layer) return;
+        const b = document.createElement('div');
+        b.className = 'chat-bubble';
+        b.innerHTML = `<strong style="color:#38bdf8;">${player}</strong>：${text}`;
+        layer.appendChild(b);
+        setTimeout(() => b.remove(), 4000);
+    }
+
+    const ING_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'};
+    const SPECIAL_LABELS = {'🙋':'举手！','⏩':'快一点啦！','🖕':'送全场一个温暖的中指！'};
+
+    function sendQuickChat(msg, mode) {
+        const fd = new FormData();
+        fd.append('msg', msg);
+        fd.append('mode', mode || 'have');
+        fetch('/quick_chat', {method:'POST', body:fd});
+        
+        let text = ING_LABELS[msg] ? `${mode === 'want' ? '我要' : '我有'} ${msg} ${ING_LABELS[msg]}！` : (SPECIAL_LABELS[msg] || msg);
+        showLocalBubble('你', text);
+        if (msg === '🖕') triggerMiddleFingerEffect();
+
+        const logBody = document.getElementById('center-log-body');
+        if(logBody) {
+            const line = document.createElement('div');
+            line.className = 'center-log-line';
+            line.style.color = '#fbbf24';
+            line.textContent = '💬 【你】：' + text;
+            logBody.insertBefore(line, logBody.firstChild);
         }
     }
 
+    // 模态框控制逻辑
     function openRestartModal() { document.getElementById('restart-confirm-modal').style.setProperty('display', 'flex', 'important'); }
     function closeRestartModal() { document.getElementById('restart-confirm-modal').style.setProperty('display', 'none', 'important'); }
     document.getElementById('restart-confirm-modal').addEventListener('click', function(e){ if(e.target === this) closeRestartModal(); });
@@ -878,77 +917,91 @@
 
         const attackSection = document.getElementById('tm-attack-section');
         const readonlySection = document.getElementById('tm-readonly-section');
+        
+        let isMyTurn = false;
+        let myHandStr = "[]";
+        let myHasCrow = false;
 
-        {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.active_inspection and not g.thief_pending %}
-        if(attackSection) attackSection.style.display = '';
-        if(readonlySection) readonlySection.style.display = 'none';
-        document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
-        {% if not g.has_drawn %}
-        document.getElementById('btn-officer').style.opacity = '0.4';
-        document.getElementById('btn-officer').onclick = function(e){ e.preventDefault(); alert('请先摸牌再使用官员！'); };
-        {% else %}
-        document.getElementById('btn-officer').style.opacity = '';
-        document.getElementById('btn-officer').onclick = null;
+        const dataNode = document.getElementById('game-state-data');
+        if(dataNode) {
+            isMyTurn = dataNode.dataset.isMyTurn === 'true';
+        }
+
+        {% if room.status == "PLAYING" and g and not g.active_inspection and not g.thief_pending %}
+            isMyTurn = {{ 'true' if g.turn_idx == my_p_idx else 'false' }};
+            myHandStr = {{ my_player.hand | tojson if (my_player and my_player.hand) else '[]' }};
+            myHasCrow = {{ 'true' if (my_player and my_player.placed_crow is not none) else 'false' }};
         {% endif %}
 
-        const myHand = {{ my_player.hand | tojson if (my_player and my_player.hand) else '[]' }};
-        const playCrowBtn = document.getElementById('btn-play-crow');
-        if(playCrowBtn) {
-            if(myHand.includes('Crow') && !targetHasCrow) {
-                playCrowBtn.style.display = '';
-                playCrowBtn.href = '/action/play_crow?target=' + tIdx;
-            } else { playCrowBtn.style.display = 'none'; }
-        }
+        if(isMyTurn) {
+            if(attackSection) attackSection.style.display = '';
+            if(readonlySection) readonlySection.style.display = 'none';
+            document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
+            
+            {% if room.status == "PLAYING" and g and not g.has_drawn %}
+            document.getElementById('btn-officer').style.opacity = '0.4';
+            document.getElementById('btn-officer').onclick = function(e){ e.preventDefault(); alert('请先摸牌再使用官员！'); };
+            {% else %}
+            document.getElementById('btn-officer').style.opacity = '';
+            document.getElementById('btn-officer').onclick = null;
+            {% endif %}
 
-        const myHasCrow = {{ 'true' if (my_player and my_player.placed_crow is not none) else 'false' }};
-        const siOyenBtn = document.getElementById('btn-si-oyen');
-        if(siOyenBtn) {
-            if(myHand.includes('Si Oyen') && myHasCrow) {
-                siOyenBtn.style.display = '';
-                siOyenBtn.href = '/action/si_oyen';
-            } else { siOyenBtn.style.display = 'none'; }
-        }
-
-        const chaseSection = document.getElementById('crow-chase-section');
-        const chaseIngs = document.getElementById('crow-chase-ingredients');
-        if(chaseSection && chaseIngs) {
-            if(myHasCrow && !targetHasCrow) {
-                chaseSection.style.display = '';
-                chaseIngs.innerHTML = '';
-                const validIngs = ['Rice','Egg','Peanuts','Sambal','Cucumber','Rendang'];
-                const available = validIngs.filter(i => myHand.includes(i));
-                if(available.length > 0) {
-                    available.forEach(ing => {
-                        chaseIngs.innerHTML += `<a href="/action/chase_crow?target=${tIdx}&ingredient=${ing}" class="btn btn-sm btn-outline-warning">${ing}</a>`;
-                    });
-                } else { chaseIngs.innerHTML = '<span class="text-muted small">你没有食材可喂乌鸦！</span>'; }
-            } else { chaseSection.style.display = 'none'; }
-        }
-
-        let fa = document.getElementById('fly-targets');
-        fa.innerHTML = '';
-        if(foodCount > 0) {
-            let flies = JSON.parse(fliesStr || "[]");
-            for(let i=0; i<foodCount; i++) {
-                if(flies[i]) {
-                    fa.innerHTML += `<span class="btn btn-sm btn-secondary disabled" style="opacity:0.6;">第${i+1}包(已有🪰)</span>`;
-                } else {
-                    fa.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger shadow-sm">砸在第${i+1}包</a>`;
-                }
+            const myHand = JSON.parse(myHandStr);
+            const playCrowBtn = document.getElementById('btn-play-crow');
+            if(playCrowBtn) {
+                if(myHand.includes('Crow') && !targetHasCrow) {
+                    playCrowBtn.style.display = '';
+                    playCrowBtn.href = '/action/play_crow?target=' + tIdx;
+                } else { playCrowBtn.style.display = 'none'; }
             }
-        } else { fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>'; }
-        {% else %}
-        if(attackSection) attackSection.style.display = 'none';
-        if(readonlySection) readonlySection.style.display = '';
-        document.querySelectorAll('[id^="tm-status-"]').forEach(el => el.classList.add('d-none'));
-        const statusEl = document.getElementById('tm-status-' + tIdx);
-        if(statusEl) statusEl.classList.remove('d-none');
-        {% endif %}
+
+            const siOyenBtn = document.getElementById('btn-si-oyen');
+            if(siOyenBtn) {
+                if(myHand.includes('Si Oyen') && myHasCrow) {
+                    siOyenBtn.style.display = '';
+                    siOyenBtn.href = '/action/si_oyen';
+                } else { siOyenBtn.style.display = 'none'; }
+            }
+
+            const chaseSection = document.getElementById('crow-chase-section');
+            const chaseIngs = document.getElementById('crow-chase-ingredients');
+            if(chaseSection && chaseIngs) {
+                if(myHasCrow && !targetHasCrow) {
+                    chaseSection.style.display = '';
+                    chaseIngs.innerHTML = '';
+                    const validIngs = ['Rice','Egg','Peanuts','Sambal','Cucumber','Rendang'];
+                    const available = validIngs.filter(i => myHand.includes(i));
+                    if(available.length > 0) {
+                        available.forEach(ing => {
+                            chaseIngs.innerHTML += `<a href="/action/chase_crow?target=${tIdx}&ingredient=${ing}" class="btn btn-sm btn-outline-warning">${ing}</a>`;
+                        });
+                    } else { chaseIngs.innerHTML = '<span class="text-muted small">你没有食材可喂乌鸦！</span>'; }
+                } else { chaseSection.style.display = 'none'; }
+            }
+
+            let fa = document.getElementById('fly-targets');
+            fa.innerHTML = '';
+            if(foodCount > 0) {
+                let flies = JSON.parse(fliesStr || "[]");
+                for(let i=0; i<foodCount; i++) {
+                    if(flies[i]) {
+                        fa.innerHTML += `<span class="btn btn-sm btn-secondary disabled" style="opacity:0.6;">第${i+1}包(已有🪰)</span>`;
+                    } else {
+                        fa.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger shadow-sm">砸在第${i+1}包</a>`;
+                    }
+                }
+            } else { fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>'; }
+        } else {
+            if(attackSection) attackSection.style.display = 'none';
+            if(readonlySection) readonlySection.style.display = '';
+            document.querySelectorAll('[id^="tm-status-"]').forEach(el => el.classList.add('d-none'));
+            const statusEl = document.getElementById('tm-status-' + tIdx);
+            if(statusEl) statusEl.classList.remove('d-none');
+        }
         document.getElementById('target-modal').style.display = 'flex';
     }
 
     function openSupplierModal() { document.getElementById('supplier-modal').style.display = 'flex'; }
-
     function openDefenseModal(fIdx, hasFly) {
         {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.active_inspection %}
         if(hasFly){
@@ -963,8 +1016,7 @@
     function showFanTargets() { document.getElementById('fan-target-list').classList.remove('d-none'); }
 
     let selectedThiefTargets = [];
-    const MAX_THIEF = {{ g.players|length if (room.status == "PLAYING" and g) else 4 }} > 4 ? 3 : 999;
-
+    const MAX_THIEF = {{ room.joined_players|length if room else 4 }} > 4 ? 3 : 999;
     function openThiefModal() {
         selectedThiefTargets = [];
         document.querySelectorAll('.thief-target-btn').forEach(b => b.classList.remove('selected'));
@@ -992,124 +1044,161 @@
         window.location.href = '/action/thief_targets?targets=' + selectedThiefTargets.join(',');
     }
 
-    {% if room.status == "PLAYING" and g and g.pending_trade %}
-    (function(){
-        const expiresAt = {{ g.pending_trade.expires_at }};
+    // 全局倒计时独立运行
+    setInterval(() => {
         const timerEl = document.getElementById('trade-timer');
-        function tick(){
-            if(!timerEl) return;
-            const left = Math.max(0, Math.ceil(expiresAt - Date.now()/1000));
-            timerEl.textContent = left + 's';
-            timerEl.style.color = left <= 5 ? '#ef4444' : '#f59e0b';
-            if(left > 0) setTimeout(tick, 500);
-        }
-        tick();
-    })();
-    {% endif %}
-
-    {% if room.status == "WAITING" or (room.status == "PLAYING" and g and g.turn_idx != my_p_idx and not g.game_over) %}
-    setTimeout(function(){
-        if(document.activeElement && document.activeElement.tagName === 'INPUT') return;
-        window.location.reload();
-    }, 3000);
-    {% endif %}
-
-    const ING_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'};
-    const SPECIAL_LABELS = {'🙋':'举手！','⏩':'快一点啦！','🖕':'送全场一个温暖的中指！'};
-
-    function sendQuickChat(msg, mode) {
-        const fd = new FormData();
-        fd.append('msg', msg);
-        fd.append('mode', mode || 'have');
-        fetch('/quick_chat', {method:'POST', body:fd});
-        
-        let text;
-        if(ING_LABELS[msg]) {
-            text = (mode === 'want' ? '我要 ' : '我有 ') + msg + ' ' + ING_LABELS[msg] + '！';
-        } else { text = SPECIAL_LABELS[msg] || msg; }
-        
-        // 本地立刻反馈显示气泡和写入
-        showLocalBubble('你', text);
-        if (msg === '🖕') triggerMiddleFingerEffect();
-
-        const logBody = document.getElementById('center-log-body');
-        if(logBody) {
-            const line = document.createElement('div');
-            line.className = 'center-log-line';
-            line.style.color = '#fbbf24';
-            line.textContent = '💬 【你】：' + text;
-            logBody.insertBefore(line, logBody.firstChild);
-        }
-    }
-
-    function showLocalBubble(player, text) {
-        const layer = document.getElementById('chat-bubble-layer');
-        if(!layer) return;
-        const b = document.createElement('div');
-        b.className = 'chat-bubble';
-        b.innerHTML = `<strong style="color:#38bdf8;">${player}</strong>：${text}`;
-        layer.appendChild(b);
-        setTimeout(() => b.remove(), 4000);
-    }
-
-    function triggerMiddleFingerEffect() {
-        playFingerExplode();
-        const overlay = document.getElementById('middle-finger-overlay');
-        if (!overlay) return;
-        const newOverlay = overlay.cloneNode(true);
-        overlay.parentNode.replaceChild(newOverlay, overlay);
-        newOverlay.classList.add('finger-blast-anim');
-        setTimeout(() => { newOverlay.classList.remove('finger-blast-anim'); }, 1200);
-    }
-
-    // 👑 史诗级终极消息同步引擎：彻底废弃旧系统，完全读取官方服务器 game.log 实现全端强制同步！
-    {% if room.status == "PLAYING" and g and g.log %}
-    (function(){
-        const currentLogs = {{ g.log | tojson }};
-        const currentLogCount = currentLogs.length;
-        // 绑定独立房间的缓存ID，防止多开串台
-        const cacheKey = 'game_log_count_{{ room.id|default("default") }}';
-        let lastLogCount = localStorage.getItem(cacheKey);
-        
-        if (lastLogCount === null) {
-            localStorage.setItem(cacheKey, currentLogCount);
-        } else {
-            lastLogCount = parseInt(lastLogCount);
-            if (currentLogCount > lastLogCount) {
-                // 只有全新的日志才会触发声效和动效
-                const newLogs = currentLogs.slice(lastLogCount);
-                newLogs.forEach(logLine => {
-                    if (logLine.includes("打包了一份") || logLine.includes("速成了椰浆饭")) {
-                        playPackSound();
-                    } else if (logLine.includes("把乌鸦放到了") || logLine.includes("赶到了")) {
-                        playCrowSound();
-                    }
-
-                    // 如果检测到是别人发送的快捷沟通，就立刻同步触发！
-                    if (logLine.startsWith("💬 【")) {
-                        const match = logLine.match(/^💬 【(.*?)】：(.*)/);
-                        if (match) {
-                            const player = match[1];
-                            const msg = match[2];
-                            const myName = "{{ my_name }}";
-                            
-                            // 自己发的刚才已经播放过了，不再重复弹
-                            if (player !== myName) { 
-                                showLocalBubble(player, msg); 
-                                if (msg.includes('🖕')) {
-                                    triggerMiddleFingerEffect();
-                                }
-                            }
-                        }
-                    }
-                });
-                localStorage.setItem(cacheKey, currentLogCount);
-            } else if (currentLogCount < lastLogCount) {
-                // 如果发现服务器日志比本地还少，说明有人重置了房间，重新校准
-                localStorage.setItem(cacheKey, currentLogCount);
+        const dataNode = document.getElementById('game-state-data');
+        if(timerEl && dataNode) {
+            const exp = parseFloat(dataNode.dataset.tradeExpires || '0');
+            if (exp > 0) {
+                const left = Math.max(0, Math.ceil(exp - Date.now()/1000));
+                timerEl.textContent = left + 's';
+                timerEl.style.color = left <= 5 ? '#ef4444' : '#f59e0b';
             }
         }
-    })();
+    }, 500);
+
+    // ==========================================
+    // 👑 终极核心引擎：无感抓取替换（告别闪烁刷新！）
+    // ==========================================
+    {% if room.status == "WAITING" or (room.status == "PLAYING" and g and not g.game_over) %}
+    
+    // 初始化首屏数据判定
+    const initDataNode = document.getElementById('game-state-data');
+    if (initDataNode) {
+        localStorage.setItem('game_log_count_{{ room.id|default("default") }}', JSON.parse(initDataNode.dataset.logs || '[]').length);
+        localStorage.setItem('last_handled_turn_idx', initDataNode.dataset.turnIdx);
+        // 如果一开局就是我，立刻响铃
+        if (initDataNode.dataset.isMyTurn === 'true') {
+             playYourTurnSound();
+             if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
+        }
+    }
+
+    async function pollState() {
+        // 如果玩家正在操作模态框，暂缓替换DOM避免打断操作
+        const isModalOpen = Array.from(document.querySelectorAll('.action-modal')).some(m => m.style.display === 'flex' && m.id !== 'restart-confirm-modal');
+        
+        try {
+            let res = await fetch(window.location.href);
+            let text = await res.text();
+            let parser = new DOMParser();
+            let doc = parser.parseFromString(text, 'text/html');
+
+            // 如果发生阶段跃迁（例如跳到了结算画面或大厅），直接强制重载全屏
+            if ((doc.querySelector('.lobby-screen') && !document.querySelector('.lobby-screen')) ||
+                (!doc.querySelector('.battlefield') && document.querySelector('.battlefield'))) {
+                return window.location.reload();
+            }
+
+            if (document.querySelector('.lobby-container')) {
+                document.querySelector('.lobby-container').innerHTML = doc.querySelector('.lobby-container').innerHTML;
+            } else if (document.querySelector('.battlefield')) {
+                
+                // 仅在无模态框开启时执行局部核心替换
+                if (!isModalOpen) {
+                    document.querySelector('.top-bar').innerHTML = doc.querySelector('.top-bar').innerHTML;
+                    
+                    // 保护对局记录的滚动条位置不乱跳
+                    let oldLog = document.getElementById('center-log-body');
+                    let newLog = doc.getElementById('center-log-body');
+                    if(oldLog && newLog) {
+                        let isScrolledToBottom = oldLog.scrollHeight - oldLog.clientHeight <= oldLog.scrollTop + 10;
+                        oldLog.innerHTML = newLog.innerHTML;
+                        if(isScrolledToBottom) oldLog.scrollTop = oldLog.scrollHeight;
+                    }
+                    
+                    let oppColsOld = document.querySelectorAll('.opponents-col');
+                    let oppColsNew = doc.querySelectorAll('.opponents-col');
+                    if(oppColsOld.length === 2 && oppColsNew.length === 2) {
+                        oppColsOld[0].innerHTML = oppColsNew[0].innerHTML;
+                        oppColsOld[1].innerHTML = oppColsNew[1].innerHTML;
+                    }
+
+                    document.querySelector('.bottom-console').innerHTML = doc.querySelector('.bottom-console').innerHTML;
+
+                    // 实时同步交易弹窗（解决需求 1）
+                    let tradeBannerOld = document.getElementById('trade-banner');
+                    let tradeBannerNew = doc.getElementById('trade-banner');
+                    if (tradeBannerNew && !tradeBannerOld) {
+                        document.querySelector('.top-bar').insertAdjacentHTML('afterend', tradeBannerNew.outerHTML);
+                    } else if (!tradeBannerNew && tradeBannerOld) {
+                        tradeBannerOld.remove();
+                    } else if (tradeBannerNew && tradeBannerOld) {
+                        tradeBannerOld.innerHTML = tradeBannerNew.innerHTML;
+                    }
+                }
+
+                // 🌟 无损音频和动效扫描引擎 🌟
+                let newData = doc.getElementById('game-state-data');
+                let oldData = document.getElementById('game-state-data');
+                
+                if(newData) {
+                    // 更新底层数据供定时器使用
+                    if (oldData) oldData.replaceWith(newData);
+
+                    let isMyTurn = newData.dataset.isMyTurn === 'true';
+                    let turnIdx = newData.dataset.turnIdx;
+                    
+                    // 需求 5：每次轮到我的回合必定响铃提醒！
+                    if (isMyTurn) {
+                        let lastTurn = localStorage.getItem('last_handled_turn_idx');
+                        if (lastTurn !== turnIdx) {
+                            localStorage.setItem('last_handled_turn_idx', turnIdx);
+                            playYourTurnSound();
+                            if(navigator.vibrate) navigator.vibrate([120,60,120]);
+                        }
+                    } else {
+                        if(localStorage.getItem('last_handled_turn_idx') === turnIdx) {
+                            localStorage.removeItem('last_handled_turn_idx');
+                        }
+                    }
+
+                    // 扫描聊天流，触发气泡和中指特效
+                    let newChats = JSON.parse(newData.dataset.chat || '[]');
+                    let lastProcessedTs = parseFloat(localStorage.getItem('last_chat_ts') || '0');
+                    let maxTs = lastProcessedTs;
+                    newChats.forEach(m => {
+                        if (m.ts > lastProcessedTs) {
+                            const display = (m.log_line || m.msg).replace(/^💬 【.*?】：/, '');
+                            if (m.player !== "{{ my_name }}") { 
+                                showLocalBubble(m.player, display);
+                                if (m.msg === '🖕') triggerMiddleFingerEffect();
+                            }
+                            if (m.ts > maxTs) maxTs = m.ts;
+                        }
+                    });
+                    localStorage.setItem('last_chat_ts', maxTs);
+
+                    // 扫描全新操作记录，触发专属音效与弹窗
+                    let newLogs = JSON.parse(newData.dataset.logs || '[]');
+                    let logCount = newLogs.length;
+                    let lastLogCount = parseInt(localStorage.getItem('game_log_count_{{ room.id|default("default") }}') || '0');
+                    
+                    if (logCount > lastLogCount) {
+                        let diff = newLogs.slice(lastLogCount);
+                        diff.forEach(logLine => {
+                            if (logLine.includes("打包了一份") || logLine.includes("速成了椰浆饭")) {
+                                playPackSound();
+                                const playerMatch = logLine.match(/【(.*?)】/);
+                                showNasiToast(playerMatch ? `${playerMatch[1]} 成功包饭！` : "有人成功包饭！");
+                            } else if (logLine.includes("把乌鸦放到了") || logLine.includes("赶到了")) {
+                                playCrowSound();
+                            }
+                        });
+                        localStorage.setItem('game_log_count_{{ room.id|default("default") }}', logCount);
+                    } else if (logCount < lastLogCount) {
+                        localStorage.setItem('game_log_count_{{ room.id|default("default") }}', logCount); // 如果被重置则矫正
+                    }
+                }
+            }
+        } catch(e) { console.error("Poll Error:", e); }
+
+        setTimeout(pollState, 1500); // 1.5秒光速级轮询
+    }
+    
+    // 启动引擎
+    setTimeout(pollState, 1500);
     {% endif %}
 </script>
 </body>
