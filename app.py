@@ -775,8 +775,8 @@ def play_action(action_type):
 
     elif action_type == 'end_turn_manual':
         g.end_turn()
-        _trigger_bot_if_needed()
-
+        return redirect(url_for('index'))
+    
     _trigger_bot_if_needed()
     return redirect(url_for('index'))
 
