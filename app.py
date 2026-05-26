@@ -573,6 +573,7 @@ def play_action(action_type):
             g.log.append("❌ 你凑不够5种核心食材！")
 
     # ── 大妈代工 ────────────────────────────────────────────────────
+# ── 大妈代工（支持 Rendang 万能充当食材） ───────────────────────────
     elif action_type == 'pack_makcik':
         if p.get("placed_crow"):
             g.log.append("❌ 你被乌鸦骚扰，无法包Nasi Lemak！先赶走乌鸦。")
@@ -697,7 +698,7 @@ def play_action(action_type):
         if "Fly Swatter" not in p["hand"] or not p["flies"][card_idx]: return redirect(url_for('index'))
         p["hand"].remove("Fly Swatter"); g.discard.append("Fly Swatter"); g.discard.append("Fly")
         p["flies"][card_idx] = False
-        g.spend_move(f"💥 【{p['name']}】 用苍蝇拍打死自己饭上的苍蝇")
+        g.spend_move(f"💥 【{p['name']}】 用苍蝇拍打死了自己饭上的苍蝇")
 
     elif action_type == 'fan_fly':
         if "Fan" not in p["hand"] or not target_p or not p["flies"][card_idx] or p["name"] == target_p["name"] or not target_p["scored_cards"]: return redirect(url_for('index'))
@@ -710,6 +711,7 @@ def play_action(action_type):
 
     # ── 乌鸦：打出到目标玩家面前 ──────────────────────────────────────
     elif action_type == 'play_crow':
+        # Play Crow card from hand onto a target player
         if "Crow" not in p["hand"]: return redirect(url_for('index'))
         if not target_p or target_p["name"] == p["name"]: return redirect(url_for('index'))
         if target_p.get("placed_crow") is not None:
@@ -719,8 +721,9 @@ def play_action(action_type):
         target_p["placed_crow"] = {"ingredients": []}
         g.spend_move(f"🐦‍⬛ 【{p['name']}】 把乌鸦放到了 【{target_p['name']}】 面前！【{target_p['name']}】 暂时无法包Nasi Lemak！")
 
-    # ── 乌鸦：用食材赶走 ──────────────────────────────────────────────
+    # ── 乌鸦：用食材赶走（由被骚扰的玩家操作，把乌鸦赶给别人）──────────
     elif action_type == 'chase_crow':
+        # Current player must have a placed_crow in front of them
         if not p.get("placed_crow"):
             g.log.append("❌ 你面前没有乌鸦！")
             return redirect(url_for('index'))
@@ -733,27 +736,41 @@ def play_action(action_type):
         if ingredient not in valid_ings or ingredient not in p["hand"]:
             g.log.append("❌ 请选择一张有效的食材牌来喂乌鸦！")
             return redirect(url_for('index'))
+        # Move crow + accumulated ingredients + new ingredient to target
         p["hand"].remove(ingredient)
         old_ings = p["placed_crow"]["ingredients"] + [ingredient]
         p["placed_crow"] = None
         target_p["placed_crow"] = {"ingredients": old_ings}
         g.spend_move(f"🐦‍⬛ 【{p['name']}】 用 [{ingredient}] 喂乌鸦，把乌鸦（携带{len(old_ings)}张食材）赶到了 【{target_p['name']}】！")
 
-    # ── Si Oyen：捕获乌鸦 ──────────────────────────────────────────────
+    # ── Si Oyen：捕获乌鸦，领取其携带的食材 ──────────────────────────
     elif action_type == 'si_oyen':
+        # 1. 基础检查：手里得有猫
         if "Si Oyen" not in p["hand"]:
             return redirect(url_for('index'))
+    
+        # 2. 核心检查：自己面前必须有乌鸦。如果没有，直接弹回，不消耗卡牌
         if not p.get("placed_crow"):
             g.log.append(f"❌ 【{p['name']}】空放了一只 Si Oyen！但你面前根本没有乌鸦骚扰。")
             return redirect(url_for('index'))
+    
+        # 3. 核心逻辑：只对自己(p)的操作，完全不管 target_p 是谁
         p["hand"].remove("Si Oyen")
         g.discard.append("Si Oyen")
+    
+        # 拿走这只乌鸦肚子里的所有食材
         crow_ings = p["placed_crow"]["ingredients"]
-        p["placed_crow"] = None
+        p["placed_crow"] = None # 成功消灭自己面前的乌鸦！
+    
+        # 将食材吐回当前玩家的手牌
         for ing in crow_ings:
             p["hand"].append(ing)
+    
         p["hand"].sort()
+    
         reward_str = f"[{', '.join(crow_ings)}]" if crow_ings else "（无食材）"
+    
+        # 4. 写入游戏日志
         g.spend_move(f"🐱 【{p['name']}】使用 [Si Oyen]，直接扑杀了自己面前的乌鸦！获得食材反馈：{reward_str}")
 
     elif action_type == 'end_turn_manual':
@@ -777,41 +794,17 @@ def quick_chat():
     msg = request.form.get('msg', '').strip()
     mode = request.form.get('mode', 'have').strip()
     
-    INGREDIENT_LABELS = {
-        '🥚': '鸡蛋', '🥚': '鸡蛋',
-        '🥒': '黄瓜', '🥒': '黄瓜',
-        '🍚': '白饭', '🍚': '白饭',
-        '🌶️': 'Sambal', '🌶': 'Sambal',
-        '🥜': '花生', '🥜': '花生'
-    }
+    INGREDIENT_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🌶':'Sambal','🥜':'花生'}
+    ALLOWED_INGREDIENTS = list(INGREDIENT_LABELS.keys())
+    # 🔒 必须把中指加进白名单
+    ALLOWED_SPECIAL = ['🙋','⏩','🖕']
     
-    ALLOWED_SPECIAL = ['🙋', '⏩', '🖕']
-    
-    # 清洗可能夹杂的不可见字符或前后空格
-    matched_label = None
-    for k, v in INGREDIENT_LABELS.items():
-        if k in msg or msg in k:
-            matched_label = v
-            break
-            
-    is_special = any(s in msg for s in ALLOWED_SPECIAL)
-    
-    if not matched_label and not is_special:
-        # 如果白名单未精准命中，则启动宽松兼容机制，确保任何快捷短语都能成功发送
-        if "蛋" in msg or "🥚" in msg: matched_label = "鸡蛋"
-        elif "瓜" in msg or "🥒" in msg: matched_label = "黄瓜"
-        elif "饭" in msg or "🍚" in msg: matched_label = "白饭"
-        elif "🌶" in msg or "辣" in msg or "Sambal" in msg: matched_label = "Sambal"
-        elif "豆" in msg or "花生" in msg or "🥜" in msg: matched_label = "花生"
-        elif "🙋" in msg or "举手" in msg: msg = '🙋'
-        elif "⏩" in msg or "快" in msg: msg = '⏩'
-        elif "🖕" in msg or "中指" in msg: msg = '🖕'
-        else:
-            # 彻底宽容处理，避免拒绝
-            matched_label = msg
-
-    if matched_label:
-        log_line = f"💬 【{my_name}】：{'我要' if mode=='want' else '我有'} {msg} {matched_label}！"
+    if msg not in ALLOWED_INGREDIENTS and msg not in ALLOWED_SPECIAL:
+        return ('', 204)
+        
+    if msg in INGREDIENT_LABELS:
+        label = INGREDIENT_LABELS[msg]
+        log_line = f"💬 【{my_name}】：{'我要' if mode=='want' else '我有'} {msg} {label}！"
     elif msg == '🙋':
         log_line = f"💬 【{my_name}】：🙋 举手！"
     elif msg == '⏩':
@@ -821,6 +814,7 @@ def quick_chat():
     else:
         log_line = f"💬 【{my_name}】发出了：{msg}"
 
+    # 👑 核心修复：直接将聊天记录永久写入游戏的中央对局记录中！
     global room
     if 'room' in globals() and room.status == "PLAYING" and room.game:
         room.game.log.append(log_line)
@@ -829,12 +823,7 @@ def quick_chat():
 
 @app.route('/reset')
 def reset():
-    global room
-    room.status = "EMPTY"
-    room.joined_players = []
-    room.game = None
-    room.chat_messages = []
-    session.clear()
+    room.status = "EMPTY"; room.joined_players = []; room.game = None; session.clear()
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
