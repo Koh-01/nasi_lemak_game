@@ -272,9 +272,30 @@
                 {% endif %}
                 <div class="border-top border-secondary pt-2 mb-3">
                     <div class="small text-muted mb-2">已就位 ({{ room.joined_players|length }}/7)：</div>
-                    <div class="d-flex flex-wrap gap-1">
-                        {% for p in room.joined_players %}<span class="badge bg-secondary">{{ p }}</span>{% endfor %}
+                    <div class="d-flex flex-wrap gap-1 mb-2">
+                        {% for p in room.joined_players %}
+                        <span class="badge {% if '🤖Bot_' in p %}bg-info text-dark{% else %}bg-secondary{% endif %}">
+                            {{ p }}{% if '🤖Bot_' in p %} 🤖{% endif %}
+                        </span>
+                        {% endfor %}
                     </div>
+                    {% if room.joined_players|length < 7 %}
+                    <div class="d-flex gap-2 mb-2">
+                        <form action="/add_bot" method="POST" style="flex:1;">
+                            <button type="submit" class="btn btn-info btn-sm w-100 fw-bold">🤖 加入机器人</button>
+                        </form>
+                        {% set bots = room.joined_players | select("match",".*🤖Bot_.*") | list %}
+                        {% if room.joined_players | selectattr("startswith","🤖Bot_") | list or true %}
+                        {% set has_bot = namespace(v=false) %}
+                        {% for p in room.joined_players %}{% if '🤖Bot_' in p %}{% set has_bot.v = true %}{% endif %}{% endfor %}
+                        {% if has_bot.v %}
+                        <form action="/remove_bot" method="POST" style="flex:1;">
+                            <button type="submit" class="btn btn-outline-warning btn-sm w-100">➖ 移除机器人</button>
+                        </form>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </div>
                 <form action="/start_game" method="POST">
                     {% if room.joined_players|length >= 3 %}
@@ -410,7 +431,7 @@
                 {% if has_placed_crow %}
                 <div class="crow-on-stall">🐦‍⬛ <span style="font-size:8px;">食材×{{ opp.placed_crow.ingredients|length }}</span></div>
                 {% endif %}
-                <div class="mini-name">{% if g.turn_idx == idx %}▶ {% endif %}{{ opp.name }}</div>
+                <div class="mini-name">{% if g.turn_idx == idx %}▶ {% endif %}{{ opp.name }}{% if '🤖Bot_' in opp.name %} <span style="font-size:8px;color:#67e8f9;">AI</span>{% endif %}</div>
                 <div class="mini-stats">
                     <span>🎴{{ opp.hand|length }}</span>
                     <span class="text-warning">📦{{ opp.scored_cards|length }}</span>
@@ -467,7 +488,7 @@
                 {% if has_placed_crow %}
                 <div class="crow-on-stall">🐦‍⬛ <span style="font-size:8px;">食材×{{ opp.placed_crow.ingredients|length }}</span></div>
                 {% endif %}
-                <div class="mini-name">{% if g.turn_idx == idx %}▶ {% endif %}{{ opp.name }}</div>
+                <div class="mini-name">{% if g.turn_idx == idx %}▶ {% endif %}{{ opp.name }}{% if '🤖Bot_' in opp.name %} <span style="font-size:8px;color:#67e8f9;">AI</span>{% endif %}</div>
                 <div class="mini-stats">
                     <span>🎴{{ opp.hand|length }}</span>
                     <span class="text-warning">📦{{ opp.scored_cards|length }}</span>
