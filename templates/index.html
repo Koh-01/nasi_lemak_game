@@ -252,6 +252,13 @@
         }
         @keyframes popin { from { top: -50px; opacity: 0; } to { top: 50px; opacity: 1; } }
         @keyframes fadeout { from { opacity: 1; } to { opacity: 0; display: none; } }
+
+        /* 攻击牌未摸牌时禁用样式 */
+        .poker-card.disabled-attack {
+            opacity: 0.5;
+            filter: grayscale(0.2);
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -301,7 +308,7 @@
                     <div class="text-center text-success mb-3 fw-bold fs-5">✅ 已就绪：{{ my_name }}</div>
                     {% endif %}
                     
-                    <div class="border-top border-secondary pt-3 mb-3">
+                    <div class="border-top border-secondary pt-3 mb-3" id="lobby-players-list">
                         <div class="small text-muted mb-2 fw-bold">已就位摊主 ({{ room.joined_players|length }}/7)：</div>
                         <div class="d-flex flex-wrap gap-1 mb-3">
                             {% for p in room.joined_players %}
@@ -543,7 +550,7 @@
                             "Rendang":("Rendang","🍗"),"Si Oyen":("Si Oyen","🐱"),"Crow":("乌鸦","🐦‍⬛")
                         } %}
                         {% set is_my_turn = (g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending) %}
-
+                        {% set attack_disabled = (card in ['Officer','Fly']) and (not g.has_drawn) %}
                         {% if is_my_turn and card == 'Crow' %}
                             <a href="javascript:void(0);" onclick="alert('请点击对手头像框来放置乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                         {% elif is_my_turn and card == 'Si Oyen' %}
@@ -557,7 +564,11 @@
                         {% elif is_my_turn and card == 'Supplier' %}
                             <a href="javascript:void(0);" onclick="openSupplierModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                         {% elif is_my_turn and card in ['Officer','Fly'] %}
-                            <a href="javascript:void(0);" onclick="alert('请点击对手头像框发起攻击！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                            {% if attack_disabled %}
+                                <a href="javascript:void(0);" class="poker-card disabled-attack" data-type="{{ c_type }}" onclick="alert('请先摸牌才能使用攻击牌！')">
+                            {% else %}
+                                <a href="javascript:void(0);" onclick="alert('请点击对手头像框发起攻击！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                            {% endif %}
                         {% elif is_my_turn and card in ['Fly Swatter','Fan'] %}
                             <a href="javascript:void(0);" onclick="alert('请点击自己被污染的椰浆饭！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                         {% else %}
@@ -854,11 +865,13 @@
         setTimeout(() => toast.remove(), 3000);
     }
 
-    // 中指爆炸大招 (防抖)
+    // 中指爆炸大招 (防抖增强版：基于消息内容)
+    let lastFingerMsg = "";
     let lastFingerTime = 0;
-    function triggerMiddleFingerEffect() {
+    function triggerMiddleFingerEffect(msgText) {
         const now = Date.now();
-        if (now - lastFingerTime < 1500) return;
+        if (msgText === lastFingerMsg && (now - lastFingerTime) < 5000) return;
+        lastFingerMsg = msgText;
         lastFingerTime = now;
         playFingerExplode();
         const overlay = document.getElementById('middle-finger-overlay');
@@ -882,7 +895,6 @@
     const ING_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'};
     const SPECIAL_LABELS = {'🙋':'举手！','⏩':'快一点啦！','🖕':'送全场一个温暖的中指！'};
 
-    // 修复快捷沟通：添加错误处理和日志
     function sendQuickChat(msg, mode) {
         console.log("sendQuickChat called with", msg, mode);
         try {
@@ -893,7 +905,7 @@
             
             let text = ING_LABELS[msg] ? `${mode === 'want' ? '我要' : '我有'} ${msg} ${ING_LABELS[msg]}！` : (SPECIAL_LABELS[msg] || msg);
             showLocalBubble('你', text);
-            if (msg === '🖕') triggerMiddleFingerEffect();
+            if (msg === '🖕') triggerMiddleFingerEffect(text);
 
             const logBody = document.getElementById('center-log-body');
             if(logBody) {
@@ -1082,7 +1094,7 @@
     }, 500);
 
     // ==========================================
-    // 👑 终极核心引擎：无感抓取替换（修复 center-decks 缺失）
+    // 👑 终极核心引擎：无感抓取替换
     // ==========================================
     {% if room.status == "WAITING" or (room.status == "PLAYING" and g and not g.game_over) %}
     
@@ -1091,7 +1103,6 @@
     if (initDataNode) {
         localStorage.setItem('game_log_count_{{ room.id|default("default") }}', JSON.parse(initDataNode.dataset.logs || '[]').length);
         localStorage.setItem('last_handled_turn_idx', initDataNode.dataset.turnIdx);
-        // 如果一开局就是我，立刻响铃
         if (initDataNode.dataset.isMyTurn === 'true') {
              playYourTurnSound();
              if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
@@ -1099,10 +1110,15 @@
     }
 
     async function pollState() {
-        // 如果玩家正在操作模态框，暂缓替换DOM避免打断操作
         const isModalOpen = Array.from(document.querySelectorAll('.action-modal')).some(m => m.style.display === 'flex' && m.id !== 'restart-confirm-modal');
         if (window.__interactionLock || isModalOpen) {
             setTimeout(pollState, 1500);
+            return;
+        }
+        
+        // 等待室专用快速刷新：如果当前在等待室且没有输入框焦点，直接刷新页面（保证同步）
+        if (document.querySelector('.lobby-screen') && document.activeElement && document.activeElement.tagName !== 'INPUT') {
+            window.location.reload();
             return;
         }
         
@@ -1112,7 +1128,6 @@
             let parser = new DOMParser();
             let doc = parser.parseFromString(text, 'text/html');
 
-            // 如果发生阶段跃迁（例如跳到了结算画面或大厅），直接强制重载全屏
             if ((doc.querySelector('.lobby-screen') && !document.querySelector('.lobby-screen')) ||
                 (!doc.querySelector('.battlefield') && document.querySelector('.battlefield'))) {
                 return window.location.reload();
@@ -1126,29 +1141,23 @@
                 }
             }
                 
-            // 仅在无模态框开启且无交互锁时执行局部核心替换
             if (!isModalOpen && !window.__interactionLock) {
                 if (doc.querySelector('.top-bar')) {
                     document.querySelector('.top-bar').innerHTML = doc.querySelector('.top-bar').innerHTML;
                 }
                 
-                // 保护对局记录的滚动条位置不乱跳
                 let oldLog = document.getElementById('center-log-body');
                 let newLog = doc.getElementById('center-log-body');
                 if(oldLog && newLog) {
                     let isScrolledToBottom = oldLog.scrollHeight - oldLog.clientHeight <= oldLog.scrollTop + 10;
                     oldLog.innerHTML = newLog.innerHTML;
-                    // 检测新的中指消息
                     const latestLine = newLog.querySelector('.center-log-line');
-                    if (latestLine && latestLine.textContent.includes('🖕') && !window.lastFingerMsgHandled) {
-                        triggerMiddleFingerEffect();
-                        window.lastFingerMsgHandled = latestLine.textContent;
-                        setTimeout(() => { window.lastFingerMsgHandled = null; }, 1500);
+                    if (latestLine && latestLine.textContent.includes('🖕')) {
+                        triggerMiddleFingerEffect(latestLine.textContent);
                     }
                     if(isScrolledToBottom) oldLog.scrollTop = oldLog.scrollHeight;
                 }
                 
-                // ⭐ 关键修复：更新中央的摸牌/打包区域
                 let centerDecksOld = document.querySelector('.center-decks');
                 let centerDecksNew = doc.querySelector('.center-decks');
                 if (centerDecksOld && centerDecksNew) {
@@ -1168,7 +1177,6 @@
                     bottomOld.innerHTML = bottomNew.innerHTML;
                 }
 
-                // 实时同步交易弹窗
                 let tradeBannerOld = document.getElementById('trade-banner');
                 let tradeBannerNew = doc.getElementById('trade-banner');
                 if (tradeBannerNew && !tradeBannerOld) {
@@ -1180,25 +1188,21 @@
                 }
             }
 
-            // 🌟 无损音频和动效扫描引擎 🌟
             let newData = doc.getElementById('game-state-data');
             let oldData = document.getElementById('game-state-data');
             
             if(newData) {
-                // 更新底层数据供定时器使用
                 if (oldData) oldData.replaceWith(newData);
 
                 let isMyTurn = newData.dataset.isMyTurn === 'true';
                 let turnIdx = newData.dataset.turnIdx;
                 
-                // 需求 5：每次轮到我的回合必定响铃提醒！
                 if (isMyTurn) {
                     let lastTurn = localStorage.getItem('last_handled_turn_idx');
                     if (lastTurn !== turnIdx) {
                         localStorage.setItem('last_handled_turn_idx', turnIdx);
                         playYourTurnSound();
                         if(navigator.vibrate) navigator.vibrate([120,60,120]);
-                        // 显示吐司提示“轮到你了”
                         showNasiToast("🔥 轮到你了！");
                     }
                 } else {
@@ -1207,7 +1211,6 @@
                     }
                 }
 
-                // 扫描聊天流，触发气泡和中指特效
                 let newChats = JSON.parse(newData.dataset.chat || '[]');
                 let lastProcessedTs = parseFloat(localStorage.getItem('last_chat_ts') || '0');
                 let maxTs = lastProcessedTs;
@@ -1216,14 +1219,13 @@
                         const display = (m.log_line || m.msg).replace(/^💬 【.*?】：/, '');
                         if (m.player !== "{{ my_name }}") { 
                             showLocalBubble(m.player, display);
-                            if (m.msg === '🖕') triggerMiddleFingerEffect();
+                            if (m.msg === '🖕') triggerMiddleFingerEffect(display);
                         }
                         if (m.ts > maxTs) maxTs = m.ts;
                     }
                 });
                 localStorage.setItem('last_chat_ts', maxTs);
 
-                // 扫描全新操作记录，触发专属音效与弹窗
                 let newLogs = JSON.parse(newData.dataset.logs || '[]');
                 let logCount = newLogs.length;
                 let lastLogCount = parseInt(localStorage.getItem('game_log_count_{{ room.id|default("default") }}') || '0');
@@ -1249,7 +1251,6 @@
         setTimeout(pollState, 1500);
     }
     
-    // 启动引擎
     setTimeout(pollState, 1500);
     {% endif %}
 </script>
