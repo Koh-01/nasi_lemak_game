@@ -784,9 +784,11 @@
 </div>
 
 <script>
+// ==========================================
+    // 🔊 手游极速音频合成与回合拦截引擎
+    // ==========================================
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-    // 🔊 声音发声器：通过特定频率模拟手游电子音效
     function playSynthSound(freq, type, duration, vol=0.2) {
         try {
             if(audioCtx.state === 'suspended') audioCtx.resume();
@@ -800,52 +802,64 @@
             gainNode.connect(audioCtx.destination);
             osc.start();
             osc.stop(audioCtx.currentTime + duration);
-        } catch(e) { console.log("Audio play blocked", e); }
+        } catch(e) { console.log("音频播放被浏览器拦截", e); }
     }
 
-    // 🐦 模拟乌鸦恐怖降临叫声
     function playCrowSound() {
         playSynthSound(280, 'sawtooth', 0.15, 0.25);
         setTimeout(() => playSynthSound(210, 'sawtooth', 0.2, 0.2), 100);
         setTimeout(() => playSynthSound(160, 'sawtooth', 0.3, 0.25), 250);
     }
 
-    // 📦 模拟打包成功的狂欢复合音效
     function playPackSound() {
         playSynthSound(523.25, 'triangle', 0.08, 0.3); // C5
         setTimeout(() => playSynthSound(659.25, 'triangle', 0.08, 0.3), 80); // E5
         setTimeout(() => playSynthSound(783.99, 'triangle', 0.08, 0.3), 160); // G5
-        setTimeout(() => playSynthSound(1046.50, 'sine', 0.4, 0.4), 240); // C6 欢呼高音
+        setTimeout(() => playSynthSound(1046.50, 'sine', 0.4, 0.4), 240); // C6 欢呼
     }
 
-    // 🟢 回合过场高能提醒音效
+    // 🔔 回合高能清脆提示音（双音阶连鸣）
     function playYourTurnSound() {
         playSynthSound(880, 'sine', 0.1, 0.35); // A5
-        setTimeout(() => playSynthSound(1318.51, 'sine', 0.25, 0.4), 100); // E6 极具警示清脆音
+        setTimeout(() => playSynthSound(1318.51, 'sine', 0.25, 0.4), 100); // E6
     }
 
-    // 💥 中指爆炸低音炮
     function playFingerExplode() {
         playSynthSound(90, 'sawtooth', 0.5, 0.5);
         playSynthSound(60, 'triangle', 0.7, 0.6);
     }
 
-    // 🔒 需求 3：监听专属 turn 转换，触发震动与高能提醒
+    // 🔒 核心拦截逻辑：判定是否真正轮到我的回合
     const isMyTurnRightNow = {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.game_over %}true{% else %}false{% endif %};
     
-    // 用本地缓存确保单次轮换只震动/鸣叫一次，不重复触发
     if (isMyTurnRightNow) {
+        // 从浏览器获取上次处理过的回合 ID 和动作剩余数
         const lastTurnHandled = localStorage.getItem('last_handled_turn_idx');
-        const currentServerTurnIdx = "{{ g.turn_idx if g else -1 }}";
+        const lastMovesLeft = localStorage.getItem('last_handled_moves_left');
         
+        const currentServerTurnIdx = "{{ g.turn_idx if g else -1 }}";
+        const currentServerMoves = "{{ g.moves_left if g else 0 }}";
+        
+        // 判定条件：要么是刚换人（回合索引变了），要么是当前玩家刚进行了操作导致动作数重置或改变
+        // 这里重点锁定：只要回合索引与上次缓存不同，就说明是“全新轮到你”的瞬间
         if (lastTurnHandled !== currentServerTurnIdx) {
             localStorage.setItem('last_handled_turn_idx', currentServerTurnIdx);
-            // 触发高能提醒音效
+            localStorage.setItem('last_handled_moves_left', currentServerMoves);
+            
+            // 触发提示音
             playYourTurnSound();
-            // 触发真机硬件短促双震动反馈
+            
+            // 触发手机硬件双重震动
             if (navigator.vibrate) {
-                navigator.vibrate([100, 50, 100]);
+                navigator.vibrate([120, 60, 120]);
             }
+        }
+    } else {
+        // 如果当前不是你的回合，及时清除本地的回合索引缓存，以便下一次轮到你时灵敏响应
+        const currentServerTurnIdx = "{{ g.turn_idx if g else -1 }}";
+        if (localStorage.getItem('last_handled_turn_idx') === currentServerTurnIdx) {
+            // 别人正在操作时，确保清除，防止由于缓存残留导致下一轮漏响
+            localStorage.removeItem('last_handled_turn_idx');
         }
     }
 
