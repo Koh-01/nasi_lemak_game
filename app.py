@@ -625,6 +625,9 @@ def play_action(action_type):
         if "Wholesaler" not in p["hand"]: return redirect(url_for('index'))
         p["hand"].remove("Wholesaler"); g.discard.append("Wholesaler")
         peeked = g.draw_from_deck(g.turn_idx, 3)
+        # 公示抽到的牌
+        cards_str = "、".join(peeked)
+        g.log.append(f"🏪 【{p['name']}】 使用批发商，从牌堆顶抽到了：{cards_str}")
         g.wholesaler_reveal = {"player": p["name"], "cards": peeked, "kept": peeked, "discarded": []}
         g.spend_move(f"【{p['name']}】 批发商摸了牌堆顶 3 张牌，全部留下！")
 
