@@ -1092,7 +1092,11 @@
             }
 
             if (document.querySelector('.lobby-container')) {
-                document.querySelector('.lobby-container').innerHTML = doc.querySelector('.lobby-container').innerHTML;
+                const activeEl = document.activeElement;
+                const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+                if (!isTyping) {
+                    document.querySelector('.lobby-container').innerHTML = doc.querySelector('.lobby-container').innerHTML;
+                }
             } else if (document.querySelector('.battlefield')) {
                 
                 // 仅在无模态框开启时执行局部核心替换
