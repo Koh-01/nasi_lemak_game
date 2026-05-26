@@ -6,8 +6,6 @@ import random
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "nasilemak_multiplayer_secret_key_2026")
 
-BOT_PREFIX = "🤖Bot_"  # 机器人名字前缀，用于识别
-
 CORE_5 = ["Rice", "Egg", "Peanuts", "Sambal", "Cucumber"]
 
 def create_gold_deck():
@@ -46,6 +44,7 @@ class OnlineGameState:
                 "hand": [],
                 "scored_cards": [],
                 "flies": [],
+                # placed_crow: None or {"ingredients": [...]}
                 "placed_crow": None,
             })
         self.turn_idx = random.randint(0, len(self.players) - 1)
@@ -58,7 +57,6 @@ class OnlineGameState:
         self.pending_trade = None
         self.wholesaler_reveal = None
         self.thief_pending = False
-        self._bot_turn_pending = False
 
         for p in self.players:
             for _ in range(7):
@@ -128,7 +126,6 @@ class OnlineGameState:
         self.has_drawn = False
         self.active_inspection = None
         self.log.append(f"🟢 轮到 【{self.players[self.turn_idx]['name']}】 的回合。")
-        self._bot_turn_pending = True
 
 class GlobalRoom:
     def __init__(self):
@@ -138,208 +135,6 @@ class GlobalRoom:
         self.chat_messages = []
 
 room = GlobalRoom()
-
-# ============================================================
-# 机器人 AI 逻辑
-# ============================================================
-
-def is_bot(name):
-    return str(name).startswith(BOT_PREFIX)
-
-def bot_generate_name():
-    """生成一个唯一的机器人名字"""
-    emojis = ["🐼","🦊","🐸","🐧","🦁","🐯","🐻","🦉"]
-    adjectives = ["懒","快","猛","萌","乖","皮","强","酷"]
-    used = set(room.joined_players)
-    for _ in range(30):
-        e = random.choice(emojis)
-        a = random.choice(adjectives)
-        n = f"{BOT_PREFIX}{e}{a}"
-        if n not in used:
-            return n
-    return f"{BOT_PREFIX}玩家{random.randint(100,999)}"
-
-def bot_take_turn(g, bot_idx):
-    """机器人行动：每次调用执行完整的一个回合（摸牌 + 尽量行动 + 结束）"""
-    p = g.players[bot_idx]
-
-    if not g.has_drawn:
-        g.draw_from_deck(bot_idx, 2)
-        g.has_drawn = True
-        g.log.append(f"📥 【{p['name']}】 抽取了 2 张手牌。")
-
-    if g.pending_trade and g.pending_trade["to"] == p["name"]:
-        t = g.pending_trade
-        want_card = t["want"]
-        if want_card in p["hand"] and random.random() < 0.6:
-            p_from = next(x for x in g.players if x["name"] == t["from"])
-            if t["offer"] in p_from["hand"]:
-                p_from["hand"].remove(t["offer"]); p["hand"].append(t["offer"])
-                p["hand"].remove(want_card); p_from["hand"].append(want_card)
-                p_from["hand"].sort(); p["hand"].sort()
-                g.log.append(f"🤝 【{p['name']}】(机器人) 接受了交易！")
-            else:
-                g.log.append(f"❌ 交易破裂（机器人接受时发牌方已无牌）")
-        else:
-            g.log.append(f"🚫 【{p['name']}】(机器人) 拒绝了交易。")
-        g.pending_trade = None
-        if g.moves_left <= 0:
-            g.end_turn()
-        return
-
-    if g.game_over:
-        return
-
-    actions_taken = 0
-    max_actions = g.moves_left
-
-    for _ in range(max_actions):
-        if g.game_over or g.moves_left <= 0:
-            break
-        if g.pending_trade or g.thief_pending:
-            break
-        did_action = _bot_do_one_action(g, bot_idx)
-        if did_action:
-            actions_taken += 1
-        else:
-            break
-
-    if not g.game_over and g.moves_left > 0:
-        g.end_turn()
-
-
-def _bot_do_one_action(g, bot_idx):
-    """机器人执行单个动作，返回 True 表示成功执行了一个动作"""
-    p = g.players[bot_idx]
-    hand = p["hand"]
-
-    if p.get("placed_crow"):
-        chase_ingredients = [c for c in hand if c in CORE_5 + ["Rendang"]]
-        targets_no_crow = [i for i, x in enumerate(g.players)
-                           if x["name"] != p["name"] and x.get("placed_crow") is None]
-        if chase_ingredients and targets_no_crow:
-            ing = chase_ingredients[0]
-            tgt_idx = random.choice(targets_no_crow)
-            tgt = g.players[tgt_idx]
-            hand.remove(ing)
-            old_ings = p["placed_crow"]["ingredients"] + [ing]
-            p["placed_crow"] = None
-            tgt["placed_crow"] = {"ingredients": old_ings}
-            g.spend_move(f"🐦‍⬛ 【{p['name']}】(机器人) 用[{ing}]把乌鸦赶到了【{tgt['name']}】！")
-            return True
-        return False
-
-    if g.gold_deck:
-        rendang_count = hand.count("Rendang")
-        missing_core = [i for i in CORE_5 if i not in hand]
-
-        if len(missing_core) <= rendang_count:
-            for i in CORE_5:
-                if i in hand: hand.remove(i)
-                else: hand.remove("Rendang")
-            p["scored_cards"].append(g.gold_deck.pop())
-            p["flies"].append(False)
-            g.spend_move(f"【{p['name']}】(机器人) 打包了一份椰浆饭")
-            return True
-
-        if "Mak Cik" in hand:
-            unique_ings = list(set([i for i in CORE_5 if i in hand]))
-            rendang_count = hand.count("Rendang")
-            
-            if len(unique_ings) + rendang_count >= 3:
-                hand.remove("Mak Cik")
-                cards_to_remove = unique_ings[:3]
-                for card in cards_to_remove: 
-                    hand.remove(card)
-                needed_rendang = 3 - len(cards_to_remove)
-                for _ in range(needed_rendang): 
-                    hand.remove("Rendang")
-                    
-                p["scored_cards"].append(g.gold_deck.pop())
-                p["flies"].append(False)
-                g.spend_move(f"【{p['name']}】(机器人) 狡猾地利用大妈和 {needed_rendang} 张Rendang代工打包了椰浆饭！")
-                return True
-
-    if "Fly Swatter" in hand:
-        fly_idxs = [i for i, f in enumerate(p["flies"]) if f]
-        if fly_idxs:
-            idx = fly_idxs[0]
-            hand.remove("Fly Swatter")
-            g.discard.append("Fly Swatter"); g.discard.append("Fly")
-            p["flies"][idx] = False
-            g.spend_move(f"💥 【{p['name']}】(机器人) 打死了自己饭上的苍蝇")
-            return True
-
-    if "Fly" in hand:
-        targets_with_food = [(i, x) for i, x in enumerate(g.players)
-                             if x["name"] != p["name"] and x["scored_cards"]
-                             and False in x["flies"]]
-        if targets_with_food:
-            tgt_idx, tgt = random.choice(targets_with_food)
-            slot = tgt["flies"].index(False)
-            hand.remove("Fly")
-            tgt["flies"][slot] = True
-            g.spend_move(f"🪰 【{p['name']}】(机器人) 把苍蝇放到了【{tgt['name']}】的饭上！")
-            return True
-
-    if "Crow" in hand:
-        targets_no_crow = [(i, x) for i, x in enumerate(g.players)
-                           if x["name"] != p["name"] and x.get("placed_crow") is None]
-        if targets_no_crow:
-            tgt_idx, tgt = random.choice(targets_no_crow)
-            hand.remove("Crow")
-            tgt["placed_crow"] = {"ingredients": []}
-            g.spend_move(f"🐦‍⬛ 【{p['name']}】(机器人) 把乌鸦放到了【{tgt['name']}】面前！")
-            return True
-
-    if "Si Oyen" in hand and p.get("placed_crow"):
-        hand.remove("Si Oyen"); g.discard.append("Si Oyen")
-        crow_ings = p["placed_crow"]["ingredients"]
-        p["placed_crow"] = None
-        for ing in crow_ings: hand.append(ing)
-        hand.sort()
-        g.spend_move(f"🐱 【{p['name']}】(机器人) 用Si Oyen消灭了乌鸦！")
-        return True
-
-    if "Wholesaler" in hand and len(hand) < 8:
-        hand.remove("Wholesaler"); g.discard.append("Wholesaler")
-        g.draw_from_deck(bot_idx, 3)
-        g.wholesaler_reveal = None
-        g.spend_move(f"【{p['name']}】(机器人) 用批发商摸了3张牌")
-        return True
-
-    if "Supplier" in hand:
-        have = set(c for c in hand if c in CORE_5)
-        need = [i for i in CORE_5 if i not in have]
-        if need:
-            target_ing = need[0]
-            hand.remove("Supplier"); g.discard.append("Supplier")
-            total = 0
-            for opp in g.players:
-                if opp["name"] != p["name"]:
-                    matches = [c for c in opp["hand"] if c == target_ing]
-                    for m in matches:
-                        opp["hand"].remove(m); hand.append(m); total += 1
-            hand.sort()
-            g.spend_move(f"【{p['name']}】(机器人) 供应商征收了全场[{target_ing}] 共{total}张")
-            return True
-
-    if "Thief" in hand:
-        opponents = [opp for opp in g.players if opp["name"] != p["name"] and opp["hand"]]
-        if opponents:
-            hand.remove("Thief"); g.discard.append("Thief")
-            stolen = 0
-            sample = random.sample(opponents, min(3 if len(g.players) > 4 else len(opponents), len(opponents)))
-            for opp in sample:
-                if opp["hand"]:
-                    card = random.choice(opp["hand"])
-                    opp["hand"].remove(card); hand.append(card); stolen += 1
-            hand.sort()
-            names = "、".join(o["name"] for o in sample)
-            g.spend_move(f"🥷 【{p['name']}】(机器人) 从【{names}】偷走了{stolen}张牌")
-            return True
-
-    return False
 
 @app.route('/')
 def index():
@@ -359,9 +154,6 @@ def index():
                 session.pop('my_name', None); my_name = None
 
     if room.status == "PLAYING" and room.game:
-        if getattr(room.game, '_bot_turn_pending', False):
-            room.game._bot_turn_pending = False
-            _trigger_bot_if_needed()
         if room.game.pending_trade:
             trade_time_left = int(room.game.pending_trade["expires_at"] - time.time())
             if trade_time_left <= 0:
@@ -394,44 +186,13 @@ def join_room():
     session['my_name'] = player_name
     return redirect(url_for('index'))
 
-@app.route('/add_bot', methods=['POST'])
-def add_bot():
-    if room.status != "WAITING":
-        return redirect(url_for('index', error="房间不在等待状态！"))
-    if len(room.joined_players) >= 7:
-        return redirect(url_for('index', error="房间已满，无法添加机器人！"))
-    bot_name = bot_generate_name()
-    room.joined_players.append(bot_name)
-    return redirect(url_for('index'))
-
-@app.route('/remove_bot', methods=['POST'])
-def remove_bot():
-    if room.status != "WAITING":
-        return redirect(url_for('index'))
-    bots = [p for p in room.joined_players if is_bot(p)]
-    if bots:
-        room.joined_players.remove(bots[-1])
-    return redirect(url_for('index'))
-
 @app.route('/start_game', methods=['POST'])
 def start_game():
     if room.status == "WAITING" and len(room.joined_players) >= 3:
         room.game = OnlineGameState(room.joined_players)
         room.status = "PLAYING"
-        _trigger_bot_if_needed()
-    else:
-        return redirect(url_for('index', error="至少需要 3 名玩家才能开始游戏！"))
+    else: return redirect(url_for('index', error="至少需要 3 名玩家才能开始游戏！"))
     return redirect(url_for('index'))
-
-def _trigger_bot_if_needed():
-    g = room.game
-    if not g or g.game_over:
-        return
-    current_name = g.players[g.turn_idx]["name"]
-    if is_bot(current_name):
-        bot_take_turn(g, g.turn_idx)
-        if not g.game_over:
-            _trigger_bot_if_needed()
 
 @app.route('/draw')
 def draw():
@@ -462,17 +223,6 @@ def propose_trade():
         return redirect(url_for('index'))
     g.pending_trade = {"from": p["name"], "to": target_name, "offer": offer_card, "want": want_card, "expires_at": time.time() + 30}
     g.spend_move(f"向 【{target_name}】 发起 30 秒限时食材交易：用 [{offer_card}] 换取 [{want_card}]")
-    if is_bot(target_name):
-        target_p2 = next((x for x in g.players if x["name"] == target_name), None)
-        if target_p2 and want_card in target_p2["hand"] and random.random() < 0.6:
-            target_p2["hand"].remove(want_card); p["hand"].append(want_card)
-            p["hand"].remove(offer_card); target_p2["hand"].append(offer_card)
-            p["hand"].sort(); target_p2["hand"].sort()
-            g.log.append(f"🤝 【{target_name}】(机器人) 自动接受了交易！")
-        else:
-            g.log.append(f"🚫 【{target_name}】(机器人) 自动拒绝了交易。")
-        g.pending_trade = None
-        if g.moves_left <= 0: g.end_turn()
     return redirect(url_for('index'))
 
 @app.route('/resolve_trade/<decision>')
@@ -501,7 +251,6 @@ def resolve_trade(decision):
         g.log.append(f"🚫 【{t_data['to']}】 拒绝了交易请求。")
     g.pending_trade = None
     if g.moves_left <= 0: g.end_turn()
-    _trigger_bot_if_needed()
     return redirect(url_for('index'))
 
 @app.route('/action/<action_type>')
@@ -518,6 +267,7 @@ def play_action(action_type):
 
     target_p = g.players[target_idx] if target_idx < len(g.players) else None
 
+    # ── 打包标配 ────────────────────────────────────────────────────
     if action_type == 'pack_standard':
         if p.get("placed_crow"):
             g.log.append("❌ 你被乌鸦骚扰，无法包Nasi Lemak！先赶走乌鸦。")
@@ -525,6 +275,7 @@ def play_action(action_type):
         rendang_in_hand = p["hand"].count("Rendang")
         missing = [i for i in CORE_5 if i not in p["hand"]]
         if rendang_in_hand >= 5 and len([c for c in p["hand"] if c in CORE_5]) == 0:
+            # pure rendang pack
             for _ in range(5): p["hand"].remove("Rendang")
             if g.gold_deck:
                 p["scored_cards"].append(g.gold_deck.pop()); p["flies"].append(False)
@@ -539,32 +290,22 @@ def play_action(action_type):
         else:
             g.log.append("❌ 你凑不够5种核心食材！")
 
+    # ── 大妈代工 ────────────────────────────────────────────────────
     elif action_type == 'pack_makcik':
         if p.get("placed_crow"):
             g.log.append("❌ 你被乌鸦骚扰，无法包Nasi Lemak！先赶走乌鸦。")
             return redirect(url_for('index'))
-        if "Mak Cik" not in p["hand"]: 
-            return redirect(url_for('index'))
-            
+        if "Mak Cik" not in p["hand"]: return redirect(url_for('index'))
         unique_ingredients = list(set([i for i in CORE_5 if i in p["hand"]]))
-        rendang_count = p["hand"].count("Rendang")
-        
-        if len(unique_ingredients) + rendang_count >= 3:
+        if len(unique_ingredients) >= 3:
             p["hand"].remove("Mak Cik")
-            cards_to_remove = unique_ingredients[:3]
-            for card in cards_to_remove:
-                p["hand"].remove(card)
-            needed_rendang = 3 - len(cards_to_remove)
-            for _ in range(needed_rendang):
-                p["hand"].remove("Rendang")
-                
+            for i in unique_ingredients[:3]: p["hand"].remove(i)
             if g.gold_deck:
-                p["scored_cards"].append(g.gold_deck.pop())
-                p["flies"].append(False)
-                g.spend_move(f"🧑‍🍳 【{p['name']}】 触发大妈神技！用 Mak Cik 加食材（含{needed_rendang}张Rendang）强行速成了椰浆饭！")
-        else: 
-            g.log.append("❌ 食材严重不足！就算是加上手里的 Rendang 也不够3种不同食材。")
+                p["scored_cards"].append(g.gold_deck.pop()); p["flies"].append(False)
+                g.spend_move(f"【{p['name']}】 使用大妈代工速成了椰浆饭")
+        else: g.log.append("❌ 基础食材不足3种不同的！")
 
+    # ── 官员 ─────────────────────────────────────────────────────────
     elif action_type == 'officer':
         if "Officer" not in p["hand"] or not target_p or p["name"] == target_p["name"]: return redirect(url_for('index'))
         p["hand"].remove("Officer"); g.discard.append("Officer")
@@ -584,6 +325,7 @@ def play_action(action_type):
                 g.active_inspection = None
                 g.spend_move(f"【{p['name']}】 官员强占了卡牌：[{taken_str}]")
 
+    # ── 小偷 ─────────────────────────────────────────────────────────
     elif action_type == 'thief':
         if "Thief" not in p["hand"]: return redirect(url_for('index'))
         opponents = [opp for opp in g.players if opp["name"] != p["name"] and opp["hand"]]
@@ -621,16 +363,15 @@ def play_action(action_type):
         p["hand"].sort(); g.thief_pending = False
         g.spend_move(f"🥷 【{p['name']}】 从 【{'、'.join(target_names)}】 各偷走了1张手牌！")
 
+    # ── 批发商 ────────────────────────────────────────────────────────
     elif action_type == 'wholesaler':
         if "Wholesaler" not in p["hand"]: return redirect(url_for('index'))
         p["hand"].remove("Wholesaler"); g.discard.append("Wholesaler")
         peeked = g.draw_from_deck(g.turn_idx, 3)
-        # 公示抽到的牌
-        cards_str = "、".join(peeked)
-        g.log.append(f"🏪 【{p['name']}】 使用批发商，从牌堆顶抽到了：{cards_str}")
         g.wholesaler_reveal = {"player": p["name"], "cards": peeked, "kept": peeked, "discarded": []}
         g.spend_move(f"【{p['name']}】 批发商摸了牌堆顶 3 张牌，全部留下！")
 
+    # ── 供应商 ────────────────────────────────────────────────────────
     elif action_type == 'supplier':
         if "Supplier" not in p["hand"]: return redirect(url_for('index'))
         requested_ing = request.args.get('ingredient')
@@ -644,6 +385,7 @@ def play_action(action_type):
         p["hand"].sort()
         g.spend_move(f"【{p['name']}】 供应商征收了全场所有的 [{requested_ing}] 共 {total_collected} 张")
 
+    # ── 苍蝇系列 ──────────────────────────────────────────────────────
     elif action_type == 'play_fly':
         if "Fly" not in p["hand"] or not target_p or p["name"] == target_p["name"] or not target_p["scored_cards"]: return redirect(url_for('index'))
         if target_p["flies"][card_idx]: g.log.append("❌ 这包椰浆饭已经有苍蝇了！")
@@ -666,7 +408,9 @@ def play_action(action_type):
             p["flies"][card_idx] = False; target_p["flies"][assigned_idx] = True
             g.spend_move(f"🪭 【{p['name']}】 用扇子把苍蝇吹到了 【{target_p['name']}】 的饭上")
 
+    # ── 乌鸦：打出到目标玩家面前 ──────────────────────────────────────
     elif action_type == 'play_crow':
+        # Play Crow card from hand onto a target player
         if "Crow" not in p["hand"]: return redirect(url_for('index'))
         if not target_p or target_p["name"] == p["name"]: return redirect(url_for('index'))
         if target_p.get("placed_crow") is not None:
@@ -676,7 +420,9 @@ def play_action(action_type):
         target_p["placed_crow"] = {"ingredients": []}
         g.spend_move(f"🐦‍⬛ 【{p['name']}】 把乌鸦放到了 【{target_p['name']}】 面前！【{target_p['name']}】 暂时无法包Nasi Lemak！")
 
+    # ── 乌鸦：用食材赶走（由被骚扰的玩家操作，把乌鸦赶给别人）──────────
     elif action_type == 'chase_crow':
+        # Current player must have a placed_crow in front of them
         if not p.get("placed_crow"):
             g.log.append("❌ 你面前没有乌鸦！")
             return redirect(url_for('index'))
@@ -689,32 +435,46 @@ def play_action(action_type):
         if ingredient not in valid_ings or ingredient not in p["hand"]:
             g.log.append("❌ 请选择一张有效的食材牌来喂乌鸦！")
             return redirect(url_for('index'))
+        # Move crow + accumulated ingredients + new ingredient to target
         p["hand"].remove(ingredient)
         old_ings = p["placed_crow"]["ingredients"] + [ingredient]
         p["placed_crow"] = None
         target_p["placed_crow"] = {"ingredients": old_ings}
         g.spend_move(f"🐦‍⬛ 【{p['name']}】 用 [{ingredient}] 喂乌鸦，把乌鸦（携带{len(old_ings)}张食材）赶到了 【{target_p['name']}】！")
 
+    # ── Si Oyen：捕获乌鸦，领取其携带的食材 ──────────────────────────
     elif action_type == 'si_oyen':
+        # 1. 基础检查：手里得有猫
         if "Si Oyen" not in p["hand"]:
             return redirect(url_for('index'))
+    
+        # 2. 核心检查：自己面前必须有乌鸦。如果没有，直接弹回，不消耗卡牌
         if not p.get("placed_crow"):
             g.log.append(f"❌ 【{p['name']}】空放了一只 Si Oyen！但你面前根本没有乌鸦骚扰。")
             return redirect(url_for('index'))
+    
+        # 3. 核心逻辑：只对自己(p)的操作，完全不管 target_p 是谁
         p["hand"].remove("Si Oyen")
         g.discard.append("Si Oyen")
+    
+        # 拿走这只乌鸦肚子里的所有食材
         crow_ings = p["placed_crow"]["ingredients"]
-        p["placed_crow"] = None
+        p["placed_crow"] = None # 成功消灭自己面前的乌鸦！
+    
+        # 将食材吐回当前玩家的手牌
         for ing in crow_ings:
             p["hand"].append(ing)
+    
         p["hand"].sort()
+    
         reward_str = f"[{', '.join(crow_ings)}]" if crow_ings else "（无食材）"
+    
+        # 4. 写入游戏日志
         g.spend_move(f"🐱 【{p['name']}】使用 [Si Oyen]，直接扑杀了自己面前的乌鸦！获得食材反馈：{reward_str}")
 
     elif action_type == 'end_turn_manual':
         g.end_turn()
-    
-    _trigger_bot_if_needed()
+
     return redirect(url_for('index'))
 
 @app.route('/action/wholesaler_dismiss')
@@ -731,14 +491,11 @@ def quick_chat():
     if not my_name: return ('', 204)
     msg = request.form.get('msg', '').strip()
     mode = request.form.get('mode', 'have').strip()
-    
-    INGREDIENT_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🌶':'Sambal','🥜':'花生'}
+    INGREDIENT_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'}
     ALLOWED_INGREDIENTS = list(INGREDIENT_LABELS.keys())
-    ALLOWED_SPECIAL = ['🙋','⏩','🖕']
-    
+    ALLOWED_SPECIAL = ['🙋','⏩']
     if msg not in ALLOWED_INGREDIENTS and msg not in ALLOWED_SPECIAL:
         return ('', 204)
-        
     if msg in INGREDIENT_LABELS:
         label = INGREDIENT_LABELS[msg]
         log_line = f"💬 【{my_name}】：{'我要' if mode=='want' else '我有'} {msg} {label}！"
@@ -746,15 +503,12 @@ def quick_chat():
         log_line = f"💬 【{my_name}】：🙋 举手！"
     elif msg == '⏩':
         log_line = f"💬 【{my_name}】：⏩ 快一点啦！"
-    elif msg == '🖕':
-        log_line = f"💬 【{my_name}】：🖕 送全场一个温暖的中指！"
     else:
-        log_line = f"💬 【{my_name}】发出了：{msg}"
-
-    global room
-    if 'room' in globals() and room.status == "PLAYING" and room.game:
+        log_line = f"💬 【{my_name}】：{msg}"
+    if room.status == "PLAYING" and room.game:
         room.game.log.append(log_line)
-        
+    room.chat_messages.append({"player": my_name, "msg": msg, "mode": mode, "log_line": log_line, "ts": time.time()})
+    room.chat_messages = room.chat_messages[-30:]
     return ('', 204)
 
 @app.route('/reset')
