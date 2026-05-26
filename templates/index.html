@@ -97,7 +97,7 @@
         .center-log-line { font-size: 9px; color: #94a3b8; line-height: 1.4; padding: 2px 0; border-bottom: 1px solid rgba(51,65,85,0.3); animation: fadeInLine 0.3s ease-out; }
         @keyframes fadeInLine { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* ===== 💥 特效图层：全场中指大招大效果区域 ===== */
+        /* ===== 🖕 特效图层：全场中指大招大效果区域 ===== */
         #middle-finger-overlay {
             position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0);
             z-index: 999; font-size: min(100px, 20dvh); pointer-events: none; opacity: 0;
@@ -179,7 +179,6 @@
         .poker-hand .poker-card:first-child { margin-left: 0; }
         .poker-card:hover, .poker-card:active { transform: translateY(-24px) scale(1.08) rotate(1deg); z-index: 150 !important; box-shadow: 0 12px 24px rgba(0,0,0,.7); }
         
-        /* 卡牌按功能上色 */
         .poker-card[data-type="action"] { background: linear-gradient(135deg,#e0f2fe,#bae6fd); border-color: #0ea5e9; }
         .poker-card[data-type="attack"] { background: linear-gradient(135deg,#fee2e2,#fecaca); border-color: #ef4444; }
         .poker-card[data-type="defense"] { background: linear-gradient(135deg,#dcfce7,#bbf7d0); border-color: #22c55e; }
@@ -511,7 +510,7 @@
 
                     {% if is_my_turn and card == 'Crow' %}
                         <a href="javascript:void(0);" onclick="alert('请点击对手头像框来放置乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                    {% elif is_my_turn Glen card == 'Si Oyen' %}
+                    {% elif is_my_turn and card == 'Si Oyen' %}
                         <a href="javascript:void(0);" onclick="alert('Si Oyen 会自动赶跑你面前的乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% elif is_my_turn and card == 'Thief' %}
                         <a href="javascript:void(0);" onclick="openThiefModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
@@ -894,7 +893,6 @@
     }, 3000);
     {% endif %}
 
-    // ===== 快捷沟通与全场特效联动 =====
     const ING_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'};
     const SPECIAL_LABELS = {'🙋':'举手！','⏩':'快一点啦！','🖕':'送全场一个温暖的中指！'};
 
@@ -911,7 +909,6 @@
         
         showLocalBubble('你', text);
         
-        // 本地立即播放大招特效
         if (msg === '🖕') {
             triggerMiddleFingerEffect();
         }
@@ -936,11 +933,9 @@
         setTimeout(() => b.remove(), 4000);
     }
 
-    // ⚡ 核心动效：触发全场中指大招爆裂动画
     function triggerMiddleFingerEffect() {
         const overlay = document.getElementById('middle-finger-overlay');
         if (!overlay) return;
-        // 克隆节点强行重置动画流
         const newOverlay = overlay.cloneNode(true);
         overlay.parentNode.replaceChild(newOverlay, overlay);
         newOverlay.classList.add('finger-blast-anim');
@@ -960,7 +955,6 @@
             b.className = 'chat-bubble';
             const logLine = m.log_line || m.msg;
             
-            // 实时监听来自其他选手的“中指信号”
             if (m.msg === '🖕' && (now - m.ts < 1.5)) {
                 triggerMiddleFingerEffect();
             }
