@@ -1076,7 +1076,7 @@
     })();
     {% endif %}
 
-    {% if chat_messages %}
+{% if chat_messages %}
     (function(){
         const msgs = {{ chat_messages | tojson }};
         const now = Date.now() / 1000;
@@ -1087,7 +1087,7 @@
             b.className = 'chat-bubble';
             const logLine = m.log_line || m.msg;
             
-            if (m.msg === '🖕' && (now - m.ts < 1.5)) {
+            if (m.msg === '🖕' && (now - m.ts < 3.5)) {
                 triggerMiddleFingerEffect();
             }
 
