@@ -1092,8 +1092,20 @@
             }
 
             if (document.querySelector('.lobby-container')) {
-                document.querySelector('.lobby-container').innerHTML = doc.querySelector('.lobby-container').innerHTML;
-            } else if (document.querySelector('.battlefield')) {
+            
+                // 正在输入名字时不要刷新大厅
+                const active = document.activeElement;
+            
+                if (
+                    active &&
+                    active.name === 'player_name'
+                ) {
+                    return;
+                }
+            
+                document.querySelector('.lobby-container').innerHTML =
+                    doc.querySelector('.lobby-container').innerHTML;
+            }
                 
                 // 仅在无模态框开启时执行局部核心替换
                 if (!isModalOpen) {
@@ -1105,6 +1117,21 @@
                     if(oldLog && newLog) {
                         let isScrolledToBottom = oldLog.scrollHeight - oldLog.clientHeight <= oldLog.scrollTop + 10;
                         oldLog.innerHTML = newLog.innerHTML;
+                        // 检测新的中指消息
+                        const latestLine = newLog.querySelector('.center-log-line');
+                        
+                        if (
+                            latestLine &&
+                            latestLine.textContent.includes('🖕') &&
+                            !window.lastFingerMsgHandled
+                        ) {
+                            triggerMiddleFingerEffect();
+                            window.lastFingerMsgHandled = latestLine.textContent;
+                        
+                            setTimeout(() => {
+                                window.lastFingerMsgHandled = null;
+                            }, 1500);
+                        }
                         if(isScrolledToBottom) oldLog.scrollTop = oldLog.scrollHeight;
                     }
                     
