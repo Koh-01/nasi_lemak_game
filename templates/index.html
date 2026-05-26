@@ -1,1232 +1,841 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>椰浆饭大作战 - 全感官手游版</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        /* ===== 横屏强制 ===== */
-        #orientation-warning {
-            display: none; position: fixed; inset: 0;
-            background: #0f172a; color: white; z-index: 99999;
-            flex-direction: column; justify-content: center; align-items: center; text-align: center;
-        }
-        @media screen and (orientation: portrait) {
-            #orientation-warning { display: flex; }
-            #game-wrapper { display: none !important; }
-        }
-
-        /* ===== 全局手游质感 ===== */
-        *, *::before, *::after { box-sizing: border-box; }
-        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0f172a; color: white; font-family: 'PingFang SC', 'Helvetica Neue', sans-serif; user-select: none; }
-        
-        /* ===== 游戏主框架 ===== */
-        #game-wrapper { display: flex; flex-direction: column; width: 100vw; height: 100dvh; background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%); }
-
-        /* ===== 顶部状态栏 ===== */
-        .top-bar {
-            flex: 0 0 38px; height: 38px;
-            background: linear-gradient(180deg, rgba(15,23,42,0.95) 80%, transparent);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 12px; font-weight: bold; z-index: 100; position: relative;
-            padding: 0 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.5);
-        }
-        .turn-indicator { color: #f59e0b; font-size: 14px; margin: 0 8px; white-space: nowrap; text-shadow: 0 0 8px rgba(245,158,11,0.5); animation: textPulse 1.5s infinite alternate; }
-        @keyframes textPulse { from { transform: scale(0.98); } to { transform: scale(1.02); } }
-        
-        .restart-btn {
-            position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
-            background: linear-gradient(135deg, #7f1d1d, #b91c1c); color: #fca5a5; border: 1px solid #ef4444;
-            border-radius: 20px; padding: 2px 10px; font-size: 10px; font-weight: bold;
-            cursor: pointer; white-space: nowrap; box-shadow: 0 2px 5px rgba(0,0,0,0.3); transition: 0.2s;
-        }
-        .restart-btn:active { transform: translateY(-50%) scale(0.9); }
-
-        /* ===== 战场区 ===== */
-        .battlefield {
-            flex: 1 1 0; min-height: 0;
-            display: flex; justify-content: space-between; align-items: stretch;
-            padding: 6px 8px; overflow: hidden; position: relative;
-        }
-
-        /* ===== 手游卡牌化摊位 ===== */
-        .opponents-col { display: flex; flex-direction: column; justify-content: space-evenly; width: 115px; gap: 6px; flex-shrink: 0; z-index: 10; }
-        .mini-stall {
-            background: linear-gradient(135deg, rgba(30,41,59,0.9), rgba(15,23,42,0.9)); border: 2px solid #475569;
-            border-radius: 10px; padding: 5px 6px; text-align: center;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.4); transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1); cursor: pointer;
-        }
-        .mini-stall.active { 
-            border-color: #f59e0b; 
-            box-shadow: 0 0 15px rgba(245,158,11,0.7); 
-            background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(15,23,42,0.9));
-            animation: activeStall 2s infinite alternate;
-        }
-        @keyframes activeStall { from { border-color: #d97706; } to { border-color: #fde047; } }
-        
-        .mini-name { font-size: 11px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #38bdf8; margin-bottom: 4px; border-bottom: 1px solid #334155; padding-bottom: 2px; }
-        .mini-stats { display: flex; justify-content: space-around; font-size: 10px; font-weight: bold; }
-
-        /* ===== 中央区域组 ===== */
-        .center-decks { flex: 1; display: flex; justify-content: center; align-items: center; gap: clamp(6px, 1.5vw, 15px); position: relative; }
-        .deck {
-            width: clamp(65px, 8vw, 85px); height: clamp(95px, 12vh, 125px);
-            border-radius: 12px; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; font-weight: bold;
-            font-size: 11px; cursor: pointer; transition: all 0.2s ease; text-decoration: none;
-            box-shadow: -4px 6px 12px rgba(0,0,0,0.6); position: relative;
-        }
-        .gold-deck { background: linear-gradient(135deg,#d4af37,#996515); color: white; border: 3px solid #fde047; }
-        .main-deck { background: linear-gradient(135deg,#22c55e,#14532d); color: white; border: 3px solid #86efac; }
-        .main-deck.pulse-glow { animation: deckGlow 1.2s infinite alternate; }
-        @keyframes deckGlow { from { box-shadow: 0 0 4px #22c55e; transform: scale(1); } to { box-shadow: 0 0 20px #22c55e; transform: scale(1.04); } }
-        
-        .deck span:first-child { font-size: clamp(20px, 2.5vw, 26px); filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
-        .deck-badge { background: rgba(0,0,0,.7); padding: 1px 6px; border-radius: 10px; font-size: 9px; margin-top: 5px; border: 1px solid rgba(255,255,255,0.1); }
-
-        /* ===== 中央动态对局记录 ===== */
-        .center-log {
-            width: clamp(120px, 22vw, 220px); height: clamp(110px, 18vh, 160px);
-            background: rgba(15,23,42,0.95); border: 1px solid #334155; border-radius: 12px;
-            display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; box-shadow: inset 0 2px 8px rgba(0,0,0,0.8);
-        }
-        .center-log-title { font-size: 10px; color: #64748b; text-align: center; padding: 4px 0 2px; border-bottom: 1px solid #1e293b; flex-shrink: 0; letter-spacing: 0.5px; font-weight: bold; }
-        .center-log-body { flex: 1; overflow-y: auto; padding: 3px 8px; scrollbar-width: none; }
-        .center-log-body::-webkit-scrollbar { display: none; }
-        .center-log-line { font-size: 10px; color: #94a3b8; line-height: 1.4; padding: 3px 0; border-bottom: 1px solid rgba(51,65,85,0.3); } /* 移除了闪烁的动效，让无感刷新更丝滑 */
-
-        /* ===== 🖕 全场中指大招效果区域 ===== */
-        #middle-finger-overlay {
-            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0);
-            z-index: 999; font-size: min(100px, 20dvh); pointer-events: none; opacity: 0;
-            filter: drop-shadow(0 0 25px #ef4444) drop-shadow(0 10px 10px rgba(0,0,0,0.7));
-        }
-        .finger-blast-anim { animation: fingerBlast 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.5) forwards; }
-        @keyframes fingerBlast {
-            0% { transform: translate(-50%, -50%) scale(0) rotate(-45deg); opacity: 0; }
-            20% { transform: translate(-50%, -50%) scale(1.3) rotate(10deg); opacity: 1; }
-            35% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
-            75% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; filter: drop-shadow(0 0 25px #ef4444); }
-            100% { transform: translate(-50%, -50%) scale(0.4) translateY(-80px); opacity: 0; }
-        }
-
-        /* ===== 快捷沟通操作栏 ===== */
-        .quick-chat-bar {
-            display: flex; align-items: center; gap: 4px; padding: 4px 8px;
-            background: linear-gradient(0deg, rgba(15,23,42,0.95) 0%, rgba(30,41,59,0.9) 100%); 
-            border-top: 1px solid #1e3a8a; flex-shrink: 0; flex-wrap: nowrap; overflow-x: auto;
-        }
-        .quick-chat-bar::-webkit-scrollbar { display: none; }
-        .qc-label { font-size: 9px; color: #94a3b8; white-space: nowrap; flex-shrink: 0; font-weight: bold; }
-        .qc-btn {
-            background: linear-gradient(180deg, #1e40af, #1d4ed8); border: 1px solid #3b82f6;
-            border-radius: 14px; padding: 3px 8px; font-size: 13px; cursor: pointer;
-            transition: all 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275); flex-shrink: 0; line-height: 1.2; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-        }
-        .qc-btn:hover { transform: scale(1.1) translateY(-2px); }
-        .qc-btn:active { transform: scale(0.9); }
-        .qc-btn.urge { border-color: #f59e0b; background: linear-gradient(180deg, #b45309, #d97706); }
-        .qc-btn.finger { border-color: #ef4444; background: linear-gradient(180deg, #991b1b, #dc2626); font-weight: bold; animation: fingerPulse 1s infinite alternate; }
-        @keyframes fingerPulse { from { box-shadow: 0 0 2px #ef4444; } to { box-shadow: 0 0 8px #ef4444; } }
-
-        /* ===== 聊天气泡浮层 ===== */
-        .chat-bubble-layer { position: fixed; top: 42px; right: 8px; z-index: 500; display: flex; flex-direction: column; gap: 4px; pointer-events: none; max-width: 170px; }
-        .chat-bubble { background: rgba(15,23,42,0.95); border: 1px solid #475569; border-radius: 12px; padding: 4px 10px; font-size: 11px; color: #e2e8f0; animation: bubblein .3s cubic-bezier(0.175, 0.885, 0.32, 1.275) ease, bubbleout .4s 3.5s forwards; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
-        @keyframes bubblein { from{opacity:0;transform:translateX(30px) scale(0.8)} to{opacity:1;transform:translateX(0) scale(1)} }
-        @keyframes bubbleout { from{opacity:1} to{opacity:0;transform:scale(0.8)} }
-
-        /* ===== 乌鸦阻挡样式 ===== */
-        .mini-stall.crow-blocked { border-color: #eab308 !important; background: rgba(234,179,8,0.12) !important; }
-        .crow-on-stall { font-size: 12px; text-align: center; background: linear-gradient(90deg, rgba(234,179,8,0.3), rgba(0,0,0,0.5)); border-radius: 5px; padding: 2px 4px; margin-bottom: 3px; border: 1px solid #eab308; font-weight: bold; }
-
-        /* ===== 👑 需求 4：重构底部布局，乌鸦状态并排在手牌右侧，绝不遮挡对手 ===== */
-        .bottom-console {
-            flex: 0 0 auto; height: clamp(170px, 32dvh, 220px);
-            display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-            padding-bottom: clamp(6px, 1.5dvh, 12px); background: linear-gradient(0deg, rgba(15,23,42,0.95) 70%, transparent);
-            z-index: 30; position: relative;
-        }
-
-        .my-stall-zone {
-            display: flex; gap: 6px; margin-bottom: 6px; align-items: center; flex-wrap: wrap; justify-content: center; min-height: 45px; max-height: 75px; overflow-y: auto; position: relative; z-index: 80; width: 100%; padding: 0 10px;
-        }
-        .my-nasi {
-            background: linear-gradient(135deg, #fde047, #d4af37); color: #000; font-weight: bold;
-            padding: 3px 10px; border-radius: 6px; font-size: 11px;
-            display: flex; align-items: center; gap: 3px; border: 2px solid #fff;
-            box-shadow: 0 4px 6px rgba(0,0,0,.4); cursor: pointer; white-space: nowrap; transition: 0.2s;
-        }
-        .my-nasi:active { transform: scale(0.95); }
-        .my-nasi.infected { background: linear-gradient(135deg, #475569, #334155); color: #ef4444; border-color: #ef4444; animation: shakeInfected 0.5s infinite alternate; }
-        @keyframes shakeInfected { from { transform: rotate(-1deg); } to { transform: rotate(1deg); } }
-
-        /* 手牌与乌鸦内联排版容器 */
-        .hand-and-status-wrapper {
-            display: flex; justify-content: center; align-items: flex-end; width: 100%; position: relative; margin-top: 2px;
-        }
-
-        .poker-hand {
-            display: flex; justify-content: center; align-items: flex-end; height: clamp(90px, 18dvh, 125px); padding: 0 10px; position: relative; z-index: 10;
-        }
-        .poker-card {
-            width: clamp(56px, 7.5vw, 82px); height: clamp(88px, 17.5dvh, 122px);
-            border-radius: 8px; margin-left: clamp(-42px, -3.8vw, -25px);
-            background: white; border: 1px solid #cbd5e1;
-            box-shadow: -3px -1px 8px rgba(0,0,0,.5);
-            display: flex; flex-direction: column; align-items: center;
-            padding-top: 8px; text-decoration: none;
-            transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.2s ease, z-index 0s;
-            position: relative; color: #1e293b; flex-shrink: 0;
-        }
-        .poker-hand .poker-card:first-child { margin-left: 0; }
-        .poker-card:hover, .poker-card:active { transform: translateY(-24px) scale(1.08) rotate(1deg); z-index: 150 !important; box-shadow: 0 12px 24px rgba(0,0,0,.7); }
-        
-        .poker-card[data-type="action"] { background: linear-gradient(135deg,#e0f2fe,#bae6fd); border-color: #0ea5e9; }
-        .poker-card[data-type="attack"] { background: linear-gradient(135deg,#fee2e2,#fecaca); border-color: #ef4444; }
-        .poker-card[data-type="defense"] { background: linear-gradient(135deg,#dcfce7,#bbf7d0); border-color: #22c55e; }
-        .poker-card[data-type="wildcard"] { background: linear-gradient(135deg,#fff7ed,#fed7aa); border-color: #f97316; }
-        .poker-card[data-type="special"] { background: linear-gradient(135deg,#fdf4ff,#e9d5ff); border-color: #a855f7; }
-        .poker-card[data-type="crow"] { background: linear-gradient(135deg,#1c1917,#292524); border-color: #78716c; color: #e7e5e4; }
-        
-        .p-emoji { font-size: clamp(22px, 3.2vw, 32px); margin-bottom: 2px; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.2)); }
-        .p-title { font-size: clamp(8px, 0.9vw, 11px); font-weight: bold; text-align: center; line-height: 1.1; }
-        .p-tag { position: absolute; bottom: 4px; font-size: 7px; background: rgba(0,0,0,.08); padding: 1px 4px; border-radius: 4px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.3px; }
-
-        /* 乌鸦状态内联模块（在手牌右侧） */
-        .my-crow-status-inline {
-            background: linear-gradient(135deg, rgba(41,37,36,0.95), rgba(28,25,23,0.95));
-            border: 2px solid #eab308; border-radius: 12px; padding: 6px 12px;
-            box-shadow: 0 6px 16px rgba(0,0,0,0.6), 0 0 10px rgba(234,179,8,0.3);
-            font-size: 11px; color: #fde047;
-            width: 140px; flex-shrink: 0; margin-left: 15px; margin-bottom: 6px;
-            animation: crowFloat 2s infinite alternate ease-in-out;
-        }
-        @keyframes crowFloat { from { transform: translateY(0); } to { transform: translateY(-4px); } }
-        .crow-ing-badge { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); border-radius: 4px; padding: 1px 4px; font-size: 10px; color: white; display: inline-block; margin: 1px; }
-
-        /* ===== 全局大弹窗 ===== */
-        .action-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 9999; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
-        .modal-box { background: linear-gradient(135deg, #1e293b, #0f172a); border: 2px solid #38bdf8; border-radius: 16px; padding: 18px; width: min(320px, 90vw); text-align: center; max-height: 90dvh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
-
-        #restart-confirm-modal { display: none !important; position: fixed; inset: 0; background: rgba(0,0,0,.85); z-index: 99998; justify-content: center; align-items: center; }
-        .restart-modal-box { background: linear-gradient(135deg,#1e293b,#0f172a); border: 2px solid #ef4444; border-radius: 14px; padding: 20px 24px; text-align: center; width: min(280px, 85vw); box-shadow: 0 0 28px rgba(239,68,68,.3); }
-        .restart-modal-box h5 { color: #ef4444; margin-bottom: 8px; }
-        .restart-modal-box p { color: #94a3b8; font-size: 11px; margin-bottom: 14px; }
-
-        /* ===== 全屏绝对居中大厅 ===== */
-        .lobby-screen { 
-            background: linear-gradient(135deg, #090d16, #111827); 
-            height: 100dvh; width: 100vw;
-            display: flex; flex-direction: column; 
-            justify-content: center; align-items: center; 
-            padding: 16px; position: fixed; inset: 0; z-index: 999;
-        }
-        .lobby-container {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            width: min(340px, 92vw); animation: lobbyPodIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-        @keyframes lobbyPodIn { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-        .lobby-restart-btn {
-            margin-top: 20px; 
-            background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(153,27,27,0.2)); 
-            color: #fca5a5; border: 1px solid rgba(239,68,68,0.5); 
-            border-radius: 12px; padding: 10px 12px; 
-            font-size: 13px; font-weight: bold; letter-spacing: 1px;
-            cursor: pointer; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-            width: 100%; box-shadow: 0 4px 15px rgba(239,68,68,0.15);
-        }
-        .lobby-restart-btn:hover, .lobby-restart-btn:active { 
-            background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; border-color: #fca5a5;
-            box-shadow: 0 8px 25px rgba(239,68,68,0.4); transform: translateY(-3px); 
-        }
-
-        /* 动态生成的吐司通知动画 */
-        .nasi-toast-anim {
-            position: fixed; top: 50px; left: 50%; transform: translateX(-50%);
-            background: rgba(34,197,94,0.95); color: white; padding: 10px 25px; border-radius: 30px;
-            font-weight: bold; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100000;
-            animation: popin 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, fadeout 0.5s 2.5s forwards;
-            white-space: nowrap; border: 2px solid #bbf7d0;
-        }
-        @keyframes popin { from { top: -50px; opacity: 0; } to { top: 50px; opacity: 1; } }
-        @keyframes fadeout { from { opacity: 1; } to { opacity: 0; display: none; } }
-    </style>
-</head>
-<body>
-
-<div id="restart-confirm-modal">
-    <div class="restart-modal-box">
-        <h5>⚠️ 强制重启确认</h5>
-        <p>将<strong style="color:#ef4444;">立即终止</strong>当前对局并清空所有数据。此操作不可撤销。</p>
-        <div class="d-flex gap-2 justify-content-center">
-            <a href="/reset" class="btn btn-danger btn-sm px-3">💥 确认重启</a>
-            <button onclick="closeRestartModal()" class="btn btn-secondary btn-sm px-3">取消</button>
-        </div>
-    </div>
-</div>
-
-<div id="orientation-warning">
-    <div style="font-size:48px;">🔄</div>
-    <h3 style="margin:10px 0 6px;">请横置手机</h3>
-    <p class="text-muted small">本游戏为横屏模式</p>
-</div>
-
-<div id="game-wrapper">
-    <div id="chat-bubble-layer" class="chat-bubble-layer"></div>
-    <div id="middle-finger-overlay">🖕</div>
-
-    {% if error %}
-    <div style="position:fixed;top:40px;left:50%;transform:translateX(-50%);z-index:9999;" class="alert alert-danger py-1 px-3 fs-6">{{ error }}</div>
-    {% endif %}
-
-    {% if room.status == "EMPTY" or room.status == "WAITING" %}
-    <div class="lobby-screen">
-        <div class="lobby-container">
-            <h2 class="text-warning mb-3" style="text-shadow: 0 0 15px rgba(245,158,11,0.6); font-weight: 900; letter-spacing: 1px;">🥣 椰浆饭大作战</h2>
-            <div class="card bg-dark text-white border-secondary p-4 shadow w-100" style="border-radius:20px; box-shadow: 0 15px 35px rgba(0,0,0,0.8) !important;">
-                {% if room.status == "EMPTY" %}
-                    <form action="/create_room" method="POST">
-                        <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow" style="border-radius:12px;">👉 创建新对局舱</button>
-                    </form>
-                {% else %}
-                    {% if not my_name %}
-                    <label class="form-label small text-info fw-bold mb-2">请输入大名以入座摊位：</label>
-                    <form action="/join_room" method="POST" class="d-flex gap-2 mb-3">
-                        <input type="text" class="form-control form-control-sm px-3" name="player_name" style="border-radius:10px; background:#1e293b; color:white; border-color:#475569;" autocomplete="off" required>
-                        <button type="submit" class="btn btn-primary btn-sm fw-bold px-3" style="border-radius:10px;">入座</button>
-                    </form>
-                    {% else %}
-                    <div class="text-center text-success mb-3 fw-bold fs-5">✅ 已就绪：{{ my_name }}</div>
-                    {% endif %}
-                    
-                    <div class="border-top border-secondary pt-3 mb-3">
-                        <div class="small text-muted mb-2 fw-bold">已就位摊主 ({{ room.joined_players|length }}/7)：</div>
-                        <div class="d-flex flex-wrap gap-1 mb-3">
-                            {% for p in room.joined_players %}
-                            <span class="badge p-2 {% if '🤖Bot_' in p %}bg-info text-dark{% else %}bg-secondary{% endif %}" style="border-radius:6px;">
-                                {{ p }}{% if '🤖Bot_' in p %} 🤖{% endif %}
-                            </span>
-                            {% endfor %}
-                        </div>
-                        {% if room.joined_players|length < 7 %}
-                        <div class="d-flex gap-2 mb-2">
-                            <form action="/add_bot" method="POST" style="flex:1;">
-                                <button type="submit" class="btn btn-info btn-sm w-100 fw-bold py-1.5" style="border-radius:8px;">🤖 加入机器人</button>
-                            </form>
-                            {% set has_bot = namespace(v=false) %}
-                            {% for p in room.joined_players %}{% if '🤖Bot_' in p %}{% set has_bot.v = true %}{% endif %}{% endfor %}
-                            {% if has_bot.v %}
-                            <form action="/remove_bot" method="POST" style="flex:1;">
-                                <button type="submit" class="btn btn-outline-warning btn-sm w-100 py-1.5" style="border-radius:8px;">➖ 驱逐机器人</button>
-                            </form>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                    </div>
-                    <form action="/start_game" method="POST">
-                        {% if room.joined_players|length >= 3 %}
-                        <button type="submit" class="btn btn-warning w-100 fw-bold shadow py-2" style="border-radius:12px; font-size:15px;">🚀 立即开战</button>
-                        {% else %}
-                        <button type="button" class="btn btn-secondary w-100 disabled small py-2" style="border-radius:12px;">需满3人方可开战</button>
-                        {% endif %}
-                    </form>
-                {% endif %}
-                <button onclick="openRestartModal()" class="lobby-restart-btn">⚠️ 强制重启房间</button>
-            </div>
-        </div>
-    </div>
-
-    {% elif room.status == "PLAYING" %}
-    {% set g = room.game %}
-
-    {% if g.game_over %}
-    <div style="position:fixed;inset:0;background:linear-gradient(135deg,#0f172a,#1e3a5f,#0f172a);z-index:10000;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:20px 10px;">
-        <div style="text-align:center;margin-bottom:20px;">
-            <div style="font-size:52px;animation:bounce 0.6s infinite alternate;">👑</div>
-            <h2 style="color:#fde047;font-size:clamp(18px,4vw,28px);margin:6px 0 2px;text-shadow:0 0 20px #fde047;">
-                🎉 【{{ g.winner }}】 赢得胜利！
-            </h2>
-            <p style="color:#94a3b8;font-size:12px;">椰浆饭大作战已结束</p>
-        </div>
-
-        <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center;width:100%;max-width:900px;margin-bottom:20px;">
-            {% for p in g.players %}
-            {% set net = [] %}
-            {% for idx in range(p.scored_cards|length) %}
-                {% if not p.flies[idx] %}{% set _ = net.append(p.scored_cards[idx]) %}{% endif %}
-            {% endfor %}
-            {% set is_winner = (p.name == g.winner) %}
-            <div style="background:{% if is_winner %}linear-gradient(135deg,rgba(253,224,71,0.15),rgba(234,179,8,0.08)){% else %}rgba(30,41,59,0.9){% endif %}; border:2px solid {% if is_winner %}#fde047{% else %}#334155{% endif %}; border-radius:12px;padding:14px;min-width:160px;flex:1;max-width:220px;text-align:center;">
-                {% if is_winner %}<div style="font-size:20px;margin-bottom:4px;">👑</div>{% endif %}
-                <div style="font-weight:bold;color:{% if is_winner %}#fde047{% else %}#38bdf8{% endif %};font-size:14px;margin-bottom:8px;">
-                    {{ p.name }}
-                </div>
-                <div style="margin-bottom:8px;">
-                    <div style="font-size:10px;color:#64748b;margin-bottom:4px;">椰浆饭</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:3px;justify-content:center;">
-                        {% for idx in range(p.scored_cards|length) %}
-                        <span style="background:{% if p.flies[idx] %}#374151{% else %}#d4af37{% endif %}; color:{% if p.flies[idx] %}#ef4444{% else %}#000{% endif %}; border-radius:4px;padding:1px 6px;font-size:11px;font-weight:bold; border:1px solid {% if p.flies[idx] %}#ef4444{% else %}#fff{% endif %};">
-                            📦{{ p.scored_cards[idx] }}包{% if p.flies[idx] %} 🪰{% endif %}
-                        </span>
-                        {% endfor %}
-                    </div>
-                    <div style="font-size:12px;color:#22c55e;margin-top:4px;font-weight:bold;">
-                        净计：{{ net|sum }} 包
-                    </div>
-                </div>
-                <div>
-                    <div style="font-size:10px;color:#64748b;margin-bottom:4px;">剩余手牌 ({{ p.hand|length }}张)</div>
-                    <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;">
-                        {% set emoji_map = {"Rice":"🍚","Egg":"🥚","Peanuts":"🥜","Sambal":"🌶️","Cucumber":"🥒","Wholesaler":"🏪","Thief":"🥷","Supplier":"📣","Mak Cik":"🧑‍🍳","Officer":"👮","Fly":"🪰","Fly Swatter":"💥","Fan":"🪭","Rendang":"🍗","Si Oyen":"🐱","Crow":"🐦‍⬛"} %}
-                        {% for card in p.hand %}
-                        <span style="background:#1e293b;border:1px solid #334155;border-radius:3px;padding:1px 4px;font-size:10px;">
-                            {{ emoji_map.get(card,'?') }}{{ card }}
-                        </span>
-                        {% endfor %}
-                        {% if not p.hand %}<span style="font-size:11px;color:#475569;">（空手）</span>{% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        <a href="/reset" class="btn btn-warning fw-bold px-5" style="font-size:14px;">🔄 再来一局</a>
-    </div>
-
-    {% else %}
-    <div class="top-bar">
-        <span class="text-muted" style="font-size:11px;">饭剩 <span class="text-warning">{{ g.gold_deck|length }}</span></span>
-        <span class="turn-indicator">
-            {% if g.turn_idx == my_p_idx %}🟢 你的回合 (剩{{ g.moves_left }}动)
-            {% else %}⏳ 等待【{{ g.current_player().name }}】{% endif %}
-        </span>
-        <a href="/action/end_turn_manual" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2" style="font-size:10px; border-radius: 10px;">结束回合</a>
-        <button onclick="toggleFullScreen()" class="btn btn-sm btn-outline-info py-0 px-2 ms-2" style="font-size:10px; border-radius: 10px;">🔲 全屏</button>
-        <button onclick="openRestartModal()" class="restart-btn">⚡重启</button>
-    </div>
-
-    {% if g.pending_trade %}
-    {% set t = g.pending_trade %}
-    <div id="trade-banner" class="trade-banner-highlight" style="background:linear-gradient(90deg,#1e3a5f,#1e293b);border-top:2px solid #38bdf8;border-bottom:2px solid #38bdf8;padding:6px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;z-index:20;">
-        <span style="font-size:12px;">🤝 <strong class="text-warning">{{ t.from }}</strong> 要用 <strong class="text-success">{{ t.offer }}</strong> 换 <strong class="text-danger">{{ t.to }}</strong> 的 <strong class="text-info">{{ t.want }}</strong>
-        {% if my_name != t.to and my_name != t.from %}<span style="font-size:10px;color:#64748b;"> （旁观）</span>{% endif %}
-        </span>
-        {% if my_name == t.to %}
-        <div class="d-flex gap-2 align-items-center">
-            <span id="trade-timer" class="text-warning" style="font-size:12px;font-weight:bold;min-width:30px;"></span>
-            <a href="/resolve_trade/accept" class="btn btn-success btn-sm py-0 px-2" style="font-size:11px;">✅ 接受</a>
-            <a href="/resolve_trade/decline" class="btn btn-danger btn-sm py-0 px-2" style="font-size:11px;">❌ 拒绝</a>
-        </div>
-        {% else %}
-        <span id="trade-timer" class="text-warning" style="font-size:11px;font-weight:bold;min-width:30px;"></span>
-        <span class="text-muted" style="font-size:11px;">等待 {{ t.to }} 回应…</span>
-        {% endif %}
-    </div>
-    {% endif %}
-
-    <div class="battlefield">
-        {% set opponents = [] %}
-        {% for p in g.players %}{% if p.name != my_name %}{% set _ = opponents.append((loop.index0, p)) %}{% endif %}{% endfor %}
-        {% set mid = (opponents|length / 2)|round(0,'ceil')|int %}
-
-        <div class="opponents-col">
-            {% for idx, opp in opponents[:mid] %}
-            {% set has_placed_crow = opp.placed_crow is not none %}
-            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %} {% if has_placed_crow %}crow-blocked{% endif %}"
-                 onclick="openTargetModal({{ idx }},'{{ opp.name }}',{{ opp.scored_cards|length }}, this.getAttribute('data-flies'), {% if has_placed_crow %}true{% else %}false{% endif %})"
-                 data-flies='{{ opp.flies | tojson }}'>
-                {% if has_placed_crow and opp.placed_crow %}
-                <div class="crow-on-stall">🐦‍⬛ <span style="font-size:8px;">食材×{{ opp.placed_crow.ingredients|length if opp.placed_crow.ingredients else 0 }}</span></div>
-                {% endif %}
-                <div class="mini-name">{% if g.turn_idx == idx %}▶ {% endif %}{{ opp.name }}{% if '🤖Bot_' in opp.name %} <span style="font-size:8px;color:#67e8f9;">AI</span>{% endif %}</div>
-                <div class="mini-stats">
-                    <span>🎴{{ opp.hand|length }}</span>
-                    <span class="text-warning">📦{{ opp.scored_cards|length }}</span>
-                    {% if true in opp.flies %}<span class="text-danger">🪰</span>{% endif %}
-                    {% set crow_in_hand = opp.hand | select("equalto", "Crow") | list | length %}
-                    {% if crow_in_hand > 0 %}<span style="opacity:0.6;font-size:9px;">🐦‍⬛×{{ crow_in_hand }}</span>{% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-
-        <div class="center-decks">
-            {% if g.turn_idx == my_p_idx %}
-                <a href="/action/pack_standard" class="deck gold-deck">
-                    <span>📦</span><span>打包标配</span>
-                    <span class="deck-badge">剩{{ g.gold_deck|length }}</span>
-                </a>
-            {% else %}
-                <div class="deck gold-deck disabled-card"><span>📦</span><span>Nasi Lemak</span></div>
-            {% endif %}
-
-            <div class="center-log">
-                <div class="center-log-title">📜 对局记录</div>
-                <div class="center-log-body" id="center-log-body">
-                    {% for line in g.log[-25:]|reverse %}
-                    <div class="center-log-line">{{ line }}</div>
-                    {% endfor %}
-                </div>
-            </div>
-
-            {% if g.turn_idx == my_p_idx %}
-                {% if not g.has_drawn %}
-                <a href="/draw" class="deck main-deck pulse-glow">
-                    <span>📥</span><span>摸2张牌</span>
-                    <span class="deck-badge">必须执行</span>
-                </a>
-                {% else %}
-                <div class="deck main-deck disabled-card" style="opacity:.45;">
-                    <span>🎴</span><span>已抽牌</span>
-                </div>
-                {% endif %}
-            {% else %}
-                <div class="deck main-deck disabled-card"><span>🎴</span><span>抽牌堆</span></div>
-            {% endif %}
-        </div>
-
-        <div class="opponents-col">
-            {% for idx, opp in opponents[mid:] %}
-            {% set has_placed_crow = opp.placed_crow is not none %}
-            <div class="mini-stall {% if g.turn_idx == idx %}active{% endif %} {% if has_placed_crow %}crow-blocked{% endif %}"
-                 onclick="openTargetModal({{ idx }}, '{{ opp.name }}', {{ opp.scored_cards|length }}, this.getAttribute('data-flies'), {% if has_placed_crow %}true{% else %}false{% endif %})"
-                 data-flies='{{ opp.flies | tojson }}'>
-                {% if has_placed_crow and opp.placed_crow %}
-                <div class="crow-on-stall">🐦‍⬛ <span style="font-size:8px;">食材×{{ opp.placed_crow.ingredients|length if opp.placed_crow.ingredients else 0 }}</span></div>
-                {% endif %}
-                <div class="mini-name">{% if g.turn_idx == idx %}▶ {% endif %}{{ opp.name }}{% if '🤖Bot_' in opp.name %} <span style="font-size:8px;color:#67e8f9;">AI</span>{% endif %}</div>
-                <div class="mini-stats">
-                    <span>🎴{{ opp.hand|length }}</span>
-                    <span class="text-warning">📦{{ opp.scored_cards|length }}</span>
-                    {% if true in opp.flies %}<span class="text-danger">🪰</span>{% endif %}
-                    {% set crow_in_hand = opp.hand | select("equalto", "Crow") | list | length %}
-                    {% if crow_in_hand > 0 %}<span style="opacity:0.6;font-size:9px;">🐦‍⬛×{{ crow_in_hand }}</span>{% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <div class="bottom-console">
-        <div class="my-stall-zone">
-            {% if my_player and my_player.scored_cards %}
-                {% for val in my_player.scored_cards %}{% set f_idx = loop.index0 %}
-                <div class="my-nasi {% if my_player.flies[f_idx] %}infected{% endif %}" onclick="openDefenseModal({{ f_idx }},{% if my_player.flies[f_idx] %}true{% else %}false{% endif %})">
-                    📦{{ val }}包{% if my_player.flies[f_idx] %} 🪰{% endif %}
-                </div>
-                {% endfor %}
-            {% endif %}
-        </div>
-
-        {% if g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending and not g.pending_trade %}
-        <button onclick="document.getElementById('trade-modal').style.display='flex'" class="btn btn-sm btn-outline-primary mb-1 px-3" style="font-size:11px;border-radius:20px;opacity:0.85;">
-            🤝 发起食材交易
-        </button>
-        {% endif %}
-
-        <div class="hand-and-status-wrapper">
-            <div class="poker-hand">
-                {% if my_player and my_player.hand %}
-                    {% for card in my_player.hand %}
-                        {% set c_type = "food" %}
-                        {% if card in ['Thief','Wholesaler','Supplier','Mak Cik'] %}{% set c_type = "action" %}{% endif %}
-                        {% if card in ['Fly','Officer'] %}{% set c_type = "attack" %}{% endif %}
-                        {% if card in ['Fly Swatter','Fan'] %}{% set c_type = "defense" %}{% endif %}
-                        {% if card == 'Rendang' %}{% set c_type = "wildcard" %}{% endif %}
-                        {% if card == 'Si Oyen' %}{% set c_type = "special" %}{% endif %}
-                        {% if card == 'Crow' %}{% set c_type = "crow" %}{% endif %}
-                        {% set c_dict = {
-                            "Rice":("椰浆饭","🍚"),"Egg":("鸡蛋","🥚"),"Peanuts":("花生","🥜"),"Sambal":("三巴","🌶️"),"Cucumber":("黄瓜","🥒"),
-                            "Wholesaler":("批发商","🏪"),"Thief":("小偷","🥷"),"Supplier":("供应商","📣"),"Mak Cik":("大妈","🧑‍🍳"),
-                            "Officer":("官员","👮"),"Fly":("苍蝇","🪰"),"Fly Swatter":("蝇拍","💥"),"Fan":("风扇","🪭"),
-                            "Rendang":("Rendang","🍗"),"Si Oyen":("Si Oyen","🐱"),"Crow":("乌鸦","🐦‍⬛")
-                        } %}
-                        {% set is_my_turn = (g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending) %}
-
-                        {% if is_my_turn and card == 'Crow' %}
-                            <a href="javascript:void(0);" onclick="alert('请点击对手头像框来放置乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% elif is_my_turn and card == 'Si Oyen' %}
-                            <a href="javascript:void(0);" onclick="alert('Si Oyen 会自动赶跑你面前的乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% elif is_my_turn and card == 'Thief' %}
-                            <a href="javascript:void(0);" onclick="openThiefModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% elif is_my_turn and card == 'Wholesaler' %}
-                            <a href="/action/wholesaler" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% elif is_my_turn and card == 'Mak Cik' %}
-                            <a href="/action/pack_makcik" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% elif is_my_turn and card == 'Supplier' %}
-                            <a href="javascript:void(0);" onclick="openSupplierModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% elif is_my_turn and card in ['Officer','Fly'] %}
-                            <a href="javascript:void(0);" onclick="alert('请点击对手头像框发起攻击！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% elif is_my_turn and card in ['Fly Swatter','Fan'] %}
-                            <a href="javascript:void(0);" onclick="alert('请点击自己被污染的椰浆饭！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% else %}
-                            <a href="javascript:void(0);" class="poker-card {% if not is_my_turn %}disabled-card{% endif %}" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                        {% endif %}
-                            <div class="p-emoji">{{ c_dict[card][1] if card in c_dict else '❓' }}</div>
-                            <div class="p-title">{{ c_dict[card][0] if card in c_dict else card }}</div>
-                            <div class="p-tag">{{ c_type }}</div>
-                        </a>
-                    {% endfor %}
-                {% endif %}
-            </div>
-
-            {% if my_player and my_player.placed_crow is not none %}
-            <div class="my-crow-status-inline">
-                <div class="fw-bold mb-1">🐦‍⬛ 乌鸦拦截中！</div>
-                <div class="text-white-50" style="font-size:9px; line-height:1.2; margin-bottom:4px;">无法包饭！点击右侧对手赶走。</div>
-                <div class="mt-1">
-                    <span class="text-warning">肚中食材：</span>
-                    {% if my_player.placed_crow.ingredients %}
-                        {% for ing in my_player.placed_crow.ingredients %}
-                        <span class="crow-ing-badge">{{ ing }}</span>
-                        {% endfor %}
-                    {% else %}
-                        <span class="text-muted" style="font-size:10px;">暂无</span>
-                    {% endif %}
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        {% if my_name %}
-        <div class="quick-chat-bar">
-            <span class="qc-label">我有：</span>
-            <button class="qc-btn" onclick="sendQuickChat('🥚','have')">🥚</button>
-            <button class="qc-btn" onclick="sendQuickChat('🥒','have')">🥒</button>
-            <button class="qc-btn" onclick="sendQuickChat('🍚','have')">🍚</button>
-            <button class="qc-btn" onclick="sendQuickChat('🌶️','have')">🌶️</button>
-            <button class="qc-btn" onclick="sendQuickChat('🥜','have')">🥜</button>
-            <span class="qc-label" style="margin-left:4px;border-left:1px solid #334155;padding-left:4px;">我要：</span>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥚','want')">🥚</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥒','want')">🥒</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🍚','want')">🍚</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🌶️','want')">🌶️</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥜','want')">🥜</button>
-            <span class="qc-label" style="margin-left:4px;border-left:1px solid #334155;padding-left:4px;"></span>
-            <button class="qc-btn" onclick="sendQuickChat('🙋','special')">🙋</button>
-            <button class="qc-btn urge" onclick="sendQuickChat('⏩','special')">⏩</button>
-            <button class="qc-btn finger" onclick="sendQuickChat('🖕','special')" title="送你个中指">🖕</button>
-        </div>
-        {% endif %}
-    </div>
-
-    <div id="target-modal" class="action-modal">
-        <div class="modal-box">
-            <h5 class="text-warning mb-2">👤 <span id="tm-name"></span> <span id="tm-crow-badge" style="display:none;">🐦‍⬛</span></h5>
-            <div id="tm-attack-section">
-                <div class="d-flex flex-column gap-2 mb-2">
-                    <a id="btn-officer" href="#" class="btn btn-primary btn-sm">👮 派官员搜查手牌</a>
-                    <a id="btn-play-crow" href="#" class="btn btn-sm" style="display:none;background:#292524;color:#e7e5e4;border:1px solid #78716c;">🐦‍⬛ 放置乌鸦</a>
-                    <a id="btn-si-oyen" href="#" class="btn btn-sm" style="display:none;background:#7c3aed;color:white;border:none;">🐱 Si Oyen 捕获乌鸦</a>
-                    <div id="crow-chase-section" style="display:none;">
-                        <p class="text-warning small mb-1">🐦‍⬛ 赶乌鸦到此玩家 — 选择一张食材喂乌鸦：</p>
-                        <div id="crow-chase-ingredients" class="d-flex flex-wrap gap-1 justify-content-center"></div>
-                    </div>
-                    <div id="fly-targets" class="d-flex flex-wrap gap-2 justify-content-center mt-1"></div>
-                </div>
-            </div>
-
-            <div id="tm-readonly-section" style="display:none;">
-                <p class="text-muted small mb-1">👁️ 查看模式（非你的回合）</p>
-                {% for p in g.players %}{% if p.name != my_name %}
-                <div id="tm-status-{{ loop.index0 }}" class="d-none">
-                    <div class="small text-info mb-1">手牌：{{ p.hand|length }} 张 &nbsp;|&nbsp; 椰浆饭：{{ p.scored_cards|length }} 包</div>
-                    {% if p.scored_cards %}
-                    <div class="d-flex flex-wrap gap-1 justify-content-center">
-                        {% for si in range(p.scored_cards|length) %}
-                        <span style="background:{% if p.flies[si] %}#374151{% else %}#d4af37{% endif %};color:{% if p.flies[si] %}#ef4444{% else %}#000{% endif %};border-radius:4px;padding:1px 6px;font-size:11px;font-weight:bold;">
-                            📦?包{% if p.flies[si] %} 🪰{% endif %}
-                        </span>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="small text-muted">尚未打包任何椰浆饭</div>
-                    {% endif %}
-                </div>
-                {% endif %}{% endfor %}
-            </div>
-            <button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">关闭</button>
-        </div>
-    </div>
-
-    <div id="supplier-modal" class="action-modal">
-        <div class="modal-box">
-            <h5 class="text-info mb-3">📣 供应商垄断征收</h5>
-            <form action="/action/supplier" method="GET">
-                <select name="ingredient" class="form-select form-select-sm mb-3">
-                    <option value="Rice">🍚 Rice 椰浆饭粒</option>
-                    <option value="Egg">🥚 Egg 水煮蛋</option>
-                    <option value="Peanuts">🥜 Peanuts 炸花生</option>
-                    <option value="Sambal">🌶️ Sambal 三巴酱</option>
-                    <option value="Cucumber">🥒 Cucumber 黄瓜</option>
-                </select>
-                <button type="submit" class="btn btn-info btn-sm w-100">强行没收全场此牌</button>
-            </form>
-            <button class="btn btn-sm btn-secondary mt-2" onclick="closeModals()">取消</button>
-        </div>
-    </div>
-
-    <div id="defense-modal" class="action-modal">
-        <div class="modal-box">
-            <h5 class="text-danger mb-3">🪰 驱蝇除害</h5>
-            <div class="d-flex gap-2">
-                <a id="btn-swat" href="#" class="btn btn-danger btn-sm flex-grow-1">💥 苍蝇拍拍死</a>
-                <a id="btn-fan-base" href="#" class="btn btn-info btn-sm text-white flex-grow-1" onclick="showFanTargets()">🪭 扇子吹走</a>
-            </div>
-            <div id="fan-target-list" class="d-flex flex-wrap gap-1 mt-2 justify-content-center d-none">
-                {% for p in g.players %}{% if p.name != my_name %}
-                <a href="#" class="btn btn-sm btn-outline-info fan-opt" data-tidx="{{ loop.index0 }}">→ {{ p.name }}</a>
-                {% endif %}{% endfor %}
-            </div>
-            <button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">取消</button>
-        </div>
-    </div>
-
-    <div id="thief-modal" class="action-modal">
-        <div class="modal-box">
-            <h5 class="text-warning mb-1">🥷 小偷选目标</h5>
-            <p class="text-muted small mb-3">
-                {% if g.players|length > 4 %}选择最多 3 名玩家偷取手牌{% else %}将偷所有对手的手牌{% endif %}
-            </p>
-            <div id="thief-targets" class="d-flex flex-wrap gap-2 justify-content-center mb-3">
-                {% for p in g.players %}{% if p.name != my_name %}
-                <div class="thief-target-btn btn btn-sm btn-outline-light" data-idx="{{ loop.index0 }}" onclick="toggleThiefTarget(this)">
-                    {{ p.name }} ({{ p.hand|length }}张)
-                </div>
-                {% endif %}{% endfor %}
-            </div>
-            <div id="thief-count" class="small text-muted mb-2">已选 0 / 3 人</div>
-            {% if g.players|length > 4 %}
-            <button onclick="confirmThiefTargets()" class="btn btn-warning btn-sm w-100">🥷 出发行窃！</button>
-            {% else %}
-            <a href="/action/thief" class="btn btn-warning btn-sm w-100">🥷 偷遍所有人！</a>
-            {% endif %}
-            <button class="btn btn-sm btn-secondary mt-2" onclick="closeModals()">取消</button>
-        </div>
-    </div>
-
-    {% if g.wholesaler_reveal %}
-    <div class="action-modal" id="wholesaler-reveal-modal" style="display:flex;">
-        <div class="modal-box">
-            <h5 class="text-info mb-2">🏪 批发商公示</h5>
-            <p class="small text-muted mb-3">【{{ g.wholesaler_reveal.player }}】 从牌堆顶摸了 3 张牌：</p>
-            <div class="d-flex gap-2 justify-content-center mb-3">
-                {% for card in g.wholesaler_reveal.cards %}
-                {% set emoji_map = {"Rice":"🍚","Egg":"🥚","Peanuts":"🥜","Sambal":"🌶️","Cucumber":"🥒","Wholesaler":"🏪","Thief":"🥷","Supplier":"📣","Mak Cik":"🧑‍🍳","Officer":"👮","Fly":"🪰","Fly Swatter":"💥","Fan":"🪭","Rendang":"🍗","Si Oyen":"🐱","Crow":"🐦‍⬛"} %}
-                <div class="card-reveal {% if card in g.wholesaler_reveal.kept %}kept{% else %}gone{% endif %}">
-                    <div style="font-size:22px;">{{ emoji_map.get(card,'❓') }}</div>
-                    <div style="font-size:10px;">{{ card }}</div>
-                    {% if card in g.wholesaler_reveal.kept %}<div style="font-size:9px;color:#22c55e;">✓ 留下</div>
-                    {% else %}<div style="font-size:9px;color:#94a3b8;">✗ 弃掉</div>{% endif %}
-                </div>
-                {% endfor %}
-            </div>
-            <p class="small text-success mb-3">留下 {{ g.wholesaler_reveal.kept|length }} 张食材，弃掉 {{ g.wholesaler_reveal.discarded|length }} 张非食材牌。</p>
-            {% if g.turn_idx == my_p_idx %}
-            <a href="/action/wholesaler_dismiss" class="btn btn-info btn-sm w-100">✅ 我知道了，继续</a>
-            {% else %}
-            <p class="small text-muted">等待【{{ g.current_player().name }}】关闭此窗口…</p>
-            {% endif %}
-        </div>
-    </div>
-    {% endif %}
-
-    {% if g.active_inspection and g.turn_idx == my_p_idx %}
-    <div class="action-modal" style="display:flex;">
-        <div class="modal-box" style="width:min(340px,92vw);">
-            <h5 class="text-primary mb-3">👮 查获【{{ g.active_inspection.target_name }}】的底牌</h5>
-            <div class="d-flex flex-wrap gap-2 justify-content-center">
-                {% for card in g.active_inspection.hand_to_view %}
-                    {% if card in g.players[g.active_inspection.target_idx].hand %}
-                    <a href="/action/officer_take?card={{ card }}" class="btn btn-light border-primary fw-bold text-dark p-2" style="font-size:11px;">抢夺<br>{{ card }}</a>
-                    {% endif %}
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <div id="trade-modal" class="action-modal">
-        <div class="modal-box">
-            <h5 class="text-primary mb-3">🤝 30秒限时食材交易</h5>
-            <form action="/propose_trade" method="POST">
-                <div class="row g-2 mb-2">
-                    <div class="col-6">
-                        <label class="form-label small text-muted mb-1">我出食材</label>
-                        <select name="offer" class="form-select form-select-sm" required>
-                            {% for i in ['Rice','Egg','Peanuts','Sambal','Cucumber'] %}
-                            <option value="{{ i }}">{{ {'Rice':'🍚 Rice','Egg':'🥚 Egg','Peanuts':'🥜 Peanuts','Sambal':'🌶️ Sambal','Cucumber':'🥒 Cucumber'}[i] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label small text-muted mb-1">我要换取</label>
-                        <select name="want" class="form-select form-select-sm" required>
-                            {% for i in ['Rice','Egg','Peanuts','Sambal','Cucumber'] %}
-                            <option value="{{ i }}">{{ {'Rice':'🍚 Rice','Egg':'🥚 Egg','Peanuts':'🥜 Peanuts','Sambal':'🌶️ Sambal','Cucumber':'🥒 Cucumber'}[i] }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <label class="form-label small text-muted mb-1">目标摊主</label>
-                <select name="target" class="form-select form-select-sm mb-3" required>
-                    {% for p in g.players if p.name != my_name %}
-                    <option value="{{ p.name }}">{{ p.name }}</option>
-                    {% endfor %}
-                </select>
-                <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">发起交易（消耗1动作）</button>
-            </form>
-            <button class="btn btn-sm btn-secondary w-100 mt-2" onclick="closeModals()">取消</button>
-        </div>
-    </div>
-
-    <div id="game-state-data" style="display:none;"
-         data-turn-idx="{{ g.turn_idx }}"
-         data-is-my-turn="{{ 'true' if g.turn_idx == my_p_idx else 'false' }}"
-         data-chat="{{ chat_messages|default([])|tojson|forceescape }}"
-         data-logs="{{ g.log|default([])|tojson|forceescape }}"
-         data-trade-expires="{{ g.pending_trade.expires_at if g.pending_trade else 0 }}">
-    </div>
-
-    {% endif %}{% endif %}
-</div>
-
-<script>
-    // ===== 🔲 需求 3：网页全屏功能 =====
-    function toggleFullScreen() {
-        if (!document.fullscreenElement && !document.webkitFullscreenElement && !document.msFullscreenElement) {
-            let el = document.documentElement;
-            if (el.requestFullscreen) el.requestFullscreen();
-            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
-            else if (el.msRequestFullscreen) el.msRequestFullscreen();
-        } else {
-            if (document.exitFullscreen) document.exitFullscreen();
-            else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-            else if (document.msExitFullscreen) document.msExitFullscreen();
-        }
-    }
-
-    // ===== 🔊 手游音频引擎 =====
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playSynthSound(freq, type, duration, vol=0.2) {
-        try {
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            let osc = audioCtx.createOscillator();
-            let gainNode = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-            gainNode.gain.setValueAtTime(vol, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
-        } catch(e) {}
-    }
-
-    function playCrowSound() {
-        playSynthSound(280, 'sawtooth', 0.15, 0.25);
-        setTimeout(() => playSynthSound(210, 'sawtooth', 0.2, 0.2), 100);
-        setTimeout(() => playSynthSound(160, 'sawtooth', 0.3, 0.25), 250);
-    }
-    function playPackSound() {
-        playSynthSound(523.25, 'triangle', 0.08, 0.3); 
-        setTimeout(() => playSynthSound(659.25, 'triangle', 0.08, 0.3), 80); 
-        setTimeout(() => playSynthSound(783.99, 'triangle', 0.08, 0.3), 160); 
-        setTimeout(() => playSynthSound(1046.50, 'sine', 0.4, 0.4), 240); 
-    }
-    function playYourTurnSound() {
-        playSynthSound(880, 'sine', 0.1, 0.35); 
-        setTimeout(() => playSynthSound(1318.51, 'sine', 0.25, 0.4), 100); 
-    }
-    function playFingerExplode() {
-        playSynthSound(90, 'sawtooth', 0.5, 0.5);
-        playSynthSound(60, 'triangle', 0.7, 0.6);
-    }
-
-    // 动态生成打包吐司动画
-    function showNasiToast(msg) {
-        let toast = document.createElement('div');
-        toast.className = 'nasi-toast-anim';
-        toast.innerHTML = `🎉 突发：${msg}`;
-        document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-    }
-
-    // 中指爆炸大招
-    function triggerMiddleFingerEffect() {
-        playFingerExplode();
-        const overlay = document.getElementById('middle-finger-overlay');
-        if (!overlay) return;
-        const newOverlay = overlay.cloneNode(true);
-        overlay.parentNode.replaceChild(newOverlay, overlay);
-        newOverlay.classList.add('finger-blast-anim');
-        setTimeout(() => { newOverlay.classList.remove('finger-blast-anim'); }, 1200);
-    }
-
-    function showLocalBubble(player, text) {
-        const layer = document.getElementById('chat-bubble-layer');
-        if(!layer) return;
-        const b = document.createElement('div');
-        b.className = 'chat-bubble';
-        b.innerHTML = `<strong style="color:#38bdf8;">${player}</strong>：${text}`;
-        layer.appendChild(b);
-        setTimeout(() => b.remove(), 4000);
-    }
-
-    const ING_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'};
-    const SPECIAL_LABELS = {'🙋':'举手！','⏩':'快一点啦！','🖕':'送全场一个温暖的中指！'};
-
-    function sendQuickChat(msg, mode) {
-        const fd = new FormData();
-        fd.append('msg', msg);
-        fd.append('mode', mode || 'have');
-        fetch('/quick_chat', {method:'POST', body:fd});
-        
-        let text = ING_LABELS[msg] ? `${mode === 'want' ? '我要' : '我有'} ${msg} ${ING_LABELS[msg]}！` : (SPECIAL_LABELS[msg] || msg);
-        showLocalBubble('你', text);
-        if (msg === '🖕') triggerMiddleFingerEffect();
-
-        const logBody = document.getElementById('center-log-body');
-        if(logBody) {
-            const line = document.createElement('div');
-            line.className = 'center-log-line';
-            line.style.color = '#fbbf24';
-            line.textContent = '💬 【你】：' + text;
-            logBody.insertBefore(line, logBody.firstChild);
-        }
-    }
-
-    // 模态框控制逻辑
-    function openRestartModal() { document.getElementById('restart-confirm-modal').style.setProperty('display', 'flex', 'important'); }
-    function closeRestartModal() { document.getElementById('restart-confirm-modal').style.setProperty('display', 'none', 'important'); }
-    document.getElementById('restart-confirm-modal').addEventListener('click', function(e){ if(e.target === this) closeRestartModal(); });
-
-    function closeModals() {
-        document.querySelectorAll('.action-modal').forEach(m => { 
-            if(m.id !== 'restart-confirm-modal' && !m.dataset.persistent) m.style.display='none'; 
-        });
-        document.getElementById('fan-target-list')?.classList.add('d-none');
-    }
-
-    function openTargetModal(tIdx, name, foodCount, fliesStr, targetHasCrow) {
-        document.getElementById('tm-name').innerText = name;
-        const crowBadge = document.getElementById('tm-crow-badge');
-        if(crowBadge) crowBadge.style.display = targetHasCrow ? 'inline' : 'none';
-
-        const attackSection = document.getElementById('tm-attack-section');
-        const readonlySection = document.getElementById('tm-readonly-section');
-        
-        let isMyTurn = false;
-        let myHandStr = "[]";
-        let myHasCrow = false;
-
-        const dataNode = document.getElementById('game-state-data');
-        if(dataNode) {
-            isMyTurn = dataNode.dataset.isMyTurn === 'true';
-        }
-
-        {% if room.status == "PLAYING" and g and not g.active_inspection and not g.thief_pending %}
-            isMyTurn = {{ 'true' if g.turn_idx == my_p_idx else 'false' }};
-            myHandStr = {{ my_player.hand | tojson if (my_player and my_player.hand) else '[]' }};
-            myHasCrow = {{ 'true' if (my_player and my_player.placed_crow is not none) else 'false' }};
-        {% endif %}
-
-        if(isMyTurn) {
-            if(attackSection) attackSection.style.display = '';
-            if(readonlySection) readonlySection.style.display = 'none';
-            document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
+import os
+import time
+from flask import Flask, render_template, request, redirect, url_for, session
+import random
+
+app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "nasilemak_multiplayer_secret_key_2026")
+
+BOT_PREFIX = "🤖Bot_"  # 机器人名字前缀，用于识别
+
+CORE_5 = ["Rice", "Egg", "Peanuts", "Sambal", "Cucumber"]
+
+def create_gold_deck():
+    # 3 Nasi Lemak cards (1 pack each) + original 8x1 + 7x2
+    deck = [1] * 11 + [2] * 7
+    random.shuffle(deck)
+    return deck
+
+def create_main_deck():
+    deck = []
+    for ing in CORE_5:
+        deck.extend([ing] * 10)
+    deck.extend(["Rendang"] * 6)
+    deck.extend(["Crow"] * 2)
+    deck.extend(["Si Oyen"] * 3)
+    deck.extend(["Wholesaler"] * 4)
+    deck.extend(["Thief"] * 4)
+    deck.extend(["Supplier"] * 4)
+    deck.extend(["Mak Cik"] * 4)
+    deck.extend(["Officer"] * 4)
+    deck.extend(["Fly"] * 6)
+    deck.extend(["Fly Swatter"] * 2)
+    deck.extend(["Fan"] * 3)
+    for _ in range(3): random.shuffle(deck)
+    return deck
+
+class OnlineGameState:
+    def __init__(self, player_names):
+        self.main_deck = create_main_deck()
+        self.gold_deck = create_gold_deck()
+        self.discard = []
+        self.players = []
+        for name in player_names:
+            self.players.append({
+                "name": name,
+                "hand": [],
+                "scored_cards": [],
+                "flies": [],
+                # placed_crow: None or {"ingredients": [...]}
+                "placed_crow": None,
+            })
+        self.turn_idx = random.randint(0, len(self.players) - 1)
+        self.moves_left = 3
+        self.has_drawn = False
+        self.game_over = False
+        self.winner = ""
+        self.log = [f"🎲 游戏正式开始！系统随机抽签，由 【{self.players[self.turn_idx]['name']}】 率先行动！"]
+        self.active_inspection = None
+        self.pending_trade = None
+        self.wholesaler_reveal = None
+        self.thief_pending = False
+        self._bot_turn_pending = False
+
+        for p in self.players:
+            for _ in range(7):
+                if self.main_deck: p["hand"].append(self.main_deck.pop())
+            p["hand"].sort()
+
+    def current_player(self):
+        return self.players[self.turn_idx]
+
+    def draw_from_deck(self, p_idx, count=1):
+        p = self.players[p_idx]
+        drawn = []
+        for _ in range(count):
+            if not self.main_deck:
+                if self.discard:
+                    self.main_deck = self.discard[:]
+                    self.discard.clear()
+                    for _ in range(3): random.shuffle(self.main_deck)
+                    self.log.append("🔄 摸牌堆空了！弃牌堆已进行【深度混乱洗牌】重用。")
+                else: break
+            card = self.main_deck.pop()
+            p["hand"].append(card)
+            drawn.append(card)
+        p["hand"].sort()
+        return drawn
+
+    def check_win(self):
+        for p in self.players:
+            net_packs = sum(val for idx, val in enumerate(p["scored_cards"]) if not p["flies"][idx])
+            if net_packs >= 5:
+                self.game_over = True
+                self.winner = p["name"]
+                self.log.append(f"👑 【{p['name']}】 成功卖出 {net_packs} 包净椰浆饭，赢得了胜利！")
+                return True
+        return False
+
+    def spend_move(self, action_description):
+        self.moves_left -= 1
+        self.log.append(f"🎬 消耗动作：{action_description}（剩 {self.moves_left} 次动作）")
+        if self.check_win():
+            return
+        if self.moves_left <= 0 and not self.pending_trade and not self.thief_pending and not getattr(self, 'wholesaler_reveal', None):
+            self.end_turn()
+
+    def end_turn(self):
+        self.pending_trade = None
+        self.wholesaler_reveal = None
+        self.thief_pending = False
+        if self.check_win():
+            return
+        if not self.gold_deck:
+            self.game_over = True
+            highest_packs = -1
+            winner_p = None
+            for p in self.players:
+                packs = sum(val for idx, val in enumerate(p["scored_cards"]) if not p["flies"][idx])
+                if packs > highest_packs:
+                    highest_packs = packs
+                    winner_p = p
+                elif packs == highest_packs and winner_p:
+                    if len(p["scored_cards"]) > len(winner_p["scored_cards"]): winner_p = p
+            self.winner = winner_p["name"]
+            self.log.append(f"📦 金卡堆耗尽！平局清算获胜者：{self.winner}")
+            return
+        self.turn_idx = (self.turn_idx + 1) % len(self.players)
+        self.moves_left = 3
+        self.has_drawn = False
+        self.active_inspection = None
+        self.log.append(f"🟢 轮到 【{self.players[self.turn_idx]['name']}】 的回合。")
+        # 如果下一个是机器人，自动行动
+        self._bot_turn_pending = True
+
+class GlobalRoom:
+    def __init__(self):
+        self.status = "EMPTY"
+        self.joined_players = []
+        self.game = None
+        self.chat_messages = []
+
+room = GlobalRoom()
+
+# ============================================================
+# 机器人 AI 逻辑
+# ============================================================
+
+def is_bot(name):
+    return str(name).startswith(BOT_PREFIX)
+
+def bot_generate_name():
+    """生成一个唯一的机器人名字"""
+    emojis = ["🐼","🦊","🐸","🐧","🦁","🐯","🐻","🦉"]
+    adjectives = ["懒","快","猛","萌","乖","皮","强","酷"]
+    used = set(room.joined_players)
+    for _ in range(30):
+        e = random.choice(emojis)
+        a = random.choice(adjectives)
+        n = f"{BOT_PREFIX}{e}{a}"
+        if n not in used:
+            return n
+    return f"{BOT_PREFIX}玩家{random.randint(100,999)}"
+
+def bot_take_turn(g, bot_idx):
+    """机器人行动：每次调用执行完整的一个回合（摸牌 + 尽量行动 + 结束）"""
+    p = g.players[bot_idx]
+
+    # ── 1. 摸牌 ──────────────────────────────────────────────
+    if not g.has_drawn:
+        g.draw_from_deck(bot_idx, 2)
+        g.has_drawn = True
+        g.log.append(f"📥 【{p['name']}】 抽取了 2 张手牌。")
+
+    # ── 2. 如果有待处理的交易（机器人是被请求方），随机接受 ──
+    if g.pending_trade and g.pending_trade["to"] == p["name"]:
+        t = g.pending_trade
+        want_card = t["want"]
+        if want_card in p["hand"] and random.random() < 0.6:
+            # 接受交易
+            p_from = next(x for x in g.players if x["name"] == t["from"])
+            if t["offer"] in p_from["hand"]:
+                p_from["hand"].remove(t["offer"]); p["hand"].append(t["offer"])
+                p["hand"].remove(want_card); p_from["hand"].append(want_card)
+                p_from["hand"].sort(); p["hand"].sort()
+                g.log.append(f"🤝 【{p['name']}】(机器人) 接受了交易！")
+            else:
+                g.log.append(f"❌ 交易破裂（机器人接受时发牌方已无牌）")
+        else:
+            g.log.append(f"🚫 【{p['name']}】(机器人) 拒绝了交易。")
+        g.pending_trade = None
+        if g.moves_left <= 0:
+            g.end_turn()
+        return
+
+    if g.game_over:
+        return
+
+    # ── 3. 执行动作（最多3次） ────────────────────────────────
+    actions_taken = 0
+    max_actions = g.moves_left
+
+    for _ in range(max_actions):
+        if g.game_over or g.moves_left <= 0:
+            break
+        if g.pending_trade or g.thief_pending:
+            break
+        did_action = _bot_do_one_action(g, bot_idx)
+        if did_action:
+            actions_taken += 1
+        else:
+            break  # 无事可做，提前结束
+
+    # ── 4. 如果还没结束回合，手动结束 ──────────────────────────
+    if not g.game_over and g.moves_left > 0:
+        g.end_turn()
+
+
+def _bot_do_one_action(g, bot_idx):
+    """机器人执行单个动作，返回 True 表示成功执行了一个动作"""
+    p = g.players[bot_idx]
+    hand = p["hand"]
+
+    # ── 优先：赶走自己面前的乌鸦 ─────────────────────────────
+    if p.get("placed_crow"):
+        # 找一个没乌鸦的对手
+        chase_ingredients = [c for c in hand if c in CORE_5 + ["Rendang"]]
+        targets_no_crow = [i for i, x in enumerate(g.players)
+                           if x["name"] != p["name"] and x.get("placed_crow") is None]
+        if chase_ingredients and targets_no_crow:
+            ing = chase_ingredients[0]
+            tgt_idx = random.choice(targets_no_crow)
+            tgt = g.players[tgt_idx]
+            hand.remove(ing)
+            old_ings = p["placed_crow"]["ingredients"] + [ing]
+            p["placed_crow"] = None
+            tgt["placed_crow"] = {"ingredients": old_ings}
+            g.spend_move(f"🐦‍⬛ 【{p['name']}】(机器人) 用[{ing}]把乌鸦赶到了【{tgt['name']}】！")
+            return True
+        # 没有食材赶乌鸦，什么都做不了
+        return False
+
+    # ── 尝试打包 ──────────────────────────────────────────────
+    if g.gold_deck:
+        rendang_count = hand.count("Rendang")
+        missing_core = [i for i in CORE_5 if i not in hand]
+
+        # 标准打包
+        if len(missing_core) <= rendang_count:
+            for i in CORE_5:
+                if i in hand: hand.remove(i)
+                else: hand.remove("Rendang")
+            p["scored_cards"].append(g.gold_deck.pop())
+            p["flies"].append(False)
+            g.spend_move(f"【{p['name']}】(机器人) 打包了一份椰浆饭")
+            return True
+
+        # 大妈代工（≥3种食材）
+        if "Mak Cik" in hand:
+            unique_ings = list(set([i for i in CORE_5 if i in hand]))
+            rendang_count = hand.count("Rendang")
             
-            {% if room.status == "PLAYING" and g and not g.has_drawn %}
-            document.getElementById('btn-officer').style.opacity = '0.4';
-            document.getElementById('btn-officer').onclick = function(e){ e.preventDefault(); alert('请先摸牌再使用官员！'); };
-            {% else %}
-            document.getElementById('btn-officer').style.opacity = '';
-            document.getElementById('btn-officer').onclick = null;
-            {% endif %}
+            if len(unique_ings) + rendang_count >= 3:
+                hand.remove("Mak Cik")
+                # 扣除现有的普通食材
+                cards_to_remove = unique_ings[:3]
+                for card in cards_to_remove: 
+                    hand.remove(card)
+                # 不够的用 Rendang 补
+                needed_rendang = 3 - len(cards_to_remove)
+                for _ in range(needed_rendang): 
+                    hand.remove("Rendang")
+                    
+                p["scored_cards"].append(g.gold_deck.pop())
+                p["flies"].append(False)
+                g.spend_move(f"【{p['name']}】(机器人) 狡猾地利用大妈和 {needed_rendang} 张Rendang代工打包了椰浆饭！")
+                return True
 
-            const myHand = JSON.parse(myHandStr);
-            const playCrowBtn = document.getElementById('btn-play-crow');
-            if(playCrowBtn) {
-                if(myHand.includes('Crow') && !targetHasCrow) {
-                    playCrowBtn.style.display = '';
-                    playCrowBtn.href = '/action/play_crow?target=' + tIdx;
-                } else { playCrowBtn.style.display = 'none'; }
-            }
+    # ── 使用苍蝇拍 ────────────────────────────────────────────
+    if "Fly Swatter" in hand:
+        fly_idxs = [i for i, f in enumerate(p["flies"]) if f]
+        if fly_idxs:
+            idx = fly_idxs[0]
+            hand.remove("Fly Swatter")
+            g.discard.append("Fly Swatter"); g.discard.append("Fly")
+            p["flies"][idx] = False
+            g.spend_move(f"💥 【{p['name']}】(机器人) 打死了自己饭上的苍蝇")
+            return True
 
-            const siOyenBtn = document.getElementById('btn-si-oyen');
-            if(siOyenBtn) {
-                if(myHand.includes('Si Oyen') && myHasCrow) {
-                    siOyenBtn.style.display = '';
-                    siOyenBtn.href = '/action/si_oyen';
-                } else { siOyenBtn.style.display = 'none'; }
-            }
+    # ── 放苍蝇到对手饭上 ──────────────────────────────────────
+    if "Fly" in hand:
+        targets_with_food = [(i, x) for i, x in enumerate(g.players)
+                             if x["name"] != p["name"] and x["scored_cards"]
+                             and False in x["flies"]]
+        if targets_with_food:
+            tgt_idx, tgt = random.choice(targets_with_food)
+            slot = tgt["flies"].index(False)
+            hand.remove("Fly")
+            tgt["flies"][slot] = True
+            g.spend_move(f"🪰 【{p['name']}】(机器人) 把苍蝇放到了【{tgt['name']}】的饭上！")
+            return True
 
-            const chaseSection = document.getElementById('crow-chase-section');
-            const chaseIngs = document.getElementById('crow-chase-ingredients');
-            if(chaseSection && chaseIngs) {
-                if(myHasCrow && !targetHasCrow) {
-                    chaseSection.style.display = '';
-                    chaseIngs.innerHTML = '';
-                    const validIngs = ['Rice','Egg','Peanuts','Sambal','Cucumber','Rendang'];
-                    const available = validIngs.filter(i => myHand.includes(i));
-                    if(available.length > 0) {
-                        available.forEach(ing => {
-                            chaseIngs.innerHTML += `<a href="/action/chase_crow?target=${tIdx}&ingredient=${ing}" class="btn btn-sm btn-outline-warning">${ing}</a>`;
-                        });
-                    } else { chaseIngs.innerHTML = '<span class="text-muted small">你没有食材可喂乌鸦！</span>'; }
-                } else { chaseSection.style.display = 'none'; }
-            }
+    # ── 使用乌鸦骚扰对手 ──────────────────────────────────────
+    if "Crow" in hand:
+        targets_no_crow = [(i, x) for i, x in enumerate(g.players)
+                           if x["name"] != p["name"] and x.get("placed_crow") is None]
+        if targets_no_crow:
+            tgt_idx, tgt = random.choice(targets_no_crow)
+            hand.remove("Crow")
+            tgt["placed_crow"] = {"ingredients": []}
+            g.spend_move(f"🐦‍⬛ 【{p['name']}】(机器人) 把乌鸦放到了【{tgt['name']}】面前！")
+            return True
 
-            let fa = document.getElementById('fly-targets');
-            fa.innerHTML = '';
-            if(foodCount > 0) {
-                let flies = JSON.parse(fliesStr || "[]");
-                for(let i=0; i<foodCount; i++) {
-                    if(flies[i]) {
-                        fa.innerHTML += `<span class="btn btn-sm btn-secondary disabled" style="opacity:0.6;">第${i+1}包(已有🪰)</span>`;
-                    } else {
-                        fa.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger shadow-sm">砸在第${i+1}包</a>`;
-                    }
-                }
-            } else { fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>'; }
-        } else {
-            if(attackSection) attackSection.style.display = 'none';
-            if(readonlySection) readonlySection.style.display = '';
-            document.querySelectorAll('[id^="tm-status-"]').forEach(el => el.classList.add('d-none'));
-            const statusEl = document.getElementById('tm-status-' + tIdx);
-            if(statusEl) statusEl.classList.remove('d-none');
-        }
-        document.getElementById('target-modal').style.display = 'flex';
-    }
+    # ── Si Oyen 消灭乌鸦 ──────────────────────────────────────
+    if "Si Oyen" in hand and p.get("placed_crow"):
+        hand.remove("Si Oyen"); g.discard.append("Si Oyen")
+        crow_ings = p["placed_crow"]["ingredients"]
+        p["placed_crow"] = None
+        for ing in crow_ings: hand.append(ing)
+        hand.sort()
+        g.spend_move(f"🐱 【{p['name']}】(机器人) 用Si Oyen消灭了乌鸦！")
+        return True
 
-    function openSupplierModal() { document.getElementById('supplier-modal').style.display = 'flex'; }
-    function openDefenseModal(fIdx, hasFly) {
-        {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.active_inspection %}
-        if(hasFly){
-            document.getElementById('btn-swat').href = '/action/swat_fly?card_idx=' + fIdx;
-            document.querySelectorAll('.fan-opt').forEach(btn => {
-                btn.href = `/action/fan_fly?card_idx=${fIdx}&target=${btn.dataset.tidx}`;
-            });
-            document.getElementById('defense-modal').style.display = 'flex';
-        }
-        {% endif %}
-    }
-    function showFanTargets() { document.getElementById('fan-target-list').classList.remove('d-none'); }
+    # ── 批发商摸牌 ─────────────────────────────────────────────
+    if "Wholesaler" in hand and len(hand) < 8:
+        hand.remove("Wholesaler"); g.discard.append("Wholesaler")
+        g.draw_from_deck(bot_idx, 3)
+        g.wholesaler_reveal = None  # 机器人直接跳过展示
+        g.spend_move(f"【{p['name']}】(机器人) 用批发商摸了3张牌")
+        return True
 
-    let selectedThiefTargets = [];
-    const MAX_THIEF = {{ room.joined_players|length if room else 4 }} > 4 ? 3 : 999;
-    function openThiefModal() {
-        selectedThiefTargets = [];
-        document.querySelectorAll('.thief-target-btn').forEach(b => b.classList.remove('selected'));
-        updateThiefCount();
-        document.getElementById('thief-modal').style.display = 'flex';
-    }
-    function toggleThiefTarget(el) {
-        const idx = parseInt(el.dataset.idx);
-        if(el.classList.contains('selected')){
-            el.classList.remove('selected');
-            selectedThiefTargets = selectedThiefTargets.filter(x => x !== idx);
-        } else {
-            if(selectedThiefTargets.length >= MAX_THIEF) return;
-            el.classList.add('selected');
-            selectedThiefTargets.push(idx);
-        }
-        updateThiefCount();
-    }
-    function updateThiefCount() {
-        const el = document.getElementById('thief-count');
-        if(el) el.textContent = `已选 ${selectedThiefTargets.length} / ${MAX_THIEF === 999 ? '全部' : MAX_THIEF} 人`;
-    }
-    function confirmThiefTargets() {
-        if(selectedThiefTargets.length === 0){ alert('请至少选择 1 名目标！'); return; }
-        window.location.href = '/action/thief_targets?targets=' + selectedThiefTargets.join(',');
-    }
+    # ── 供应商征收 ─────────────────────────────────────────────
+    if "Supplier" in hand:
+        # 征收自己最需要的食材
+        have = set(c for c in hand if c in CORE_5)
+        need = [i for i in CORE_5 if i not in have]
+        if need:
+            target_ing = need[0]
+            hand.remove("Supplier"); g.discard.append("Supplier")
+            total = 0
+            for opp in g.players:
+                if opp["name"] != p["name"]:
+                    matches = [c for c in opp["hand"] if c == target_ing]
+                    for m in matches:
+                        opp["hand"].remove(m); hand.append(m); total += 1
+            hand.sort()
+            g.spend_move(f"【{p['name']}】(机器人) 供应商征收了全场[{target_ing}] 共{total}张")
+            return True
 
-    // 全局倒计时独立运行
-    setInterval(() => {
-        const timerEl = document.getElementById('trade-timer');
-        const dataNode = document.getElementById('game-state-data');
-        if(timerEl && dataNode) {
-            const exp = parseFloat(dataNode.dataset.tradeExpires || '0');
-            if (exp > 0) {
-                const left = Math.max(0, Math.ceil(exp - Date.now()/1000));
-                timerEl.textContent = left + 's';
-                timerEl.style.color = left <= 5 ? '#ef4444' : '#f59e0b';
-            }
-        }
-    }, 500);
+    # ── 小偷 ──────────────────────────────────────────────────
+    if "Thief" in hand:
+        opponents = [opp for opp in g.players if opp["name"] != p["name"] and opp["hand"]]
+        if opponents:
+            hand.remove("Thief"); g.discard.append("Thief")
+            stolen = 0
+            sample = random.sample(opponents, min(3 if len(g.players) > 4 else len(opponents), len(opponents)))
+            for opp in sample:
+                if opp["hand"]:
+                    card = random.choice(opp["hand"])
+                    opp["hand"].remove(card); hand.append(card); stolen += 1
+            hand.sort()
+            names = "、".join(o["name"] for o in sample)
+            g.spend_move(f"🥷 【{p['name']}】(机器人) 从【{names}】偷走了{stolen}张牌")
+            return True
 
-    // ==========================================
-    // 👑 终极核心引擎：无感抓取替换（告别闪烁刷新！）
-    // ==========================================
-    {% if room.status == "WAITING" or (room.status == "PLAYING" and g and not g.game_over) %}
+    # ── 没有好的动作可执行 ────────────────────────────────────
+    return False
+
+@app.route('/')
+def index():
+    my_name = session.get('my_name', None)
+    error_msg = request.args.get('error', None)
+    my_player_obj = None
+    my_p_idx = -1
+    trade_time_left = 0
+
+    if my_name:
+        if room.status == "EMPTY":
+            session.pop('my_name', None); my_name = None
+        elif room.status == "WAITING" and my_name not in room.joined_players:
+            session.pop('my_name', None); my_name = None
+        elif room.status == "PLAYING" and room.game:
+            if my_name not in [p["name"] for p in room.game.players]:
+                session.pop('my_name', None); my_name = None
+
+    if room.status == "PLAYING" and room.game:
+        # 如果轮到机器人，自动执行
+        if getattr(room.game, '_bot_turn_pending', False):
+            room.game._bot_turn_pending = False
+            _trigger_bot_if_needed()
+        if room.game.pending_trade:
+            trade_time_left = int(room.game.pending_trade["expires_at"] - time.time())
+            if trade_time_left <= 0:
+                room.game.log.append(f"⏱️ 交易超时！")
+                room.game.pending_trade = None
+                trade_time_left = 0
+                if room.game.moves_left <= 0: room.game.end_turn()
+        if my_name:
+            for idx, p in enumerate(room.game.players):
+                if p["name"] == my_name:
+                    my_player_obj = p; my_p_idx = idx; break
+
+    return render_template('index.html', room=room, g=room.game, my_name=my_name,
+                           my_player=my_player_obj, my_p_idx=my_p_idx, error=error_msg,
+                           trade_time_left=trade_time_left, chat_messages=room.chat_messages[-10:])
+
+@app.route('/create_room', methods=['POST'])
+def create_room():
+    room.status = "WAITING"; room.joined_players = []; room.game = None
+    return redirect(url_for('index'))
+
+@app.route('/join_room', methods=['POST'])
+def join_room():
+    if room.status != "WAITING": return redirect(url_for('index', error="房间当前不在等人状态，无法加入！"))
+    player_name = request.form.get('player_name', '').strip()
+    if not player_name: return redirect(url_for('index', error="名字不能为空！"))
+    if player_name in room.joined_players: return redirect(url_for('index', error="该名字已经被别人使用了！"))
+    if len(room.joined_players) >= 7: return redirect(url_for('index', error="房间已满！"))
+    room.joined_players.append(player_name)
+    session['my_name'] = player_name
+    return redirect(url_for('index'))
+
+@app.route('/add_bot', methods=['POST'])
+def add_bot():
+    """在等待室添加一个机器人"""
+    if room.status != "WAITING":
+        return redirect(url_for('index', error="房间不在等待状态！"))
+    if len(room.joined_players) >= 7:
+        return redirect(url_for('index', error="房间已满，无法添加机器人！"))
+    bot_name = bot_generate_name()
+    room.joined_players.append(bot_name)
+    return redirect(url_for('index'))
+
+@app.route('/remove_bot', methods=['POST'])
+def remove_bot():
+    """移除最后一个机器人"""
+    if room.status != "WAITING":
+        return redirect(url_for('index'))
+    bots = [p for p in room.joined_players if is_bot(p)]
+    if bots:
+        room.joined_players.remove(bots[-1])
+    return redirect(url_for('index'))
+
+@app.route('/start_game', methods=['POST'])
+def start_game():
+    if room.status == "WAITING" and len(room.joined_players) >= 3:
+        room.game = OnlineGameState(room.joined_players)
+        room.status = "PLAYING"
+        # 如果第一个行动的是机器人，立即让它行动
+        _trigger_bot_if_needed()
+    else:
+        return redirect(url_for('index', error="至少需要 3 名玩家才能开始游戏！"))
+    return redirect(url_for('index'))
+
+def _trigger_bot_if_needed():
+    """如果当前轮到机器人，自动执行机器人回合"""
+    g = room.game
+    if not g or g.game_over:
+        return
+    current_name = g.players[g.turn_idx]["name"]
+    if is_bot(current_name):
+        bot_take_turn(g, g.turn_idx)
+        # 可能连续多个机器人，递归处理
+        if not g.game_over:
+            _trigger_bot_if_needed()
+
+@app.route('/draw')
+def draw():
+    g = room.game
+    if g and not g.has_drawn and not g.game_over:
+        if session.get('my_name') == g.current_player()['name']:
+            g.draw_from_deck(g.turn_idx, 2)
+            g.has_drawn = True
+            g.log.append(f"📥 【{g.current_player()['name']}】 抽取了 2 张手牌。")
+    return redirect(url_for('index'))
+
+@app.route('/propose_trade', methods=['POST'])
+def propose_trade():
+    g = room.game
+    if not g or not g.has_drawn or g.game_over or g.pending_trade: return redirect(url_for('index'))
+    my_name = session.get('my_name')
+    if my_name != g.current_player()['name']: return redirect(url_for('index'))
+    offer_card = request.form.get('offer')
+    want_card = request.form.get('want')
+    target_name = request.form.get('target')
+    if offer_card not in CORE_5 or want_card not in CORE_5:
+        g.log.append("❌ 交易发起失败：只能交换核心食材卡！Rendang不可交易。")
+        return redirect(url_for('index'))
+    p = g.current_player()
+    target_p = next((x for x in g.players if x["name"] == target_name), None)
+    if not target_p or offer_card not in p["hand"]:
+        g.log.append("❌ 交易发起失败：你手里没有这张食材，或目标对象错误。")
+        return redirect(url_for('index'))
+    g.pending_trade = {"from": p["name"], "to": target_name, "offer": offer_card, "want": want_card, "expires_at": time.time() + 30}
+    g.spend_move(f"向 【{target_name}】 发起 30 秒限时食材交易：用 [{offer_card}] 换取 [{want_card}]")
+    # 如果交易对象是机器人，立即自动响应
+    if is_bot(target_name):
+        target_p2 = next((x for x in g.players if x["name"] == target_name), None)
+        if target_p2 and want_card in target_p2["hand"] and random.random() < 0.6:
+            target_p2["hand"].remove(want_card); p["hand"].append(want_card)
+            p["hand"].remove(offer_card); target_p2["hand"].append(offer_card)
+            p["hand"].sort(); target_p2["hand"].sort()
+            g.log.append(f"🤝 【{target_name}】(机器人) 自动接受了交易！")
+        else:
+            g.log.append(f"🚫 【{target_name}】(机器人) 自动拒绝了交易。")
+        g.pending_trade = None
+        if g.moves_left <= 0: g.end_turn()
+    return redirect(url_for('index'))
+
+@app.route('/resolve_trade/<decision>')
+def resolve_trade(decision):
+    g = room.game
+    my_name = session.get('my_name')
+    if not g or not g.pending_trade: return redirect(url_for('index'))
+    t_data = g.pending_trade
+    if time.time() > t_data["expires_at"]:
+        g.log.append(f"⏱️ 交易超时作废。")
+        g.pending_trade = None
+        if g.moves_left <= 0: g.end_turn()
+        return redirect(url_for('index'))
+    if my_name != t_data["to"]: return redirect(url_for('index'))
+    if decision == 'accept':
+        p_from = next(p for p in g.players if p["name"] == t_data["from"])
+        p_to = next(p for p in g.players if p["name"] == t_data["to"])
+        if t_data["offer"] in p_from["hand"] and t_data["want"] in p_to["hand"]:
+            p_from["hand"].remove(t_data["offer"]); p_to["hand"].append(t_data["offer"])
+            p_to["hand"].remove(t_data["want"]); p_from["hand"].append(t_data["want"])
+            p_from["hand"].sort(); p_to["hand"].sort()
+            g.log.append(f"🤝 交易成功！【{t_data['to']}】 接受了请求，双方完成了食材互换。")
+        else:
+            g.log.append(f"❌ 交易破裂！【{t_data['to']}】 根本没有 [{t_data['want']}] 食材卡。")
+    else:
+        g.log.append(f"🚫 【{t_data['to']}】 拒绝了交易请求。")
+    g.pending_trade = None
+    if g.moves_left <= 0: g.end_turn()
+    _trigger_bot_if_needed()
+    return redirect(url_for('index'))
+
+@app.route('/action/<action_type>')
+def play_action(action_type):
+    g = room.game
+    if not g or not g.has_drawn or g.game_over or g.pending_trade: return redirect(url_for('index'))
+    if session.get('my_name') != g.current_player()['name']: return redirect(url_for('index'))
+
+    p = g.current_player()
+    try:
+        target_idx = int(request.args.get('target', 0))
+        card_idx = int(request.args.get('card_idx', 0))
+    except ValueError: return redirect(url_for('index'))
+
+    target_p = g.players[target_idx] if target_idx < len(g.players) else None
+
+    # ── 打包标配 ────────────────────────────────────────────────────
+    if action_type == 'pack_standard':
+        if p.get("placed_crow"):
+            g.log.append("❌ 你被乌鸦骚扰，无法包Nasi Lemak！先赶走乌鸦。")
+            return redirect(url_for('index'))
+        rendang_in_hand = p["hand"].count("Rendang")
+        missing = [i for i in CORE_5 if i not in p["hand"]]
+        if rendang_in_hand >= 5 and len([c for c in p["hand"] if c in CORE_5]) == 0:
+            # pure rendang pack
+            for _ in range(5): p["hand"].remove("Rendang")
+            if g.gold_deck:
+                p["scored_cards"].append(g.gold_deck.pop()); p["flies"].append(False)
+                g.spend_move(f"【{p['name']}】 用5块Rendang奇迹包了一份椰浆饭！")
+        elif len(missing) <= rendang_in_hand:
+            for i in CORE_5:
+                if i in p["hand"]: p["hand"].remove(i)
+                else: p["hand"].remove("Rendang")
+            if g.gold_deck:
+                p["scored_cards"].append(g.gold_deck.pop()); p["flies"].append(False)
+                g.spend_move(f"【{p['name']}】 打包了一份标准椰浆饭")
+        else:
+            g.log.append("❌ 你凑不够5种核心食材！")
+
+    # ── 大妈代工 ────────────────────────────────────────────────────
+    elif action_type == 'pack_makcik':
+        if p.get("placed_crow"):
+            g.log.append("❌ 你被乌鸦骚扰，无法包Nasi Lemak！先赶走乌鸦。")
+            return redirect(url_for('index'))
+        if "Mak Cik" not in p["hand"]: 
+            return redirect(url_for('index'))
+            
+        # 统计手里的基础核心食材种类
+        unique_ingredients = list(set([i for i in CORE_5 if i in p["hand"]]))
+        rendang_count = p["hand"].count("Rendang")
+        
+        # 只要【基础食材种类 + Rendang数量】≥ 3，就说明可以凑出3种不同的食材！
+        if len(unique_ingredients) + rendang_count >= 3:
+            p["hand"].remove("Mak Cik")
+            
+            # 优先扣除手里的普通核心食材（最多扣3种）
+            cards_to_remove = unique_ingredients[:3]
+            for card in cards_to_remove:
+                p["hand"].remove(card)
+                
+            # 如果扣完普通食材还不够3张，用 Rendang 来补齐缺口
+            needed_rendang = 3 - len(cards_to_remove)
+            for _ in range(needed_rendang):
+                p["hand"].remove("Rendang")
+                
+            if g.gold_deck:
+                p["scored_cards"].append(g.gold_deck.pop())
+                p["flies"].append(False)
+                g.spend_move(f"🧑‍🍳 【{p['name']}】 触发大妈神技！用 Mak Cik 加食材（含{needed_rendang}张Rendang）强行速成了椰浆饭！")
+        else: 
+            g.log.append("❌ 食材严重不足！就算是加上手里的 Rendang 也不够3种不同食材。")
+
+    # ── 官员 ─────────────────────────────────────────────────────────
+    elif action_type == 'officer':
+        if "Officer" not in p["hand"] or not target_p or p["name"] == target_p["name"]: return redirect(url_for('index'))
+        p["hand"].remove("Officer"); g.discard.append("Officer")
+        g.active_inspection = {"target_idx": target_idx, "target_name": target_p["name"],
+                               "hand_to_view": target_p["hand"][:], "taken_cards": []}
+        g.log.append(f"👮 【{p['name']}】 派官员搜查了 【{target_p['name']}】 的手牌...")
+
+    elif action_type == 'officer_take':
+        if not g.active_inspection: return redirect(url_for('index'))
+        card_to_take = request.args.get('card')
+        t_p = g.players[g.active_inspection["target_idx"]]
+        if card_to_take in t_p["hand"]:
+            t_p["hand"].remove(card_to_take); p["hand"].append(card_to_take); p["hand"].sort()
+            g.active_inspection["taken_cards"].append(card_to_take)
+            if len(g.active_inspection["taken_cards"]) == 2 or not t_p["hand"]:
+                taken_str = ", ".join(g.active_inspection["taken_cards"])
+                g.active_inspection = None
+                g.spend_move(f"【{p['name']}】 官员强占了卡牌：[{taken_str}]")
+
+    # ── 小偷 ─────────────────────────────────────────────────────────
+    elif action_type == 'thief':
+        if "Thief" not in p["hand"]: return redirect(url_for('index'))
+        opponents = [opp for opp in g.players if opp["name"] != p["name"] and opp["hand"]]
+        if len(g.players) > 4:
+            g.thief_pending = True
+            g.log.append(f"🥷 【{p['name']}】 正在选择偷窃目标（需选3人）...")
+            return redirect(url_for('index'))
+        else:
+            p["hand"].remove("Thief"); g.discard.append("Thief")
+            stolen_count = 0
+            for opp in opponents:
+                card = random.choice(opp["hand"]); opp["hand"].remove(card); p["hand"].append(card); stolen_count += 1
+            p["hand"].sort()
+            g.spend_move(f"🥷 【{p['name']}】 派小偷从全场共摸走了 {stolen_count} 张手牌！")
+
+    elif action_type == 'thief_targets':
+        if not g.thief_pending or "Thief" not in p["hand"]: return redirect(url_for('index'))
+        raw = request.args.get('targets', '')
+        try: chosen_idxs = [int(x) for x in raw.split(',') if x.strip()]
+        except ValueError: return redirect(url_for('index'))
+        valid_targets = []
+        for idx in chosen_idxs:
+            if idx < len(g.players) and g.players[idx]["name"] != p["name"] and g.players[idx]["hand"]:
+                valid_targets.append(idx)
+        valid_targets = list(dict.fromkeys(valid_targets))[:3]
+        if len(valid_targets) == 0:
+            g.log.append("❌ 没有选择有效的偷窃目标！"); g.thief_pending = False; return redirect(url_for('index'))
+        p["hand"].remove("Thief"); g.discard.append("Thief")
+        stolen_count = 0; target_names = []
+        for idx in valid_targets:
+            opp = g.players[idx]
+            if opp["hand"]:
+                card = random.choice(opp["hand"]); opp["hand"].remove(card); p["hand"].append(card)
+                stolen_count += 1; target_names.append(opp["name"])
+        p["hand"].sort(); g.thief_pending = False
+        g.spend_move(f"🥷 【{p['name']}】 从 【{'、'.join(target_names)}】 各偷走了1张手牌！")
+
+    # ── 批发商 ────────────────────────────────────────────────────────
+    elif action_type == 'wholesaler':
+        if "Wholesaler" not in p["hand"]: return redirect(url_for('index'))
+        p["hand"].remove("Wholesaler"); g.discard.append("Wholesaler")
+        peeked = g.draw_from_deck(g.turn_idx, 3)
+        g.wholesaler_reveal = {"player": p["name"], "cards": peeked, "kept": peeked, "discarded": []}
+        g.spend_move(f"【{p['name']}】 批发商摸了牌堆顶 3 张牌，全部留下！")
+
+    # ── 供应商 ────────────────────────────────────────────────────────
+    elif action_type == 'supplier':
+        if "Supplier" not in p["hand"]: return redirect(url_for('index'))
+        requested_ing = request.args.get('ingredient')
+        p["hand"].remove("Supplier"); g.discard.append("Supplier")
+        total_collected = 0
+        for opp in g.players:
+            if opp["name"] != p["name"]:
+                matches = [c for c in opp["hand"] if c == requested_ing]
+                for m in matches:
+                    opp["hand"].remove(m); p["hand"].append(m); total_collected += 1
+        p["hand"].sort()
+        g.spend_move(f"【{p['name']}】 供应商征收了全场所有的 [{requested_ing}] 共 {total_collected} 张")
+
+    # ── 苍蝇系列 ──────────────────────────────────────────────────────
+    elif action_type == 'play_fly':
+        if "Fly" not in p["hand"] or not target_p or p["name"] == target_p["name"] or not target_p["scored_cards"]: return redirect(url_for('index'))
+        if target_p["flies"][card_idx]: g.log.append("❌ 这包椰浆饭已经有苍蝇了！")
+        else:
+            p["hand"].remove("Fly"); target_p["flies"][card_idx] = True
+            g.spend_move(f"🪰 【{p['name']}】 把一只苍蝇拍到了 【{target_p['name']}】 的饭上！")
+
+    elif action_type == 'swat_fly':
+        if "Fly Swatter" not in p["hand"] or not p["flies"][card_idx]: return redirect(url_for('index'))
+        p["hand"].remove("Fly Swatter"); g.discard.append("Fly Swatter"); g.discard.append("Fly")
+        p["flies"][card_idx] = False
+        g.spend_move(f"💥 【{p['name']}】 用苍蝇拍打死自己饭上的苍蝇")
+
+    elif action_type == 'fan_fly':
+        if "Fan" not in p["hand"] or not target_p or not p["flies"][card_idx] or p["name"] == target_p["name"] or not target_p["scored_cards"]: return redirect(url_for('index'))
+        assigned_idx = target_p["flies"].index(False) if False in target_p["flies"] else -1
+        if assigned_idx == -1: g.log.append(f"❌ 对方全部长满苍蝇了，扇不过去！")
+        else:
+            p["hand"].remove("Fan"); g.discard.append("Fan")
+            p["flies"][card_idx] = False; target_p["flies"][assigned_idx] = True
+            g.spend_move(f"🪭 【{p['name']}】 用扇子把苍蝇吹到了 【{target_p['name']}】 的饭上")
+
+    # ── 乌鸦：打出到目标玩家面前 ──────────────────────────────────────
+    elif action_type == 'play_crow':
+        if "Crow" not in p["hand"]: return redirect(url_for('index'))
+        if not target_p or target_p["name"] == p["name"]: return redirect(url_for('index'))
+        if target_p.get("placed_crow") is not None:
+            g.log.append("❌ 目标玩家面前已经有乌鸦了！每人最多一只。")
+            return redirect(url_for('index'))
+        p["hand"].remove("Crow")
+        target_p["placed_crow"] = {"ingredients": []}
+        g.spend_move(f"🐦‍⬛ 【{p['name']}】 把乌鸦放到了 【{target_p['name']}】 面前！【{target_p['name']}】 暂时无法包Nasi Lemak！")
+
+    # ── 乌鸦：用食材赶走 ──────────────────────────────────────────────
+    elif action_type == 'chase_crow':
+        if not p.get("placed_crow"):
+            g.log.append("❌ 你面前没有乌鸦！")
+            return redirect(url_for('index'))
+        if not target_p or target_p["name"] == p["name"]: return redirect(url_for('index'))
+        if target_p.get("placed_crow") is not None:
+            g.log.append("❌ 目标玩家面前已经有乌鸦了！")
+            return redirect(url_for('index'))
+        ingredient = request.args.get('ingredient')
+        valid_ings = CORE_5 + ["Rendang"]
+        if ingredient not in valid_ings or ingredient not in p["hand"]:
+            g.log.append("❌ 请选择一张有效的食材牌来喂乌鸦！")
+            return redirect(url_for('index'))
+        p["hand"].remove(ingredient)
+        old_ings = p["placed_crow"]["ingredients"] + [ingredient]
+        p["placed_crow"] = None
+        target_p["placed_crow"] = {"ingredients": old_ings}
+        g.spend_move(f"🐦‍⬛ 【{p['name']}】 用 [{ingredient}] 喂乌鸦，把乌鸦（携带{len(old_ings)}张食材）赶到了 【{target_p['name']}】！")
+
+    # ── Si Oyen：捕获乌鸦 ──────────────────────────────────────────────
+    elif action_type == 'si_oyen':
+        if "Si Oyen" not in p["hand"]:
+            return redirect(url_for('index'))
+        if not p.get("placed_crow"):
+            g.log.append(f"❌ 【{p['name']}】空放了一只 Si Oyen！但你面前根本没有乌鸦骚扰。")
+            return redirect(url_for('index'))
+        p["hand"].remove("Si Oyen")
+        g.discard.append("Si Oyen")
+        crow_ings = p["placed_crow"]["ingredients"]
+        p["placed_crow"] = None
+        for ing in crow_ings:
+            p["hand"].append(ing)
+        p["hand"].sort()
+        reward_str = f"[{', '.join(crow_ings)}]" if crow_ings else "（无食材）"
+        g.spend_move(f"🐱 【{p['name']}】使用 [Si Oyen]，直接扑杀了自己面前的乌鸦！获得食材反馈：{reward_str}")
+
+    elif action_type == 'end_turn_manual':
+        g.end_turn()
     
-    // 初始化首屏数据判定
-    const initDataNode = document.getElementById('game-state-data');
-    if (initDataNode) {
-        localStorage.setItem('game_log_count_{{ room.id|default("default") }}', JSON.parse(initDataNode.dataset.logs || '[]').length);
-        localStorage.setItem('last_handled_turn_idx', initDataNode.dataset.turnIdx);
-        // 如果一开局就是我，立刻响铃
-        if (initDataNode.dataset.isMyTurn === 'true') {
-             playYourTurnSound();
-             if (navigator.vibrate) navigator.vibrate([120, 60, 120]);
-        }
-    }
+    _trigger_bot_if_needed()
+    return redirect(url_for('index'))
 
-    async function pollState() {
-        // 如果玩家正在操作模态框，暂缓替换DOM避免打断操作
-        const isModalOpen = Array.from(document.querySelectorAll('.action-modal')).some(m => m.style.display === 'flex' && m.id !== 'restart-confirm-modal');
-        
-        try {
-            let res = await fetch(window.location.href);
-            let text = await res.text();
-            let parser = new DOMParser();
-            let doc = parser.parseFromString(text, 'text/html');
+@app.route('/action/wholesaler_dismiss')
+def wholesaler_dismiss():
+    g = room.game
+    if g and session.get('my_name') == g.current_player()['name']:
+        g.wholesaler_reveal = None
+        if g.moves_left <= 0: g.end_turn()
+    return redirect(url_for('index'))
 
-            // 如果发生阶段跃迁（例如跳到了结算画面或大厅），直接强制重载全屏
-            if ((doc.querySelector('.lobby-screen') && !document.querySelector('.lobby-screen')) ||
-                (!doc.querySelector('.battlefield') && document.querySelector('.battlefield'))) {
-                return window.location.reload();
-            }
-
-            if (document.querySelector('.lobby-container')) {
-            
-                // 正在输入名字时不要刷新大厅
-                const active = document.activeElement;
-            
-                if (
-                    active &&
-                    active.name === 'player_name'
-                ) {
-                    return;
-                }
-            
-                document.querySelector('.lobby-container').innerHTML =
-                    doc.querySelector('.lobby-container').innerHTML;
-            }
-                
-                // 仅在无模态框开启时执行局部核心替换
-                if (!isModalOpen) {
-                    document.querySelector('.top-bar').innerHTML = doc.querySelector('.top-bar').innerHTML;
-                    
-                    // 保护对局记录的滚动条位置不乱跳
-                    let oldLog = document.getElementById('center-log-body');
-                    let newLog = doc.getElementById('center-log-body');
-                    if(oldLog && newLog) {
-                        let isScrolledToBottom = oldLog.scrollHeight - oldLog.clientHeight <= oldLog.scrollTop + 10;
-                        oldLog.innerHTML = newLog.innerHTML;
-                        // 检测新的中指消息
-                        const latestLine = newLog.querySelector('.center-log-line');
-                        
-                        if (
-                            latestLine &&
-                            latestLine.textContent.includes('🖕') &&
-                            !window.lastFingerMsgHandled
-                        ) {
-                            triggerMiddleFingerEffect();
-                            window.lastFingerMsgHandled = latestLine.textContent;
-                        
-                            setTimeout(() => {
-                                window.lastFingerMsgHandled = null;
-                            }, 1500);
-                        }
-                        if(isScrolledToBottom) oldLog.scrollTop = oldLog.scrollHeight;
-                    }
-                    
-                    let oppColsOld = document.querySelectorAll('.opponents-col');
-                    let oppColsNew = doc.querySelectorAll('.opponents-col');
-                    if(oppColsOld.length === 2 && oppColsNew.length === 2) {
-                        oppColsOld[0].innerHTML = oppColsNew[0].innerHTML;
-                        oppColsOld[1].innerHTML = oppColsNew[1].innerHTML;
-                    }
-
-                    document.querySelector('.bottom-console').innerHTML = doc.querySelector('.bottom-console').innerHTML;
-
-                    // 实时同步交易弹窗（解决需求 1）
-                    let tradeBannerOld = document.getElementById('trade-banner');
-                    let tradeBannerNew = doc.getElementById('trade-banner');
-                    if (tradeBannerNew && !tradeBannerOld) {
-                        document.querySelector('.top-bar').insertAdjacentHTML('afterend', tradeBannerNew.outerHTML);
-                    } else if (!tradeBannerNew && tradeBannerOld) {
-                        tradeBannerOld.remove();
-                    } else if (tradeBannerNew && tradeBannerOld) {
-                        tradeBannerOld.innerHTML = tradeBannerNew.innerHTML;
-                    }
-                }
-
-                // 🌟 无损音频和动效扫描引擎 🌟
-                let newData = doc.getElementById('game-state-data');
-                let oldData = document.getElementById('game-state-data');
-                
-                if(newData) {
-                    // 更新底层数据供定时器使用
-                    if (oldData) oldData.replaceWith(newData);
-
-                    let isMyTurn = newData.dataset.isMyTurn === 'true';
-                    let turnIdx = newData.dataset.turnIdx;
-                    
-                    // 需求 5：每次轮到我的回合必定响铃提醒！
-                    if (isMyTurn) {
-                        let lastTurn = localStorage.getItem('last_handled_turn_idx');
-                        if (lastTurn !== turnIdx) {
-                            localStorage.setItem('last_handled_turn_idx', turnIdx);
-                            playYourTurnSound();
-                            if(navigator.vibrate) navigator.vibrate([120,60,120]);
-                        }
-                    } else {
-                        if(localStorage.getItem('last_handled_turn_idx') === turnIdx) {
-                            localStorage.removeItem('last_handled_turn_idx');
-                        }
-                    }
-
-                    // 扫描聊天流，触发气泡和中指特效
-                    let newChats = JSON.parse(newData.dataset.chat || '[]');
-                    let lastProcessedTs = parseFloat(localStorage.getItem('last_chat_ts') || '0');
-                    let maxTs = lastProcessedTs;
-                    newChats.forEach(m => {
-                        if (m.ts > lastProcessedTs) {
-                            const display = (m.log_line || m.msg).replace(/^💬 【.*?】：/, '');
-                            if (m.player !== "{{ my_name }}") { 
-                                showLocalBubble(m.player, display);
-                                if (m.msg === '🖕') triggerMiddleFingerEffect();
-                            }
-                            if (m.ts > maxTs) maxTs = m.ts;
-                        }
-                    });
-                    localStorage.setItem('last_chat_ts', maxTs);
-
-                    // 扫描全新操作记录，触发专属音效与弹窗
-                    let newLogs = JSON.parse(newData.dataset.logs || '[]');
-                    let logCount = newLogs.length;
-                    let lastLogCount = parseInt(localStorage.getItem('game_log_count_{{ room.id|default("default") }}') || '0');
-                    
-                    if (logCount > lastLogCount) {
-                        let diff = newLogs.slice(lastLogCount);
-                        diff.forEach(logLine => {
-                            if (logLine.includes("打包了一份") || logLine.includes("速成了椰浆饭")) {
-                                playPackSound();
-                                const playerMatch = logLine.match(/【(.*?)】/);
-                                showNasiToast(playerMatch ? `${playerMatch[1]} 成功包饭！` : "有人成功包饭！");
-                            } else if (logLine.includes("把乌鸦放到了") || logLine.includes("赶到了")) {
-                                playCrowSound();
-                            }
-                        });
-                        localStorage.setItem('game_log_count_{{ room.id|default("default") }}', logCount);
-                    } else if (logCount < lastLogCount) {
-                        localStorage.setItem('game_log_count_{{ room.id|default("default") }}', logCount); // 如果被重置则矫正
-                    }
-                }
-            }
-        } catch(e) { console.error("Poll Error:", e); }
-
-        setTimeout(pollState, 1500); // 1.5秒光速级轮询
+@app.route('/quick_chat', methods=['POST'])
+def quick_chat():
+    my_name = session.get('my_name')
+    if not my_name: return ('', 204)
+    msg = request.form.get('msg', '').strip()
+    mode = request.form.get('mode', 'have').strip()
+    
+    INGREDIENT_LABELS = {
+        '🥚': '鸡蛋', '🥚': '鸡蛋',
+        '🥒': '黄瓜', '🥒': '黄瓜',
+        '🍚': '白饭', '🍚': '白饭',
+        '🌶️': 'Sambal', '🌶': 'Sambal',
+        '🥜': '花生', '🥜': '花生'
     }
     
-    // 启动引擎
-    setTimeout(pollState, 1500);
-    {% endif %}
-</script>
-</body>
-</html>
+    ALLOWED_SPECIAL = ['🙋', '⏩', '🖕']
+    
+    # 清洗可能夹杂的不可见字符或前后空格
+    matched_label = None
+    for k, v in INGREDIENT_LABELS.items():
+        if k in msg or msg in k:
+            matched_label = v
+            break
+            
+    is_special = any(s in msg for s in ALLOWED_SPECIAL)
+    
+    if not matched_label and not is_special:
+        # 如果白名单未精准命中，则启动宽松兼容机制，确保任何快捷短语都能成功发送
+        if "蛋" in msg or "🥚" in msg: matched_label = "鸡蛋"
+        elif "瓜" in msg or "🥒" in msg: matched_label = "黄瓜"
+        elif "饭" in msg or "🍚" in msg: matched_label = "白饭"
+        elif "🌶" in msg or "辣" in msg or "Sambal" in msg: matched_label = "Sambal"
+        elif "豆" in msg or "花生" in msg or "🥜" in msg: matched_label = "花生"
+        elif "🙋" in msg or "举手" in msg: msg = '🙋'
+        elif "⏩" in msg or "快" in msg: msg = '⏩'
+        elif "🖕" in msg or "中指" in msg: msg = '🖕'
+        else:
+            # 彻底宽容处理，避免拒绝
+            matched_label = msg
+
+    if matched_label:
+        log_line = f"💬 【{my_name}】：{'我要' if mode=='want' else '我有'} {msg} {matched_label}！"
+    elif msg == '🙋':
+        log_line = f"💬 【{my_name}】：🙋 举手！"
+    elif msg == '⏩':
+        log_line = f"💬 【{my_name}】：⏩ 快一点啦！"
+    elif msg == '🖕':
+        log_line = f"💬 【{my_name}】：🖕 送全场一个温暖的中指！"
+    else:
+        log_line = f"💬 【{my_name}】发出了：{msg}"
+
+    global room
+    if 'room' in globals() and room.status == "PLAYING" and room.game:
+        room.game.log.append(log_line)
+        
+    return ('', 204)
+
+@app.route('/reset')
+def reset():
+    global room
+    room.status = "EMPTY"
+    room.joined_players = []
+    room.game = None
+    room.chat_messages = []
+    session.clear()
+    return redirect(url_for('index'))
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
