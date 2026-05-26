@@ -6,6 +6,8 @@ import random
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "nasilemak_multiplayer_secret_key_2026")
 
+BOT_PREFIX = "🤖Bot_"  # 机器人名字前缀，用于识别
+
 CORE_5 = ["Rice", "Egg", "Peanuts", "Sambal", "Cucumber"]
 
 def create_gold_deck():
@@ -57,6 +59,7 @@ class OnlineGameState:
         self.pending_trade = None
         self.wholesaler_reveal = None
         self.thief_pending = False
+        self._bot_turn_pending = False
 
         for p in self.players:
             for _ in range(7):
@@ -126,6 +129,8 @@ class OnlineGameState:
         self.has_drawn = False
         self.active_inspection = None
         self.log.append(f"🟢 轮到 【{self.players[self.turn_idx]['name']}】 的回合。")
+        # 如果下一个是机器人，自动行动
+        self._bot_turn_pending = True
 
 class GlobalRoom:
     def __init__(self):
@@ -135,6 +140,220 @@ class GlobalRoom:
         self.chat_messages = []
 
 room = GlobalRoom()
+
+# ============================================================
+# 机器人 AI 逻辑
+# ============================================================
+
+def is_bot(name):
+    return str(name).startswith(BOT_PREFIX)
+
+def bot_generate_name():
+    """生成一个唯一的机器人名字"""
+    emojis = ["🐼","🦊","🐸","🐧","🦁","🐯","🐻","🦉"]
+    adjectives = ["懒","快","猛","萌","乖","皮","强","酷"]
+    used = set(room.joined_players)
+    for _ in range(30):
+        e = random.choice(emojis)
+        a = random.choice(adjectives)
+        n = f"{BOT_PREFIX}{e}{a}"
+        if n not in used:
+            return n
+    return f"{BOT_PREFIX}玩家{random.randint(100,999)}"
+
+def bot_take_turn(g, bot_idx):
+    """机器人行动：每次调用执行完整的一个回合（摸牌 + 尽量行动 + 结束）"""
+    p = g.players[bot_idx]
+
+    # ── 1. 摸牌 ──────────────────────────────────────────────
+    if not g.has_drawn:
+        g.draw_from_deck(bot_idx, 2)
+        g.has_drawn = True
+        g.log.append(f"📥 【{p['name']}】 抽取了 2 张手牌。")
+
+    # ── 2. 如果有待处理的交易（机器人是被请求方），随机接受 ──
+    if g.pending_trade and g.pending_trade["to"] == p["name"]:
+        t = g.pending_trade
+        want_card = t["want"]
+        if want_card in p["hand"] and random.random() < 0.6:
+            # 接受交易
+            p_from = next(x for x in g.players if x["name"] == t["from"])
+            if t["offer"] in p_from["hand"]:
+                p_from["hand"].remove(t["offer"]); p["hand"].append(t["offer"])
+                p["hand"].remove(want_card); p_from["hand"].append(want_card)
+                p_from["hand"].sort(); p["hand"].sort()
+                g.log.append(f"🤝 【{p['name']}】(机器人) 接受了交易！")
+            else:
+                g.log.append(f"❌ 交易破裂（机器人接受时发牌方已无牌）")
+        else:
+            g.log.append(f"🚫 【{p['name']}】(机器人) 拒绝了交易。")
+        g.pending_trade = None
+        if g.moves_left <= 0:
+            g.end_turn()
+        return
+
+    if g.game_over:
+        return
+
+    # ── 3. 执行动作（最多3次） ────────────────────────────────
+    actions_taken = 0
+    max_actions = g.moves_left
+
+    for _ in range(max_actions):
+        if g.game_over or g.moves_left <= 0:
+            break
+        if g.pending_trade or g.thief_pending:
+            break
+        did_action = _bot_do_one_action(g, bot_idx)
+        if did_action:
+            actions_taken += 1
+        else:
+            break  # 无事可做，提前结束
+
+    # ── 4. 如果还没结束回合，手动结束 ──────────────────────────
+    if not g.game_over and g.moves_left > 0:
+        g.end_turn()
+
+
+def _bot_do_one_action(g, bot_idx):
+    """机器人执行单个动作，返回 True 表示成功执行了一个动作"""
+    p = g.players[bot_idx]
+    hand = p["hand"]
+
+    # ── 优先：赶走自己面前的乌鸦 ─────────────────────────────
+    if p.get("placed_crow"):
+        # 找一个没乌鸦的对手
+        chase_ingredients = [c for c in hand if c in CORE_5 + ["Rendang"]]
+        targets_no_crow = [i for i, x in enumerate(g.players)
+                           if x["name"] != p["name"] and x.get("placed_crow") is None]
+        if chase_ingredients and targets_no_crow:
+            ing = chase_ingredients[0]
+            tgt_idx = random.choice(targets_no_crow)
+            tgt = g.players[tgt_idx]
+            hand.remove(ing)
+            old_ings = p["placed_crow"]["ingredients"] + [ing]
+            p["placed_crow"] = None
+            tgt["placed_crow"] = {"ingredients": old_ings}
+            g.spend_move(f"🐦‍⬛ 【{p['name']}】(机器人) 用[{ing}]把乌鸦赶到了【{tgt['name']}】！")
+            return True
+        # 没有食材赶乌鸦，什么都做不了
+        return False
+
+    # ── 尝试打包 ──────────────────────────────────────────────
+    if g.gold_deck:
+        rendang_count = hand.count("Rendang")
+        missing_core = [i for i in CORE_5 if i not in hand]
+
+        # 标准打包
+        if len(missing_core) <= rendang_count:
+            for i in CORE_5:
+                if i in hand: hand.remove(i)
+                else: hand.remove("Rendang")
+            p["scored_cards"].append(g.gold_deck.pop())
+            p["flies"].append(False)
+            g.spend_move(f"【{p['name']}】(机器人) 打包了一份椰浆饭")
+            return True
+
+        # 大妈代工（≥3种食材）
+        if "Mak Cik" in hand:
+            unique_ings = list(set([i for i in CORE_5 if i in hand]))
+            if len(unique_ings) >= 3:
+                hand.remove("Mak Cik")
+                for i in unique_ings[:3]: hand.remove(i)
+                p["scored_cards"].append(g.gold_deck.pop())
+                p["flies"].append(False)
+                g.spend_move(f"【{p['name']}】(机器人) 大妈代工打包了椰浆饭")
+                return True
+
+    # ── 使用苍蝇拍 ────────────────────────────────────────────
+    if "Fly Swatter" in hand:
+        fly_idxs = [i for i, f in enumerate(p["flies"]) if f]
+        if fly_idxs:
+            idx = fly_idxs[0]
+            hand.remove("Fly Swatter")
+            g.discard.append("Fly Swatter"); g.discard.append("Fly")
+            p["flies"][idx] = False
+            g.spend_move(f"💥 【{p['name']}】(机器人) 打死了自己饭上的苍蝇")
+            return True
+
+    # ── 放苍蝇到对手饭上 ──────────────────────────────────────
+    if "Fly" in hand:
+        targets_with_food = [(i, x) for i, x in enumerate(g.players)
+                             if x["name"] != p["name"] and x["scored_cards"]
+                             and False in x["flies"]]
+        if targets_with_food:
+            tgt_idx, tgt = random.choice(targets_with_food)
+            slot = tgt["flies"].index(False)
+            hand.remove("Fly")
+            tgt["flies"][slot] = True
+            g.spend_move(f"🪰 【{p['name']}】(机器人) 把苍蝇放到了【{tgt['name']}】的饭上！")
+            return True
+
+    # ── 使用乌鸦骚扰对手 ──────────────────────────────────────
+    if "Crow" in hand:
+        targets_no_crow = [(i, x) for i, x in enumerate(g.players)
+                           if x["name"] != p["name"] and x.get("placed_crow") is None]
+        if targets_no_crow:
+            tgt_idx, tgt = random.choice(targets_no_crow)
+            hand.remove("Crow")
+            tgt["placed_crow"] = {"ingredients": []}
+            g.spend_move(f"🐦‍⬛ 【{p['name']}】(机器人) 把乌鸦放到了【{tgt['name']}】面前！")
+            return True
+
+    # ── Si Oyen 消灭乌鸦 ──────────────────────────────────────
+    if "Si Oyen" in hand and p.get("placed_crow"):
+        hand.remove("Si Oyen"); g.discard.append("Si Oyen")
+        crow_ings = p["placed_crow"]["ingredients"]
+        p["placed_crow"] = None
+        for ing in crow_ings: hand.append(ing)
+        hand.sort()
+        g.spend_move(f"🐱 【{p['name']}】(机器人) 用Si Oyen消灭了乌鸦！")
+        return True
+
+    # ── 批发商摸牌 ─────────────────────────────────────────────
+    if "Wholesaler" in hand and len(hand) < 8:
+        hand.remove("Wholesaler"); g.discard.append("Wholesaler")
+        g.draw_from_deck(bot_idx, 3)
+        g.wholesaler_reveal = None  # 机器人直接跳过展示
+        g.spend_move(f"【{p['name']}】(机器人) 用批发商摸了3张牌")
+        return True
+
+    # ── 供应商征收 ─────────────────────────────────────────────
+    if "Supplier" in hand:
+        # 征收自己最需要的食材
+        have = set(c for c in hand if c in CORE_5)
+        need = [i for i in CORE_5 if i not in have]
+        if need:
+            target_ing = need[0]
+            hand.remove("Supplier"); g.discard.append("Supplier")
+            total = 0
+            for opp in g.players:
+                if opp["name"] != p["name"]:
+                    matches = [c for c in opp["hand"] if c == target_ing]
+                    for m in matches:
+                        opp["hand"].remove(m); hand.append(m); total += 1
+            hand.sort()
+            g.spend_move(f"【{p['name']}】(机器人) 供应商征收了全场[{target_ing}] 共{total}张")
+            return True
+
+    # ── 小偷 ──────────────────────────────────────────────────
+    if "Thief" in hand:
+        opponents = [opp for opp in g.players if opp["name"] != p["name"] and opp["hand"]]
+        if opponents:
+            hand.remove("Thief"); g.discard.append("Thief")
+            stolen = 0
+            sample = random.sample(opponents, min(3 if len(g.players) > 4 else len(opponents), len(opponents)))
+            for opp in sample:
+                if opp["hand"]:
+                    card = random.choice(opp["hand"])
+                    opp["hand"].remove(card); hand.append(card); stolen += 1
+            hand.sort()
+            names = "、".join(o["name"] for o in sample)
+            g.spend_move(f"🥷 【{p['name']}】(机器人) 从【{names}】偷走了{stolen}张牌")
+            return True
+
+    # ── 没有好的动作可执行 ────────────────────────────────────
+    return False
 
 @app.route('/')
 def index():
@@ -154,6 +373,10 @@ def index():
                 session.pop('my_name', None); my_name = None
 
     if room.status == "PLAYING" and room.game:
+        # 如果轮到机器人，自动执行
+        if getattr(room.game, '_bot_turn_pending', False):
+            room.game._bot_turn_pending = False
+            _trigger_bot_if_needed()
         if room.game.pending_trade:
             trade_time_left = int(room.game.pending_trade["expires_at"] - time.time())
             if trade_time_left <= 0:
@@ -186,13 +409,49 @@ def join_room():
     session['my_name'] = player_name
     return redirect(url_for('index'))
 
+@app.route('/add_bot', methods=['POST'])
+def add_bot():
+    """在等待室添加一个机器人"""
+    if room.status != "WAITING":
+        return redirect(url_for('index', error="房间不在等待状态！"))
+    if len(room.joined_players) >= 7:
+        return redirect(url_for('index', error="房间已满，无法添加机器人！"))
+    bot_name = bot_generate_name()
+    room.joined_players.append(bot_name)
+    return redirect(url_for('index'))
+
+@app.route('/remove_bot', methods=['POST'])
+def remove_bot():
+    """移除最后一个机器人"""
+    if room.status != "WAITING":
+        return redirect(url_for('index'))
+    bots = [p for p in room.joined_players if is_bot(p)]
+    if bots:
+        room.joined_players.remove(bots[-1])
+    return redirect(url_for('index'))
+
 @app.route('/start_game', methods=['POST'])
 def start_game():
     if room.status == "WAITING" and len(room.joined_players) >= 3:
         room.game = OnlineGameState(room.joined_players)
         room.status = "PLAYING"
-    else: return redirect(url_for('index', error="至少需要 3 名玩家才能开始游戏！"))
+        # 如果第一个行动的是机器人，立即让它行动
+        _trigger_bot_if_needed()
+    else:
+        return redirect(url_for('index', error="至少需要 3 名玩家才能开始游戏！"))
     return redirect(url_for('index'))
+
+def _trigger_bot_if_needed():
+    """如果当前轮到机器人，自动执行机器人回合"""
+    g = room.game
+    if not g or g.game_over:
+        return
+    current_name = g.players[g.turn_idx]["name"]
+    if is_bot(current_name):
+        bot_take_turn(g, g.turn_idx)
+        # 可能连续多个机器人，递归处理
+        if not g.game_over:
+            _trigger_bot_if_needed()
 
 @app.route('/draw')
 def draw():
@@ -223,6 +482,18 @@ def propose_trade():
         return redirect(url_for('index'))
     g.pending_trade = {"from": p["name"], "to": target_name, "offer": offer_card, "want": want_card, "expires_at": time.time() + 30}
     g.spend_move(f"向 【{target_name}】 发起 30 秒限时食材交易：用 [{offer_card}] 换取 [{want_card}]")
+    # 如果交易对象是机器人，立即自动响应
+    if is_bot(target_name):
+        target_p2 = next((x for x in g.players if x["name"] == target_name), None)
+        if target_p2 and want_card in target_p2["hand"] and random.random() < 0.6:
+            target_p2["hand"].remove(want_card); p["hand"].append(want_card)
+            p["hand"].remove(offer_card); target_p2["hand"].append(offer_card)
+            p["hand"].sort(); target_p2["hand"].sort()
+            g.log.append(f"🤝 【{target_name}】(机器人) 自动接受了交易！")
+        else:
+            g.log.append(f"🚫 【{target_name}】(机器人) 自动拒绝了交易。")
+        g.pending_trade = None
+        if g.moves_left <= 0: g.end_turn()
     return redirect(url_for('index'))
 
 @app.route('/resolve_trade/<decision>')
@@ -251,6 +522,7 @@ def resolve_trade(decision):
         g.log.append(f"🚫 【{t_data['to']}】 拒绝了交易请求。")
     g.pending_trade = None
     if g.moves_left <= 0: g.end_turn()
+    _trigger_bot_if_needed()
     return redirect(url_for('index'))
 
 @app.route('/action/<action_type>')
@@ -474,7 +746,9 @@ def play_action(action_type):
 
     elif action_type == 'end_turn_manual':
         g.end_turn()
+        _trigger_bot_if_needed()
 
+    _trigger_bot_if_needed()
     return redirect(url_for('index'))
 
 @app.route('/action/wholesaler_dismiss')
