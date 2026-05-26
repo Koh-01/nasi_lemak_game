@@ -257,12 +257,22 @@ def _bot_do_one_action(g, bot_idx):
         # 大妈代工（≥3种食材）
         if "Mak Cik" in hand:
             unique_ings = list(set([i for i in CORE_5 if i in hand]))
-            if len(unique_ings) >= 3:
+            rendang_count = hand.count("Rendang")
+            
+            if len(unique_ings) + rendang_count >= 3:
                 hand.remove("Mak Cik")
-                for i in unique_ings[:3]: hand.remove(i)
+                # 扣除现有的普通食材
+                cards_to_remove = unique_ings[:3]
+                for card in cards_to_remove: 
+                    hand.remove(card)
+                # 不够的用 Rendang 补
+                needed_rendang = 3 - len(cards_to_remove)
+                for _ in range(needed_rendang): 
+                    hand.remove("Rendang")
+                    
                 p["scored_cards"].append(g.gold_deck.pop())
                 p["flies"].append(False)
-                g.spend_move(f"【{p['name']}】(机器人) 大妈代工打包了椰浆饭")
+                g.spend_move(f"【{p['name']}】(机器人) 狡猾地利用大妈和 {needed_rendang} 张Rendang代工打包了椰浆饭！")
                 return True
 
     # ── 使用苍蝇拍 ────────────────────────────────────────────
@@ -563,19 +573,38 @@ def play_action(action_type):
             g.log.append("❌ 你凑不够5种核心食材！")
 
     # ── 大妈代工 ────────────────────────────────────────────────────
+# ── 大妈代工（支持 Rendang 万能充当食材） ───────────────────────────
     elif action_type == 'pack_makcik':
         if p.get("placed_crow"):
             g.log.append("❌ 你被乌鸦骚扰，无法包Nasi Lemak！先赶走乌鸦。")
             return redirect(url_for('index'))
-        if "Mak Cik" not in p["hand"]: return redirect(url_for('index'))
+        if "Mak Cik" not in p["hand"]: 
+            return redirect(url_for('index'))
+            
+        # 统计手里的基础核心食材种类
         unique_ingredients = list(set([i for i in CORE_5 if i in p["hand"]]))
-        if len(unique_ingredients) >= 3:
+        rendang_count = p["hand"].count("Rendang")
+        
+        # 只要【基础食材种类 + Rendang数量】≥ 3，就说明可以凑出3种不同的食材！
+        if len(unique_ingredients) + rendang_count >= 3:
             p["hand"].remove("Mak Cik")
-            for i in unique_ingredients[:3]: p["hand"].remove(i)
+            
+            # 优先扣除手里的普通核心食材（最多扣3种）
+            cards_to_remove = unique_ingredients[:3]
+            for card in cards_to_remove:
+                p["hand"].remove(card)
+                
+            # 如果扣完普通食材还不够3张，用 Rendang 来补齐缺口
+            needed_rendang = 3 - len(cards_to_remove)
+            for _ in range(needed_rendang):
+                p["hand"].remove("Rendang")
+                
             if g.gold_deck:
-                p["scored_cards"].append(g.gold_deck.pop()); p["flies"].append(False)
-                g.spend_move(f"【{p['name']}】 使用大妈代工速成了椰浆饭")
-        else: g.log.append("❌ 基础食材不足3种不同的！")
+                p["scored_cards"].append(g.gold_deck.pop())
+                p["flies"].append(False)
+                g.spend_move(f"🧑‍🍳 【{p['name']}】 触发大妈神技！用 Mak Cik 加食材（含{needed_rendang}张Rendang）强行速成了椰浆饭！")
+        else: 
+            g.log.append("❌ 食材严重不足！就算是加上手里的 Rendang 也不够3种不同食材。")
 
     # ── 官员 ─────────────────────────────────────────────────────────
     elif action_type == 'officer':
