@@ -331,42 +331,34 @@ def play_action(action_type):
                 g.spend_move(f"【{p['name']}】 官员强占了卡牌：[{taken_str}]")
 
     # ── 小偷 ─────────────────────────────────────────────────────────
+# ── 小偷 (全自动随机偷取) ──────────────────────────────────────────
     elif action_type == 'thief':
         if "Thief" not in p["hand"]: return redirect(url_for('index'))
+        
+        # 找出有手牌的对手
         opponents = [opp for opp in g.players if opp["name"] != p["name"] and opp["hand"]]
-        if len(g.players) > 4:
-            g.thief_pending = True
-            g.log.append(f"🥷 【{p['name']}】 正在选择偷窃目标（需选3人）...")
-            return redirect(url_for('index'))
-        else:
-            p["hand"].remove("Thief"); g.discard.append("Thief")
-            stolen_count = 0
-            for opp in opponents:
-                card = random.choice(opp["hand"]); opp["hand"].remove(card); p["hand"].append(card); stolen_count += 1
-            p["hand"].sort()
-            g.spend_move(f"🥷 【{p['name']}】 派小偷从全场共摸走了 {stolen_count} 张手牌！")
-
-    elif action_type == 'thief_targets':
-        if not g.thief_pending or "Thief" not in p["hand"]: return redirect(url_for('index'))
-        raw = request.args.get('targets', '')
-        try: chosen_idxs = [int(x) for x in raw.split(',') if x.strip()]
-        except ValueError: return redirect(url_for('index'))
-        valid_targets = []
-        for idx in chosen_idxs:
-            if idx < len(g.players) and g.players[idx]["name"] != p["name"] and g.players[idx]["hand"]:
-                valid_targets.append(idx)
-        valid_targets = list(dict.fromkeys(valid_targets))[:3]
-        if len(valid_targets) == 0:
-            g.log.append("❌ 没有选择有效的偷窃目标！"); g.thief_pending = False; return redirect(url_for('index'))
+        
+        # 打出小偷卡
         p["hand"].remove("Thief"); g.discard.append("Thief")
-        stolen_count = 0; target_names = []
-        for idx in valid_targets:
-            opp = g.players[idx]
-            if opp["hand"]:
-                card = random.choice(opp["hand"]); opp["hand"].remove(card); p["hand"].append(card)
-                stolen_count += 1; target_names.append(opp["name"])
-        p["hand"].sort(); g.thief_pending = False
-        g.spend_move(f"🥷 【{p['name']}】 从 【{'、'.join(target_names)}】 各偷走了1张手牌！")
+        
+        # 从有手牌的对手中随机选出最多 3 个人
+        targets = random.sample(opponents, min(3, len(opponents)))
+        
+        stolen_count = 0
+        target_names = []
+        for opp in targets:
+            card = random.choice(opp["hand"])
+            opp["hand"].remove(card)
+            p["hand"].append(card)
+            stolen_count += 1
+            target_names.append(opp["name"])
+            
+        p["hand"].sort()
+        
+        if stolen_count > 0:
+            g.spend_move(f"🥷 【{p['name']}】 派小偷随机从 【{'、'.join(target_names)}】 处各偷走了 1 张手牌！")
+        else:
+            g.spend_move(f"🥷 【{p['name']}】 出动了小偷，但全场对手都在空手套白狼，空手而归！")
 
     # ── 批发商 ────────────────────────────────────────────────────────
     elif action_type == 'wholesaler':
