@@ -296,14 +296,28 @@ def play_action(action_type):
             g.log.append("❌ 你被乌鸦骚扰，无法包Nasi Lemak！先赶走乌鸦。")
             return redirect(url_for('index'))
         if "Mak Cik" not in p["hand"]: return redirect(url_for('index'))
+        # Mak Cik needs 3 ingredients total; Rendang can substitute for any missing core ingredient
         unique_ingredients = list(set([i for i in CORE_5 if i in p["hand"]]))
-        if len(unique_ingredients) >= 3:
+        rendang_count = p["hand"].count("Rendang")
+        total_available = len(unique_ingredients) + rendang_count
+        if total_available >= 3:
             p["hand"].remove("Mak Cik")
-            for i in unique_ingredients[:3]: p["hand"].remove(i)
+            used_ings = []
+            used_rendang = 0
+            # Use real ingredients first, then fill with Rendang
+            for i in unique_ingredients[:3]:
+                p["hand"].remove(i)
+                used_ings.append(i)
+            needed = 3 - len(used_ings)
+            for _ in range(needed):
+                p["hand"].remove("Rendang")
+                used_ings.append("Rendang")
+                used_rendang += 1
             if g.gold_deck:
                 p["scored_cards"].append(g.gold_deck.pop()); p["flies"].append(False)
-                g.spend_move(f"【{p['name']}】 使用大妈代工速成了椰浆饭")
-        else: g.log.append("❌ 基础食材不足3种不同的！")
+                suffix = f"（其中{used_rendang}张Rendang代替）" if used_rendang > 0 else ""
+                g.spend_move(f"【{p['name']}】 使用大妈代工速成了椰浆饭{suffix}")
+        else: g.log.append("❌ 食材不足3张（可用食材+Rendang合计需≥3）！")
 
     # ── 官员 ─────────────────────────────────────────────────────────
     elif action_type == 'officer':
@@ -493,7 +507,7 @@ def quick_chat():
     mode = request.form.get('mode', 'have').strip()
     INGREDIENT_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'}
     ALLOWED_INGREDIENTS = list(INGREDIENT_LABELS.keys())
-    ALLOWED_SPECIAL = ['🙋','⏩']
+    ALLOWED_SPECIAL = ['🙋','⏩','🖕']
     if msg not in ALLOWED_INGREDIENTS and msg not in ALLOWED_SPECIAL:
         return ('', 204)
     if msg in INGREDIENT_LABELS:
@@ -503,6 +517,8 @@ def quick_chat():
         log_line = f"💬 【{my_name}】：🙋 举手！"
     elif msg == '⏩':
         log_line = f"💬 【{my_name}】：⏩ 快一点啦！"
+    elif msg == '🖕':
+        log_line = f"💬 【{my_name}】：🖕 中指警告！"
     else:
         log_line = f"💬 【{my_name}】：{msg}"
     if room.status == "PLAYING" and room.game:
@@ -515,6 +531,33 @@ def quick_chat():
 def reset():
     room.status = "EMPTY"; room.joined_players = []; room.game = None; session.clear()
     return redirect(url_for('index'))
+
+@app.route('/poll_state')
+def poll_state():
+    """Lightweight endpoint for clients to poll game state changes."""
+    import json
+    from flask import jsonify
+    my_name = session.get('my_name')
+    state = {
+        "status": room.status,
+        "player_count": len(room.joined_players) if room.status == "WAITING" else 0,
+        "turn_player": None,
+        "turn_idx": None,
+        "log_tail": None,
+        "latest_msg": None,
+    }
+    if room.status == "PLAYING" and room.game:
+        g = room.game
+        state["turn_player"] = g.current_player()["name"]
+        state["turn_idx"] = g.turn_idx
+        state["game_over"] = g.game_over
+        state["log_tail"] = g.log[-1] if g.log else ""
+        # Latest middle finger msg in last 2 seconds
+        recent_finger = [m for m in room.chat_messages[-5:] if m["msg"] == "🖕" and (time.time() - m["ts"]) < 2]
+        if recent_finger:
+            state["finger_from"] = recent_finger[-1]["player"]
+            state["finger_ts"] = recent_finger[-1]["ts"]
+    return jsonify(state)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
