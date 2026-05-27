@@ -67,21 +67,27 @@ class OnlineGameState:
         return self.players[self.turn_idx]
 
     def draw_from_deck(self, p_idx, count=1):
-        p = self.players[p_idx]
-        drawn = []
-        for _ in range(count):
-            if not self.main_deck:
-                if self.discard:
-                    self.main_deck = self.discard[:]
-                    self.discard.clear()
-                    for _ in range(3): random.shuffle(self.main_deck)
-                    self.log.append("🔄 摸牌堆空了！弃牌堆已进行【深度混乱洗牌】重用。")
-                else: break
-            card = self.main_deck.pop()
-            p["hand"].append(card)
-            drawn.append(card)
-        p["hand"].sort()
-        return drawn
+            p = self.players[p_idx]
+            drawn = []
+            
+            # 【新增逻辑】：在任何人抽牌前，检测主牌堆是否少于 4 张
+            if len(self.main_deck) < 4 and self.discard:
+                # 将弃牌堆加入现有的主牌堆中（保留剩余的 1~3 张牌）
+                self.main_deck.extend(self.discard)
+                self.discard.clear()
+                # 深度混乱洗牌
+                for _ in range(3): random.shuffle(self.main_deck)
+                self.log.append("🔄 摸牌堆不足 4 张！弃牌堆已回收并重新洗入牌池。")
+    
+            for _ in range(count):
+                if not self.main_deck:
+                    break # 如果洗牌后依然没牌（极端情况），只能停止抽牌
+                card = self.main_deck.pop()
+                p["hand"].append(card)
+                drawn.append(card)
+                
+            p["hand"].sort()
+            return drawn
 
     def check_win(self):
         for p in self.players:
