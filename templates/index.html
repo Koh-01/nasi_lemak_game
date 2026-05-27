@@ -213,21 +213,29 @@
     <p class="text-muted small">本游戏为横屏模式</p>
 </div>
 
-{% set latest_log = g.log[-1] if room.status == "PLAYING" and g and g.log else "" %}
-{% if "打包了一份标准" in latest_log or "使用大妈代工速成了" in latest_log %}
-<div id="nasi-toast" style="position:fixed; top:50px; left:50%; transform:translateX(-50%); background:rgba(34,197,94,0.95); color:white; padding:10px 25px; border-radius:30px; font-weight:bold; box-shadow:0 10px 25px rgba(0,0,0,0.5); z-index:100000; animation: popin 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, fadeout 0.5s 2.5s forwards; white-space:nowrap; border: 2px solid #bbf7d0;">
-    🎉 突发：【{{ latest_log.split('】')[0].split('【')[1] }}】成功包出了一份椰浆饭！
-</div>
-<style>
-    @keyframes popin { from { top: -50px; opacity: 0; } to { top: 50px; opacity: 1; } }
-    @keyframes fadeout { from { opacity: 1; } to { opacity: 0; display: none; } }
-</style>
-<script>setTimeout(() => { document.getElementById('nasi-toast')?.remove(); }, 3000);</script>
-{% endif %}
-
 <div id="game-wrapper">
 
-<div id="chat-bubble-layer" class="chat-bubble-layer"></div>
+    <div id="game-state" 
+         data-myturn="{{ 'true' if room.status == 'PLAYING' and g and g.turn_idx == my_p_idx and not g.game_over else 'false' }}"
+         data-tradetimer="{{ g.pending_trade.expires_at if g and g.pending_trade else '' }}"
+         data-myname="{{ my_name or '' }}"
+         data-gameover="{{ 'true' if g and g.game_over else 'false' }}"
+         style="display:none;">
+        <div id="server-chat-data">{{ chat_messages|tojson|forceescape if chat_messages else '[]' }}</div>
+    </div>
+
+    {% set latest_log = g.log[-1] if room.status == "PLAYING" and g and g.log else "" %}
+    {% if "打包了一份标准" in latest_log or "使用大妈代工速成了" in latest_log %}
+    <div id="nasi-toast" style="position:fixed; top:50px; left:50%; transform:translateX(-50%); background:rgba(34,197,94,0.95); color:white; padding:10px 25px; border-radius:30px; font-weight:bold; box-shadow:0 10px 25px rgba(0,0,0,0.5); z-index:100000; animation: popin 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, fadeout 0.5s 2.5s forwards; white-space:nowrap; border: 2px solid #bbf7d0;">
+        🎉 突发：【{{ latest_log.split('】')[0].split('【')[1] }}】成功包出了一份椰浆饭！
+    </div>
+    <style>
+        @keyframes popin { from { top: -50px; opacity: 0; } to { top: 50px; opacity: 1; } }
+        @keyframes fadeout { from { opacity: 1; } to { opacity: 0; display: none; } }
+    </style>
+    {% endif %}
+
+    <div id="chat-bubble-layer" class="chat-bubble-layer"></div>
 
     {% if error %}
     <div style="position:fixed;top:40px;left:50%;transform:translateX(-50%);z-index:9999;" class="alert alert-danger py-1 px-3 fs-6">{{ error }}</div>
@@ -265,7 +273,7 @@
                     {% endif %}
                 </form>
             {% endif %}
-            <button onclick="openRestartModal()" class="lobby-restart-btn">🔄 强制重启房间</button>
+            <button type="button" onclick="openRestartModal()" class="lobby-restart-btn">🔄 强制重启房间</button>
         </div>
     </div>
 
@@ -344,7 +352,7 @@
             {% else %}⏳ 等待【{{ g.current_player().name }}】{% endif %}
         </span>
         <a href="/action/end_turn_manual" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2" style="font-size:10px;">结束回合</a>
-        <button onclick="openRestartModal()" class="restart-btn">⚡重启</button>
+        <button type="button" onclick="openRestartModal()" class="restart-btn">⚡重启</button>
     </div>
 
     {% if g.pending_trade %}
@@ -461,7 +469,7 @@
         </div>
 
         {% if g.turn_idx == my_p_idx and g.has_drawn and not g.active_inspection and not g.thief_pending and not g.pending_trade %}
-        <button onclick="document.getElementById('trade-modal').style.display='flex'"
+        <button type="button" onclick="document.getElementById('trade-modal').style.display='flex'"
                 class="btn btn-sm btn-outline-primary mb-1 px-3" style="font-size:11px;border-radius:20px;opacity:0.85;">
             🤝 发起食材交易
         </button>
@@ -510,7 +518,6 @@
                     </a>
                 {% endfor %}
 
-                <!-- 新增：右侧乌鸦状态牌 -->
                 {% if my_player.placed_crow is not none %}
                 <div class="poker-card crow-status-card" style="background:linear-gradient(135deg,#1c1917,#292524); border-color:#eab308; box-shadow: 0 0 15px rgba(234,179,8,0.5); margin-left: 12px; z-index: 100; cursor: help;" onclick="alert('你被乌鸦缠身无法打包！\n请点击对手头像框，用食材喂乌鸦把它赶给别人！')">
                     <div class="p-emoji">🐦‍⬛</div>
@@ -532,28 +539,25 @@
         {% if my_name %}
         <div class="quick-chat-bar">
             <span class="qc-label">我有：</span>
-            <button class="qc-btn" onclick="sendQuickChat('🥚','have')" title="我有鸡蛋">🥚</button>
-            <button class="qc-btn" onclick="sendQuickChat('🥒','have')" title="我有黄瓜">🥒</button>
-            <button class="qc-btn" onclick="sendQuickChat('🍚','have')" title="我有白饭">🍚</button>
-            <button class="qc-btn" onclick="sendQuickChat('🌶️','have')" title="我有Sambal">🌶️</button>
-            <button class="qc-btn" onclick="sendQuickChat('🥜','have')" title="我有花生">🥜</button>
+            <button type="button" class="qc-btn" onclick="sendQuickChat('🥚','have')" title="我有鸡蛋">🥚</button>
+            <button type="button" class="qc-btn" onclick="sendQuickChat('🥒','have')" title="我有黄瓜">🥒</button>
+            <button type="button" class="qc-btn" onclick="sendQuickChat('🍚','have')" title="我有白饭">🍚</button>
+            <button type="button" class="qc-btn" onclick="sendQuickChat('🌶️','have')" title="我有Sambal">🌶️</button>
+            <button type="button" class="qc-btn" onclick="sendQuickChat('🥜','have')" title="我有花生">🥜</button>
             <span class="qc-label" style="margin-left:4px;border-left:1px solid #334155;padding-left:6px;">我要：</span>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥚','want')" title="我要鸡蛋">🥚</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥒','want')" title="我要黄瓜">🥒</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🍚','want')" title="我要白饭">🍚</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🌶️','want')" title="我要Sambal">🌶️</button>
-            <button class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥜','want')" title="我要花生">🥜</button>
+            <button type="button" class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥚','want')" title="我要鸡蛋">🥚</button>
+            <button type="button" class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥒','want')" title="我要黄瓜">🥒</button>
+            <button type="button" class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🍚','want')" title="我要白饭">🍚</button>
+            <button type="button" class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🌶️','want')" title="我要Sambal">🌶️</button>
+            <button type="button" class="qc-btn" style="border-color:#f59e0b;" onclick="sendQuickChat('🥜','want')" title="我要花生">🥜</button>
             <span class="qc-label" style="margin-left:4px;border-left:1px solid #334155;padding-left:6px;"></span>
-            <button class="qc-btn" onclick="sendQuickChat('🙋','special')" title="举手">🙋</button>
-            <button class="qc-btn urge" onclick="sendQuickChat('⏩','special')" title="快一点！">⏩</button>
-            <!-- 新增中指按钮 -->
-            <button class="qc-btn middle-finger ms-1" onclick="sendQuickChat('🖕','special')" title="中指嘲讽">🖕</button>
+            <button type="button" class="qc-btn" onclick="sendQuickChat('🙋','special')" title="举手">🙋</button>
+            <button type="button" class="qc-btn urge" onclick="sendQuickChat('⏩','special')" title="快一点！">⏩</button>
+            <button type="button" class="qc-btn middle-finger ms-1" onclick="sendQuickChat('🖕','special')" title="中指嘲讽">🖕</button>
         </div>
         {% endif %}
     </div>
 
-    <!-- 弹窗部分保留 (Target, Supplier, Defense, Thief, Reveal, Officer, Trade) -->
-    <!-- 由于弹窗内容无改动，此处原样保留之前的代码 -->
     <div id="target-modal" class="action-modal">
         <div class="modal-box">
             <h5 class="text-warning mb-2">👤 <span id="tm-name"></span> <span id="tm-crow-badge" style="display:none;">🐦‍⬛</span></h5>
@@ -588,14 +592,13 @@
                 </div>
                 {% endif %}{% endfor %}
             </div>
-            <button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">关闭</button>
+            <button type="button" class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">关闭</button>
         </div>
     </div>
 
-    <!-- 弹窗保留: 供应商 / 防守 / 小偷 / 批发商 / 官员查牌 / 交易 -->
-    <div id="supplier-modal" class="action-modal"><div class="modal-box"><h5 class="text-info mb-3">📣 供应商垄断征收</h5><form action="/action/supplier" method="GET"><select name="ingredient" class="form-select form-select-sm mb-3"><option value="Rice">🍚 Rice 椰浆饭粒</option><option value="Egg">🥚 Egg 水煮蛋</option><option value="Peanuts">🥜 Peanuts 炸花生</option><option value="Sambal">🌶️ Sambal 三巴酱</option><option value="Cucumber">🥒 Cucumber 黄瓜</option></select><button type="submit" class="btn btn-info btn-sm w-100">强行没收全场此牌</button></form><button class="btn btn-sm btn-secondary mt-2" onclick="closeModals()">取消</button></div></div>
-    <div id="defense-modal" class="action-modal"><div class="modal-box"><h5 class="text-danger mb-3">🪰 驱蝇除害</h5><div class="d-flex gap-2"><a id="btn-swat" href="#" class="btn btn-danger btn-sm flex-grow-1">💥 苍蝇拍拍死</a><a id="btn-fan-base" href="#" class="btn btn-info btn-sm text-white flex-grow-1" onclick="showFanTargets()">🪭 扇子吹走</a></div><div id="fan-target-list" class="d-flex flex-wrap gap-1 mt-2 justify-content-center d-none">{% for p in g.players %}{% if p.name != my_name %}<a href="#" class="btn btn-sm btn-outline-info fan-opt" data-tidx="{{ loop.index0 }}">→ {{ p.name }}</a>{% endif %}{% endfor %}</div><button class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">取消</button></div></div>
-    <div id="thief-modal" class="action-modal"><div class="modal-box"><h5 class="text-warning mb-1">🥷 小偷选目标</h5><p class="text-muted small mb-3">{% if g.players|length > 4 %}选择最多 3 名玩家偷取手牌{% else %}将偷所有对手的手牌{% endif %}</p><div id="thief-targets" class="d-flex flex-wrap gap-2 justify-content-center mb-3">{% for p in g.players %}{% if p.name != my_name %}<div class="thief-target-btn btn btn-sm btn-outline-light" data-idx="{{ loop.index0 }}" onclick="toggleThiefTarget(this)">{{ p.name }} ({{ p.hand|length }}张)</div>{% endif %}{% endfor %}</div><div id="thief-count" class="small text-muted mb-2">已选 0 / 3 人</div>{% if g.players|length > 4 %}<button onclick="confirmThiefTargets()" class="btn btn-warning btn-sm w-100">🥷 出发行窃！</button>{% else %}<a href="/action/thief" class="btn btn-warning btn-sm w-100">🥷 偷遍所有人！</a>{% endif %}<button class="btn btn-sm btn-secondary mt-2" onclick="closeModals()">取消</button></div></div>
+    <div id="supplier-modal" class="action-modal"><div class="modal-box"><h5 class="text-info mb-3">📣 供应商垄断征收</h5><form action="/action/supplier" method="GET"><select name="ingredient" class="form-select form-select-sm mb-3"><option value="Rice">🍚 Rice 椰浆饭粒</option><option value="Egg">🥚 Egg 水煮蛋</option><option value="Peanuts">🥜 Peanuts 炸花生</option><option value="Sambal">🌶️ Sambal 三巴酱</option><option value="Cucumber">🥒 Cucumber 黄瓜</option></select><button type="submit" class="btn btn-info btn-sm w-100">强行没收全场此牌</button></form><button type="button" class="btn btn-sm btn-secondary mt-2" onclick="closeModals()">取消</button></div></div>
+    <div id="defense-modal" class="action-modal"><div class="modal-box"><h5 class="text-danger mb-3">🪰 驱蝇除害</h5><div class="d-flex gap-2"><a id="btn-swat" href="#" class="btn btn-danger btn-sm flex-grow-1">💥 苍蝇拍拍死</a><a id="btn-fan-base" href="#" class="btn btn-info btn-sm text-white flex-grow-1" onclick="showFanTargets()">🪭 扇子吹走</a></div><div id="fan-target-list" class="d-flex flex-wrap gap-1 mt-2 justify-content-center d-none">{% for p in g.players %}{% if p.name != my_name %}<a href="#" class="btn btn-sm btn-outline-info fan-opt" data-tidx="{{ loop.index0 }}">→ {{ p.name }}</a>{% endif %}{% endfor %}</div><button type="button" class="btn btn-sm btn-secondary mt-3" onclick="closeModals()">取消</button></div></div>
+    <div id="thief-modal" class="action-modal"><div class="modal-box"><h5 class="text-warning mb-1">🥷 小偷选目标</h5><p class="text-muted small mb-3">{% if g.players|length > 4 %}选择最多 3 名玩家偷取手牌{% else %}将偷所有对手的手牌{% endif %}</p><div id="thief-targets" class="d-flex flex-wrap gap-2 justify-content-center mb-3">{% for p in g.players %}{% if p.name != my_name %}<div class="thief-target-btn btn btn-sm btn-outline-light" data-idx="{{ loop.index0 }}" onclick="toggleThiefTarget(this)">{{ p.name }} ({{ p.hand|length }}张)</div>{% endif %}{% endfor %}</div><div id="thief-count" class="small text-muted mb-2">已选 0 / 3 人</div>{% if g.players|length > 4 %}<button type="button" onclick="confirmThiefTargets()" class="btn btn-warning btn-sm w-100">🥷 出发行窃！</button>{% else %}<a href="/action/thief" class="btn btn-warning btn-sm w-100">🥷 偷遍所有人！</a>{% endif %}<button type="button" class="btn btn-sm btn-secondary mt-2" onclick="closeModals()">取消</button></div></div>
     
     {% if g.wholesaler_reveal %}
     <div class="action-modal" id="wholesaler-reveal-modal" style="display:flex;"><div class="modal-box"><h5 class="text-info mb-2">🏪 批发商公示</h5><p class="small text-muted mb-3">【{{ g.wholesaler_reveal.player }}】 从牌堆顶摸了 3 张牌：</p><div class="d-flex gap-2 justify-content-center mb-3">{% for card in g.wholesaler_reveal.cards %}{% set emoji_map = {"Rice":"🍚","Egg":"🥚","Peanuts":"🥜","Sambal":"🌶️","Cucumber":"🥒","Wholesaler":"🏪","Thief":"🥷","Supplier":"📣","Mak Cik":"🧑‍🍳","Officer":"👮","Fly":"🪰","Fly Swatter":"💥","Fan":"🪭","Rendang":"🍗","Si Oyen":"🐱","Crow":"🐦‍⬛"} %}<div class="card-reveal {% if card in g.wholesaler_reveal.kept %}kept{% else %}gone{% endif %}"><div style="font-size:22px;">{{ emoji_map.get(card,'❓') }}</div><div style="font-size:10px;">{{ card }}</div>{% if card in g.wholesaler_reveal.kept %}<div style="font-size:9px;color:#22c55e;">✓ 留下</div>{% else %}<div style="font-size:9px;color:#94a3b8;">✗ 弃掉</div>{% endif %}</div>{% endfor %}</div><p class="small text-success mb-3">留下 {{ g.wholesaler_reveal.kept|length }} 张食材，弃掉 {{ g.wholesaler_reveal.discarded|length }} 张非食材牌。</p>{% if g.turn_idx == my_p_idx %}<a href="/action/wholesaler_dismiss" class="btn btn-info btn-sm w-100">✅ 我知道了，继续</a>{% else %}<p class="small text-muted">等待【{{ g.current_player().name }}】关闭此窗口…</p>{% endif %}</div></div>
@@ -609,9 +612,10 @@
     <div class="action-modal" style="display:flex;"><div class="modal-box" style="width:min(340px,92vw);"><h5 class="text-primary mb-3">👮 查获【{{ g.active_inspection.target_name }}】的底牌</h5><div class="d-flex flex-wrap gap-2 justify-content-center">{% for card in g.active_inspection.hand_to_view %}{% if card in g.players[g.active_inspection.target_idx].hand %}<a href="/action/officer_take?card={{ card }}" class="btn btn-light border-primary fw-bold text-dark p-2" style="font-size:11px;">抢夺<br>{{ card }}</a>{% endif %}{% endfor %}</div></div></div>
     {% endif %}
 
-    <div id="trade-modal" class="action-modal"><div class="modal-box"><h5 class="text-primary mb-3">🤝 30秒限时食材交易</h5><form action="/propose_trade" method="POST"><div class="row g-2 mb-2"><div class="col-6"><label class="form-label small text-muted mb-1">我出食材</label><select name="offer" class="form-select form-select-sm" required>{% for i in ['Rice','Egg','Peanuts','Sambal','Cucumber'] %}<option value="{{ i }}">{{ {'Rice':'🍚 Rice','Egg':'🥚 Egg','Peanuts':'🥜 Peanuts','Sambal':'🌶️ Sambal','Cucumber':'🥒 Cucumber'}[i] }}</option>{% endfor %}</select></div><div class="col-6"><label class="form-label small text-muted mb-1">我要换取</label><select name="want" class="form-select form-select-sm" required>{% for i in ['Rice','Egg','Peanuts','Sambal','Cucumber'] %}<option value="{{ i }}">{{ {'Rice':'🍚 Rice','Egg':'🥚 Egg','Peanuts':'🥜 Peanuts','Sambal':'🌶️ Sambal','Cucumber':'🥒 Cucumber'}[i] }}</option>{% endfor %}</select></div></div><label class="form-label small text-muted mb-1">目标摊主</label><select name="target" class="form-select form-select-sm mb-3" required>{% for p in g.players if p.name != my_name %}<option value="{{ p.name }}">{{ p.name }}</option>{% endfor %}</select><button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">发起交易（消耗1动作）</button></form><button class="btn btn-sm btn-secondary w-100 mt-2" onclick="closeModals()">取消</button></div></div>
-
-    {% endif %}{% endif %}</div>
+    <div id="trade-modal" class="action-modal"><div class="modal-box"><h5 class="text-primary mb-3">🤝 30秒限时食材交易</h5><form action="/propose_trade" method="POST"><div class="row g-2 mb-2"><div class="col-6"><label class="form-label small text-muted mb-1">我出食材</label><select name="offer" class="form-select form-select-sm" required>{% for i in ['Rice','Egg','Peanuts','Sambal','Cucumber'] %}<option value="{{ i }}">{{ {'Rice':'🍚 Rice','Egg':'🥚 Egg','Peanuts':'🥜 Peanuts','Sambal':'🌶️ Sambal','Cucumber':'🥒 Cucumber'}[i] }}</option>{% endfor %}</select></div><div class="col-6"><label class="form-label small text-muted mb-1">我要换取</label><select name="want" class="form-select form-select-sm" required>{% for i in ['Rice','Egg','Peanuts','Sambal','Cucumber'] %}<option value="{{ i }}">{{ {'Rice':'🍚 Rice','Egg':'🥚 Egg','Peanuts':'🥜 Peanuts','Sambal':'🌶️ Sambal','Cucumber':'🥒 Cucumber'}[i] }}</option>{% endfor %}</select></div></div><label class="form-label small text-muted mb-1">目标摊主</label><select name="target" class="form-select form-select-sm mb-3" required>{% for p in g.players if p.name != my_name %}<option value="{{ p.name }}">{{ p.name }}</option>{% endfor %}</select><button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">发起交易（消耗1动作）</button></form><button type="button" class="btn btn-sm btn-secondary w-100 mt-2" onclick="closeModals()">取消</button></div></div>
+    {% endif %}
+    {% endif %}
+</div>
 
 <script>
     // ===== 全屏逻辑 =====
@@ -630,21 +634,17 @@
         document.getElementById('fullscreen-btn').innerHTML = document.fullscreenElement ? '🔳 退出全屏' : '🔲 全屏';
     });
 
-    // ===== 提示音/音效 =====
+    // ===== 提示音/音效/特效 =====
     function playTurnSound() {
         try {
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(600, ctx.currentTime);
+            osc.type = 'sine'; osc.frequency.setValueAtTime(600, ctx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(1000, ctx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.5, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.3);
+            gain.gain.setValueAtTime(0.5, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(); osc.stop(ctx.currentTime + 0.3);
         } catch(e) {}
     }
 
@@ -653,66 +653,39 @@
             const ctx = new (window.AudioContext || window.webkitAudioContext)();
             const osc = ctx.createOscillator();
             const gain = ctx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(120, ctx.currentTime);
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, ctx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.5);
-            gain.gain.setValueAtTime(0.8, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.5);
+            gain.gain.setValueAtTime(0.8, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.start(); osc.stop(ctx.currentTime + 0.5);
         } catch(e) {}
     }
 
-    // 我的回合播放声音
-    {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.game_over %}
-        if (sessionStorage.getItem('my_turn') !== 'true') {
-            playTurnSound();
-            sessionStorage.setItem('my_turn', 'true');
-        }
-    {% else %}
-        sessionStorage.setItem('my_turn', 'false');
-    {% endif %}
-
-    // ===== 中指特效 =====
     function showMiddleFingerEffect() {
         playBuzzerSound();
         const mf = document.createElement('div');
         mf.innerHTML = '🖕';
-        mf.style.position = 'fixed';
-        mf.style.top = '50%';
-        mf.style.left = '50%';
+        mf.style.position = 'fixed'; mf.style.top = '50%'; mf.style.left = '50%';
         mf.style.transform = 'translate(-50%, -50%) scale(0.1)';
-        mf.style.fontSize = '150px';
-        mf.style.zIndex = '999999';
+        mf.style.fontSize = '150px'; mf.style.zIndex = '999999';
         mf.style.textShadow = '0 0 40px rgba(239, 68, 68, 0.8)';
         mf.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
         document.body.appendChild(mf);
-        
-        requestAnimationFrame(() => {
-            mf.style.transform = 'translate(-50%, -50%) scale(2)';
-        });
-        
+        requestAnimationFrame(() => mf.style.transform = 'translate(-50%, -50%) scale(2)');
         setTimeout(() => {
-            mf.style.opacity = '0';
-            mf.style.transition = 'opacity 0.3s';
+            mf.style.opacity = '0'; mf.style.transition = 'opacity 0.3s';
             setTimeout(() => mf.remove(), 300);
         }, 1500);
     }
 
-    // ===== 重启 =====
+    // ===== 交互基础函数 (供内联 onclick 使用) =====
     function openRestartModal() { document.getElementById('restart-confirm-modal').style.display = 'flex'; }
     function closeRestartModal() { document.getElementById('restart-confirm-modal').style.display = 'none'; }
-    document.getElementById('restart-confirm-modal').addEventListener('click', function(e){ if(e.target===this) closeRestartModal(); });
-
-    // ===== 通用关弹窗 =====
     function closeModals() {
-        document.querySelectorAll('.action-modal').forEach(m => { if(!m.dataset.persistent) m.style.display='none'; });
+        document.querySelectorAll('.action-modal').forEach(m => m.style.display='none');
         document.getElementById('fan-target-list')?.classList.add('d-none');
     }
-
-    // ===== 攻击目标弹窗 =====
+    
     function openTargetModal(tIdx, name, foodCount, fliesStr, targetHasCrow) {
         document.getElementById('tm-name').innerText = name;
         const crowBadge = document.getElementById('tm-crow-badge');
@@ -720,236 +693,242 @@
 
         const attackSection = document.getElementById('tm-attack-section');
         const readonlySection = document.getElementById('tm-readonly-section');
+        const stateEl = document.getElementById('game-state');
+        const isMyTurn = stateEl && stateEl.dataset.myturn === 'true';
 
-        {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.active_inspection and not g.thief_pending %}
-        if(attackSection) attackSection.style.display = '';
-        if(readonlySection) readonlySection.style.display = 'none';
-        document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
-        {% if not g.has_drawn %}
-        document.getElementById('btn-officer').classList.add('disabled');
-        document.getElementById('btn-officer').style.opacity = '0.4';
-        document.getElementById('btn-officer').onclick = function(e){ e.preventDefault(); alert('请先摸牌再使用官员！'); };
-        {% else %}
-        document.getElementById('btn-officer').classList.remove('disabled');
-        document.getElementById('btn-officer').style.opacity = '';
-        document.getElementById('btn-officer').onclick = null;
-        {% endif %}
+        if(isMyTurn) {
+            if(attackSection) attackSection.style.display = '';
+            if(readonlySection) readonlySection.style.display = 'none';
+            document.getElementById('btn-officer').href = '/action/officer?target=' + tIdx;
+            
+            const playCrowBtn = document.getElementById('btn-play-crow');
+            if(playCrowBtn) { playCrowBtn.style.display = ''; playCrowBtn.href = '/action/play_crow?target=' + tIdx; }
+            
+            const siOyenBtn = document.getElementById('btn-si-oyen');
+            if(siOyenBtn) { siOyenBtn.style.display = ''; siOyenBtn.href = '/action/si_oyen'; }
 
-        const myHand = {{ my_player.hand | tojson if my_player else '[]' }};
-        const playCrowBtn = document.getElementById('btn-play-crow');
-        if(playCrowBtn) {
-            if(myHand.includes('Crow') && !targetHasCrow) {
-                playCrowBtn.style.display = '';
-                playCrowBtn.href = '/action/play_crow?target=' + tIdx;
-            } else { playCrowBtn.style.display = 'none'; }
-        }
-
-        const myHasCrow = {{ 'true' if my_player and my_player.placed_crow is not none else 'false' }};
-        const siOyenBtn = document.getElementById('btn-si-oyen');
-        if(siOyenBtn) {
-            if(myHand.includes('Si Oyen') && myHasCrow) {
-                siOyenBtn.style.display = '';
-                siOyenBtn.href = '/action/si_oyen';
-            } else {
-                siOyenBtn.style.display = 'none';
-            }
-        }
-        
-        const chaseSection = document.getElementById('crow-chase-section');
-        const chaseIngs = document.getElementById('crow-chase-ingredients');
-        if(chaseSection && chaseIngs) {
-            if(myHasCrow && !targetHasCrow) {
+            const chaseSection = document.getElementById('crow-chase-section');
+            if(chaseSection) {
                 chaseSection.style.display = '';
-                chaseIngs.innerHTML = '';
-                const ingEmoji = {'Rice':'🍚','Egg':'🥚','Peanuts':'🥜','Sambal':'🌶️','Cucumber':'🥒','Rendang':'🍗'};
+                const chaseIngs = document.getElementById('crow-chase-ingredients');
                 const validIngs = ['Rice','Egg','Peanuts','Sambal','Cucumber','Rendang'];
-                const available = validIngs.filter(i => myHand.includes(i));
-                if(available.length > 0) {
-                    available.forEach(ing => {
-                        chaseIngs.innerHTML += `<a href="/action/chase_crow?target=${tIdx}&ingredient=${ing}" class="btn btn-sm btn-outline-warning">${ingEmoji[ing]||'?'} ${ing}</a>`;
-                    });
-                } else {
-                    chaseIngs.innerHTML = '<span class="text-muted small">你没有食材可喂乌鸦！</span>';
-                }
-            } else { chaseSection.style.display = 'none'; }
-        }
-
-        let fa = document.getElementById('fly-targets');
-        fa.innerHTML = '';
-        if(foodCount > 0) {
-            let flies = JSON.parse(fliesStr || "[]");
-            for(let i=0; i<foodCount; i++) {
-                if(flies[i]) {
-                    fa.innerHTML += `<span class="btn btn-sm btn-secondary disabled" style="opacity:0.6;">第${i+1}包(已有🪰)</span>`;
-                } else {
-                    fa.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger shadow-sm">砸在第${i+1}包</a>`;
-                }
+                const ingEmoji = {'Rice':'🍚','Egg':'🥚','Peanuts':'🥜','Sambal':'🌶️','Cucumber':'🥒','Rendang':'🍗'};
+                chaseIngs.innerHTML = validIngs.map(ing => `<a href="/action/chase_crow?target=${tIdx}&ingredient=${ing}" class="btn btn-sm btn-outline-warning">${ingEmoji[ing]} ${ing}</a>`).join('');
             }
+            
+            let fa = document.getElementById('fly-targets');
+            fa.innerHTML = '';
+            if(foodCount > 0) {
+                let flies = JSON.parse(fliesStr || "[]");
+                for(let i=0; i<foodCount; i++) {
+                    if(flies[i]) fa.innerHTML += `<span class="btn btn-sm btn-secondary disabled" style="opacity:0.6;">第${i+1}包(已有🪰)</span>`;
+                    else fa.innerHTML += `<a href="/action/play_fly?target=${tIdx}&card_idx=${i}" class="btn btn-sm btn-outline-danger shadow-sm">砸在第${i+1}包</a>`;
+                }
+            } else fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>';
         } else {
-            fa.innerHTML = '<span class="small text-muted">对方无饭，无法放蝇</span>';
+            if(attackSection) attackSection.style.display = 'none';
+            if(readonlySection) readonlySection.style.display = '';
+            document.querySelectorAll('[id^="tm-status-"]').forEach(el => el.classList.add('d-none'));
+            const statusEl = document.getElementById('tm-status-' + tIdx);
+            if(statusEl) statusEl.classList.remove('d-none');
         }
-        {% else %}
-        if(attackSection) attackSection.style.display = 'none';
-        if(readonlySection) readonlySection.style.display = '';
-        document.querySelectorAll('[id^="tm-status-"]').forEach(el => el.classList.add('d-none'));
-        const statusEl = document.getElementById('tm-status-' + tIdx);
-        if(statusEl) statusEl.classList.remove('d-none');
-        {% endif %}
         document.getElementById('target-modal').style.display = 'flex';
     }
 
-    // ===== 供应商 =====
     function openSupplierModal() { document.getElementById('supplier-modal').style.display = 'flex'; }
-
-    // ===== 防守 =====
     function openDefenseModal(fIdx, hasFly) {
-        {% if room.status == "PLAYING" and g and g.turn_idx == my_p_idx and not g.active_inspection %}
-        if(hasFly){
+        if(hasFly && document.getElementById('game-state')?.dataset.myturn === 'true'){
             document.getElementById('btn-swat').href = '/action/swat_fly?card_idx=' + fIdx;
-            document.querySelectorAll('.fan-opt').forEach(btn => {
-                btn.href = `/action/fan_fly?card_idx=${fIdx}&target=${btn.dataset.tidx}`;
-            });
+            document.querySelectorAll('.fan-opt').forEach(btn => btn.href = `/action/fan_fly?card_idx=${fIdx}&target=${btn.dataset.tidx}`);
             document.getElementById('defense-modal').style.display = 'flex';
         }
-        {% endif %}
     }
     function showFanTargets() { document.getElementById('fan-target-list').classList.remove('d-none'); }
 
-    // ===== 小偷选人 =====
     let selectedThiefTargets = [];
-    const MAX_THIEF = {{ g.players|length if room.status == "PLAYING" and g else 4 }} > 4 ? 3 : 999;
-
     function openThiefModal() {
         selectedThiefTargets = [];
         document.querySelectorAll('.thief-target-btn').forEach(b => b.classList.remove('selected'));
-        updateThiefCount();
-        document.getElementById('thief-modal').style.display = 'flex';
+        updateThiefCount(); document.getElementById('thief-modal').style.display = 'flex';
     }
     function toggleThiefTarget(el) {
         const idx = parseInt(el.dataset.idx);
-        if(el.classList.contains('selected')){
-            el.classList.remove('selected');
-            selectedThiefTargets = selectedThiefTargets.filter(x => x !== idx);
+        if(el.classList.contains('selected')) {
+            el.classList.remove('selected'); selectedThiefTargets = selectedThiefTargets.filter(x => x !== idx);
         } else {
-            if(selectedThiefTargets.length >= MAX_THIEF) return;
-            el.classList.add('selected');
-            selectedThiefTargets.push(idx);
+            if(selectedThiefTargets.length >= 3) return;
+            el.classList.add('selected'); selectedThiefTargets.push(idx);
         }
         updateThiefCount();
     }
     function updateThiefCount() {
         const el = document.getElementById('thief-count');
-        if(el) el.textContent = `已选 ${selectedThiefTargets.length} / ${MAX_THIEF === 999 ? '全部' : MAX_THIEF} 人`;
+        if(el) el.textContent = `已选 ${selectedThiefTargets.length} 人`;
     }
     function confirmThiefTargets() {
         if(selectedThiefTargets.length === 0){ alert('请至少选择 1 名目标！'); return; }
-        window.location.href = '/action/thief_targets?targets=' + selectedThiefTargets.join(',');
+        ajaxFetch('/action/thief_targets?targets=' + selectedThiefTargets.join(','));
     }
 
-    // ===== 交易倒计时 =====
-    {% if room.status == "PLAYING" and g and g.pending_trade %}
-    (function(){
-        const expiresAt = {{ g.pending_trade.expires_at }};
-        const timerEl = document.getElementById('trade-timer');
-        function tick(){
-            if(!timerEl) return;
-            const left = Math.max(0, Math.ceil(expiresAt - Date.now()/1000));
-            timerEl.textContent = left + 's';
-            timerEl.style.color = left <= 5 ? '#ef4444' : '#f59e0b';
-            if(left > 0) setTimeout(tick, 500);
-        }
-        tick();
-    })();
-    {% endif %}
-
-    // ===== 自动刷新控制（包含了等人、交易挂起时强制刷新） =====
-    // 如果在空房间、等待房间，或者处于对局中但（不是自己的回合，或者有挂起的交易）则自动刷新
-    {% if room.status == "EMPTY" or room.status == "WAITING" or (room.status == "PLAYING" and g and (g.turn_idx != my_p_idx or g.pending_trade) and not g.game_over) %}
-    setTimeout(function(){
-        if(document.activeElement && document.activeElement.tagName === 'INPUT') return;
-        window.location.reload();
-    }, 3000);
-    {% endif %}
-
-    // ===== 快捷沟通 =====
-    const ING_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'};
-    const SPECIAL_LABELS = {'🙋':'举手！','⏩':'快一点啦！','🖕':'给了一个国际手势！'};
     function sendQuickChat(msg, mode) {
-        const fd = new FormData();
-        fd.append('msg', msg);
-        fd.append('mode', mode || 'have');
+        const fd = new FormData(); fd.append('msg', msg); fd.append('mode', mode || 'have');
         fetch('/quick_chat', {method:'POST', body:fd});
-        let text;
-        if(ING_LABELS[msg]) {
-            text = (mode === 'want' ? '我要 ' : '我有 ') + msg + ' ' + ING_LABELS[msg] + '！';
-        } else {
-            text = SPECIAL_LABELS[msg] || msg;
-        }
         
-        // 自己发出的特殊效果立马本地展示
-        if(msg === '🖕') {
-            showMiddleFingerEffect();
-        } else {
-            showLocalBubble('你', text);
-        }
-
+        const ING_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'};
+        const SPECIAL_LABELS = {'🙋':'举手！','⏩':'快一点啦！','🖕':'给了一个国际手势！'};
+        let text = ING_LABELS[msg] ? (mode === 'want' ? '我要 ' : '我有 ') + msg + ' ' + ING_LABELS[msg] + '！' : (SPECIAL_LABELS[msg] || msg);
+        
+        if(msg === '🖕') showMiddleFingerEffect(); else showLocalBubble('你', text);
+        
         const logBody = document.getElementById('center-log-body');
         if(logBody) {
             const line = document.createElement('div');
-            line.className = 'center-log-line';
-            line.style.color = '#fbbf24';
-            line.textContent = '💬 【你】：' + text;
+            line.className = 'center-log-line'; line.style.color = '#fbbf24'; line.textContent = '💬 【你】：' + text;
             logBody.insertBefore(line, logBody.firstChild);
         }
     }
     function showLocalBubble(player, text) {
         const layer = document.getElementById('chat-bubble-layer');
         if(!layer) return;
-        const b = document.createElement('div');
-        b.className = 'chat-bubble';
+        const b = document.createElement('div'); b.className = 'chat-bubble';
         b.innerHTML = `<strong style="color:#38bdf8;">${player}</strong>：${text}`;
-        layer.appendChild(b);
-        setTimeout(() => b.remove(), 4000);
+        layer.appendChild(b); setTimeout(() => b.remove(), 4000);
     }
 
-    // ===== 服务器聊天消息渲染与特效触发 =====
-    {% if chat_messages %}
-    (function(){
-        const msgs = {{ chat_messages | tojson }};
-        const now = Date.now() / 1000;
-        const layer = document.getElementById('chat-bubble-layer');
-        if(!layer) return;
+    // =========================================================================================
+    // ===== 核心 AJAX 无缝单页应用 (SPA) 引擎 =====
+    // =========================================================================================
+    
+    function syncState() {
+        const stateEl = document.getElementById('game-state');
+        if(!stateEl) return;
         
-        let shownMsgs = JSON.parse(sessionStorage.getItem('shown_msgs') || '[]');
+        const isMyTurn = stateEl.dataset.myturn === 'true';
+        const tradeTimer = stateEl.dataset.tradetimer;
+        const myName = stateEl.dataset.myname;
         
-        msgs.filter(m => now - m.ts < 4).slice(-3).forEach(m => {
-            const msgId = m.ts + m.player + m.msg;
-            if (!shownMsgs.includes(msgId)) {
-                shownMsgs.push(msgId);
-                
-                // 如果检测到中指发送，触发特效
-                if(m.msg === '🖕') {
-                    // 发送者本地已触发，如果不是自己发的就触发
-                    if(m.player !== '{{ my_name }}') {
-                        showMiddleFingerEffect();
-                    }
-                } else {
-                    const b = document.createElement('div');
-                    b.className = 'chat-bubble';
-                    const logLine = m.log_line || m.msg;
-                    const display = logLine.replace(/^💬 【.*?】：/, '');
-                    b.innerHTML = `<strong style="color:#38bdf8;">${m.player}</strong>：${display}`;
-                    layer.appendChild(b);
-                    const age = now - m.ts;
-                    setTimeout(() => b.remove(), Math.max(500, (4 - age) * 1000));
-                }
+        if (isMyTurn) {
+            if (sessionStorage.getItem('my_turn') !== 'true') {
+                playTurnSound(); sessionStorage.setItem('my_turn', 'true');
             }
-        });
+        } else { sessionStorage.setItem('my_turn', 'false'); }
         
-        if (shownMsgs.length > 20) shownMsgs = shownMsgs.slice(-20);
-        sessionStorage.setItem('shown_msgs', JSON.stringify(shownMsgs));
-    })();
-    {% endif %}
+        const chatDataEl = document.getElementById('server-chat-data');
+        if (chatDataEl) {
+            const msgs = JSON.parse(chatDataEl.textContent || '[]');
+            const now = Date.now() / 1000;
+            const layer = document.getElementById('chat-bubble-layer');
+            let shownMsgs = JSON.parse(sessionStorage.getItem('shown_msgs') || '[]');
+            
+            msgs.filter(m => now - m.ts < 4).slice(-3).forEach(m => {
+                const msgId = m.ts + m.player + m.msg;
+                if (!shownMsgs.includes(msgId)) {
+                    shownMsgs.push(msgId);
+                    if(m.msg === '🖕' && m.player !== myName) {
+                        showMiddleFingerEffect();
+                    } else if (m.msg !== '🖕') {
+                        const b = document.createElement('div'); b.className = 'chat-bubble';
+                        const display = (m.log_line || m.msg).replace(/^💬 【.*?】：/, '');
+                        b.innerHTML = `<strong style="color:#38bdf8;">${m.player}</strong>：${display}`;
+                        layer.appendChild(b);
+                        setTimeout(() => b.remove(), Math.max(500, (4 - (now - m.ts)) * 1000));
+                    }
+                }
+            });
+            if (shownMsgs.length > 20) shownMsgs = shownMsgs.slice(-20);
+            sessionStorage.setItem('shown_msgs', JSON.stringify(shownMsgs));
+        }
+        
+        if(window.tradeInterval) clearInterval(window.tradeInterval);
+        if (tradeTimer) {
+            const expiresAt = parseFloat(tradeTimer);
+            window.tradeInterval = setInterval(() => {
+                const timerEl = document.getElementById('trade-timer');
+                if (timerEl) {
+                    const left = Math.max(0, Math.ceil(expiresAt - Date.now()/1000));
+                    timerEl.textContent = left + 's';
+                    timerEl.style.color = left <= 5 ? '#ef4444' : '#f59e0b';
+                }
+            }, 500);
+        }
+        
+        const toast = document.getElementById('nasi-toast');
+        if(toast && !toast.dataset.timerSet) {
+            toast.dataset.timerSet = '1';
+            setTimeout(() => toast.remove(), 3000);
+        }
+
+        const restartModal = document.getElementById('restart-confirm-modal');
+        if(restartModal) restartModal.onclick = function(e){ if(e.target===this) closeRestartModal(); };
+    }
+
+    function ajaxFetch(url, options = {}) {
+        fetch(url, options)
+            .then(r => r.text())
+            .then(html => {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const newWrapper = doc.getElementById('game-wrapper');
+                const oldWrapper = document.getElementById('game-wrapper');
+                
+                if (oldWrapper && newWrapper) {
+                    oldWrapper.innerHTML = newWrapper.innerHTML;
+                } else {
+                    document.body.innerHTML = doc.body.innerHTML;
+                }
+                closeModals();
+                closeRestartModal();
+                syncState();
+            })
+            .catch(err => console.error('Fetch error:', err));
+    }
+
+    document.addEventListener('click', function(e) {
+        let target = e.target.closest('a');
+        if (target && target.href && !target.href.startsWith('javascript:') && !target.href.includes('#')) {
+            e.preventDefault();
+            ajaxFetch(target.href);
+        }
+    });
+
+    document.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        const method = form.method || 'GET';
+        let url = form.action || window.location.href;
+        
+        const options = { method: method.toUpperCase() };
+        if (options.method === 'POST') {
+            options.body = formData;
+        } else {
+            const params = new URLSearchParams(formData);
+            url = url.split('?')[0] + '?' + params.toString();
+        }
+        ajaxFetch(url, options);
+    });
+
+    setInterval(() => {
+        if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT')) {
+            return;
+        }
+        
+        const inLobby = document.querySelector('.lobby-screen') !== null;
+        const stateEl = document.getElementById('game-state');
+        
+        if (inLobby) {
+            ajaxFetch(window.location.href);
+        } else if (stateEl) {
+            const isMyTurn = stateEl.dataset.myturn === 'true';
+            const tradeTimer = stateEl.dataset.tradetimer;
+            const gameOver = stateEl.dataset.gameover === 'true';
+            
+            if (!gameOver && (!isMyTurn || tradeTimer)) {
+                ajaxFetch(window.location.href);
+            }
+        }
+    }, 3000);
+
+    document.addEventListener('DOMContentLoaded', syncState);
 </script>
 </body>
 </html>
