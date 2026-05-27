@@ -275,7 +275,6 @@ def play_action(action_type):
         rendang_in_hand = p["hand"].count("Rendang")
         missing = [i for i in CORE_5 if i not in p["hand"]]
         if rendang_in_hand >= 5 and len([c for c in p["hand"] if c in CORE_5]) == 0:
-            # pure rendang pack
             for _ in range(5): p["hand"].remove("Rendang")
             if g.gold_deck:
                 p["scored_cards"].append(g.gold_deck.pop()); p["flies"].append(False)
@@ -290,34 +289,26 @@ def play_action(action_type):
         else:
             g.log.append("❌ 你凑不够5种核心食材！")
 
-    # ── 大妈代工 ────────────────────────────────────────────────────
+    # ── 大妈代工 (修改：可以搭配哪怕全是Rendang也可以) ───────────────────────
     elif action_type == 'pack_makcik':
         if p.get("placed_crow"):
             g.log.append("❌ 你被乌鸦骚扰，无法包Nasi Lemak！先赶走乌鸦。")
             return redirect(url_for('index'))
         if "Mak Cik" not in p["hand"]: return redirect(url_for('index'))
-        # Mak Cik needs 3 ingredients total; Rendang can substitute for any missing core ingredient
-        unique_ingredients = list(set([i for i in CORE_5 if i in p["hand"]]))
-        rendang_count = p["hand"].count("Rendang")
-        total_available = len(unique_ingredients) + rendang_count
-        if total_available >= 3:
+        
+        # 只要手里的基础食材或Rendang加起来够3张即可
+        valid_ings = [i for i in p["hand"] if i in CORE_5 or i == "Rendang"]
+        if len(valid_ings) >= 3:
             p["hand"].remove("Mak Cik")
-            used_ings = []
-            used_rendang = 0
-            # Use real ingredients first, then fill with Rendang
-            for i in unique_ingredients[:3]:
+            # 优先消耗普通食材，将Rendang排在后面保留
+            valid_ings.sort(key=lambda x: 1 if x == "Rendang" else 0)
+            for i in valid_ings[:3]:
                 p["hand"].remove(i)
-                used_ings.append(i)
-            needed = 3 - len(used_ings)
-            for _ in range(needed):
-                p["hand"].remove("Rendang")
-                used_ings.append("Rendang")
-                used_rendang += 1
+                
             if g.gold_deck:
                 p["scored_cards"].append(g.gold_deck.pop()); p["flies"].append(False)
-                suffix = f"（其中{used_rendang}张Rendang代替）" if used_rendang > 0 else ""
-                g.spend_move(f"【{p['name']}】 使用大妈代工速成了椰浆饭{suffix}")
-        else: g.log.append("❌ 食材不足3张（可用食材+Rendang合计需≥3）！")
+                g.spend_move(f"【{p['name']}】 使用大妈代工速成了椰浆饭")
+        else: g.log.append("❌ 基础食材/Rendang不足3张，大妈无法开工！")
 
     # ── 官员 ─────────────────────────────────────────────────────────
     elif action_type == 'officer':
@@ -422,9 +413,8 @@ def play_action(action_type):
             p["flies"][card_idx] = False; target_p["flies"][assigned_idx] = True
             g.spend_move(f"🪭 【{p['name']}】 用扇子把苍蝇吹到了 【{target_p['name']}】 的饭上")
 
-    # ── 乌鸦：打出到目标玩家面前 ──────────────────────────────────────
+    # ── 乌鸦系列 ──────────────────────────────────────
     elif action_type == 'play_crow':
-        # Play Crow card from hand onto a target player
         if "Crow" not in p["hand"]: return redirect(url_for('index'))
         if not target_p or target_p["name"] == p["name"]: return redirect(url_for('index'))
         if target_p.get("placed_crow") is not None:
@@ -434,9 +424,7 @@ def play_action(action_type):
         target_p["placed_crow"] = {"ingredients": []}
         g.spend_move(f"🐦‍⬛ 【{p['name']}】 把乌鸦放到了 【{target_p['name']}】 面前！【{target_p['name']}】 暂时无法包Nasi Lemak！")
 
-    # ── 乌鸦：用食材赶走（由被骚扰的玩家操作，把乌鸦赶给别人）──────────
     elif action_type == 'chase_crow':
-        # Current player must have a placed_crow in front of them
         if not p.get("placed_crow"):
             g.log.append("❌ 你面前没有乌鸦！")
             return redirect(url_for('index'))
@@ -449,41 +437,26 @@ def play_action(action_type):
         if ingredient not in valid_ings or ingredient not in p["hand"]:
             g.log.append("❌ 请选择一张有效的食材牌来喂乌鸦！")
             return redirect(url_for('index'))
-        # Move crow + accumulated ingredients + new ingredient to target
         p["hand"].remove(ingredient)
         old_ings = p["placed_crow"]["ingredients"] + [ingredient]
         p["placed_crow"] = None
         target_p["placed_crow"] = {"ingredients": old_ings}
         g.spend_move(f"🐦‍⬛ 【{p['name']}】 用 [{ingredient}] 喂乌鸦，把乌鸦（携带{len(old_ings)}张食材）赶到了 【{target_p['name']}】！")
 
-    # ── Si Oyen：捕获乌鸦，领取其携带的食材 ──────────────────────────
     elif action_type == 'si_oyen':
-        # 1. 基础检查：手里得有猫
         if "Si Oyen" not in p["hand"]:
             return redirect(url_for('index'))
-    
-        # 2. 核心检查：自己面前必须有乌鸦。如果没有，直接弹回，不消耗卡牌
         if not p.get("placed_crow"):
             g.log.append(f"❌ 【{p['name']}】空放了一只 Si Oyen！但你面前根本没有乌鸦骚扰。")
             return redirect(url_for('index'))
-    
-        # 3. 核心逻辑：只对自己(p)的操作，完全不管 target_p 是谁
         p["hand"].remove("Si Oyen")
         g.discard.append("Si Oyen")
-    
-        # 拿走这只乌鸦肚子里的所有食材
         crow_ings = p["placed_crow"]["ingredients"]
-        p["placed_crow"] = None # 成功消灭自己面前的乌鸦！
-    
-        # 将食材吐回当前玩家的手牌
+        p["placed_crow"] = None 
         for ing in crow_ings:
             p["hand"].append(ing)
-    
         p["hand"].sort()
-    
         reward_str = f"[{', '.join(crow_ings)}]" if crow_ings else "（无食材）"
-    
-        # 4. 写入游戏日志
         g.spend_move(f"🐱 【{p['name']}】使用 [Si Oyen]，直接扑杀了自己面前的乌鸦！获得食材反馈：{reward_str}")
 
     elif action_type == 'end_turn_manual':
@@ -507,9 +480,10 @@ def quick_chat():
     mode = request.form.get('mode', 'have').strip()
     INGREDIENT_LABELS = {'🥚':'鸡蛋','🥒':'黄瓜','🍚':'白饭','🌶️':'Sambal','🥜':'花生'}
     ALLOWED_INGREDIENTS = list(INGREDIENT_LABELS.keys())
-    ALLOWED_SPECIAL = ['🙋','⏩','🖕']
+    ALLOWED_SPECIAL = ['🙋','⏩','🖕'] # 添加中指选项
     if msg not in ALLOWED_INGREDIENTS and msg not in ALLOWED_SPECIAL:
         return ('', 204)
+    
     if msg in INGREDIENT_LABELS:
         label = INGREDIENT_LABELS[msg]
         log_line = f"💬 【{my_name}】：{'我要' if mode=='want' else '我有'} {msg} {label}！"
@@ -518,9 +492,10 @@ def quick_chat():
     elif msg == '⏩':
         log_line = f"💬 【{my_name}】：⏩ 快一点啦！"
     elif msg == '🖕':
-        log_line = f"💬 【{my_name}】：🖕 中指警告！"
+        log_line = f"💬 【{my_name}】：🖕 给了一个国际手势！"
     else:
         log_line = f"💬 【{my_name}】：{msg}"
+        
     if room.status == "PLAYING" and room.game:
         room.game.log.append(log_line)
     room.chat_messages.append({"player": my_name, "msg": msg, "mode": mode, "log_line": log_line, "ts": time.time()})
@@ -531,33 +506,6 @@ def quick_chat():
 def reset():
     room.status = "EMPTY"; room.joined_players = []; room.game = None; session.clear()
     return redirect(url_for('index'))
-
-@app.route('/poll_state')
-def poll_state():
-    """Lightweight endpoint for clients to poll game state changes."""
-    import json
-    from flask import jsonify
-    my_name = session.get('my_name')
-    state = {
-        "status": room.status,
-        "player_count": len(room.joined_players) if room.status == "WAITING" else 0,
-        "turn_player": None,
-        "turn_idx": None,
-        "log_tail": None,
-        "latest_msg": None,
-    }
-    if room.status == "PLAYING" and room.game:
-        g = room.game
-        state["turn_player"] = g.current_player()["name"]
-        state["turn_idx"] = g.turn_idx
-        state["game_over"] = g.game_over
-        state["log_tail"] = g.log[-1] if g.log else ""
-        # Latest middle finger msg in last 2 seconds
-        recent_finger = [m for m in room.chat_messages[-5:] if m["msg"] == "🖕" and (time.time() - m["ts"]) < 2]
-        if recent_finger:
-            state["finger_from"] = recent_finger[-1]["player"]
-            state["finger_ts"] = recent_finger[-1]["ts"]
-    return jsonify(state)
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)
