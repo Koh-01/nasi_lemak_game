@@ -489,8 +489,8 @@
                         <a href="javascript:void(0);" onclick="alert('请点击对手头像框来放置乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% elif is_my_turn and card == 'Si Oyen' %}
                         <a href="javascript:void(0);" onclick="alert('Si Oyen 会自动赶跑你面前的乌鸦！')" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
-                    {% elif is_my_turn and card == 'Thief' %}
-                        <a href="javascript:void(0);" onclick="openThiefModal()" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
+                   {% elif is_my_turn and card == 'Thief' %}
+                        <a href="/action/thief" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% elif is_my_turn and card == 'Wholesaler' %}
                         <a href="/action/wholesaler" class="poker-card" data-type="{{ c_type }}" style="z-index:{{ loop.index }};">
                     {% elif is_my_turn and card == 'Mak Cik' %}
