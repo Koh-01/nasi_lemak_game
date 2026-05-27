@@ -273,7 +273,7 @@ def play_action(action_type):
 
     target_p = g.players[target_idx] if target_idx < len(g.players) else None
 
-    # ── 打包标配 ────────────────────────────────────────────────────
+# ── 打包标配 ────────────────────────────────────────────────────
     if action_type == 'pack_standard':
         if p.get("placed_crow"):
             g.log.append("❌ 你被乌鸦骚扰，无法包Nasi Lemak！先赶走乌鸦。")
@@ -281,35 +281,42 @@ def play_action(action_type):
         rendang_in_hand = p["hand"].count("Rendang")
         missing = [i for i in CORE_5 if i not in p["hand"]]
         if rendang_in_hand >= 5 and len([c for c in p["hand"] if c in CORE_5]) == 0:
-            for _ in range(5): p["hand"].remove("Rendang")
+            for _ in range(5): 
+                p["hand"].remove("Rendang")
+                g.discard.append("Rendang") # 【修复：加入弃牌堆】
             if g.gold_deck:
                 p["scored_cards"].append(g.gold_deck.pop()); p["flies"].append(False)
                 g.spend_move(f"【{p['name']}】 用5块Rendang奇迹包了一份椰浆饭！")
         elif len(missing) <= rendang_in_hand:
             for i in CORE_5:
-                if i in p["hand"]: p["hand"].remove(i)
-                else: p["hand"].remove("Rendang")
+                if i in p["hand"]: 
+                    p["hand"].remove(i)
+                    g.discard.append(i) # 【修复：加入弃牌堆】
+                else: 
+                    p["hand"].remove("Rendang")
+                    g.discard.append("Rendang") # 【修复：加入弃牌堆】
             if g.gold_deck:
                 p["scored_cards"].append(g.gold_deck.pop()); p["flies"].append(False)
                 g.spend_move(f"【{p['name']}】 打包了一份标准椰浆饭")
         else:
             g.log.append("❌ 你凑不够5种核心食材！")
 
-    # ── 大妈代工 (修改：可以搭配哪怕全是Rendang也可以) ───────────────────────
+    # ── 大妈代工 ───────────────────────────────────────────────────────
     elif action_type == 'pack_makcik':
         if p.get("placed_crow"):
             g.log.append("❌ 你被乌鸦骚扰，无法包Nasi Lemak！先赶走乌鸦。")
             return redirect(url_for('index'))
         if "Mak Cik" not in p["hand"]: return redirect(url_for('index'))
         
-        # 只要手里的基础食材或Rendang加起来够3张即可
         valid_ings = [i for i in p["hand"] if i in CORE_5 or i == "Rendang"]
         if len(valid_ings) >= 3:
             p["hand"].remove("Mak Cik")
-            # 优先消耗普通食材，将Rendang排在后面保留
+            g.discard.append("Mak Cik") # 【修复：大妈用完进弃牌堆】
+            
             valid_ings.sort(key=lambda x: 1 if x == "Rendang" else 0)
             for i in valid_ings[:3]:
                 p["hand"].remove(i)
+                g.discard.append(i) # 【修复：食材加入弃牌堆】
                 
             if g.gold_deck:
                 p["scored_cards"].append(g.gold_deck.pop()); p["flies"].append(False)
@@ -441,14 +448,18 @@ def play_action(action_type):
         target_p["placed_crow"] = {"ingredients": old_ings}
         g.spend_move(f"🐦‍⬛ 【{p['name']}】 用 [{ingredient}] 喂乌鸦，把乌鸦（携带{len(old_ings)}张食材）赶到了 【{target_p['name']}】！")
 
+   # ── Si Oyen ──────────────────────────────────────────────────────
     elif action_type == 'si_oyen':
         if "Si Oyen" not in p["hand"]:
             return redirect(url_for('index'))
         if not p.get("placed_crow"):
             g.log.append(f"❌ 【{p['name']}】空放了一只 Si Oyen！但你面前根本没有乌鸦骚扰。")
             return redirect(url_for('index'))
+        
         p["hand"].remove("Si Oyen")
         g.discard.append("Si Oyen")
+        g.discard.append("Crow")  # 【修复：被咬死的乌鸦也必须进弃牌堆，否则乌鸦会绝种】
+        
         crow_ings = p["placed_crow"]["ingredients"]
         p["placed_crow"] = None 
         for ing in crow_ings:
@@ -456,7 +467,7 @@ def play_action(action_type):
         p["hand"].sort()
         reward_str = f"[{', '.join(crow_ings)}]" if crow_ings else "（无食材）"
         g.spend_move(f"🐱 【{p['name']}】使用 [Si Oyen]，直接扑杀了自己面前的乌鸦！获得食材反馈：{reward_str}")
-
+        
     elif action_type == 'end_turn_manual':
         g.end_turn()
 
