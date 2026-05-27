@@ -10,7 +10,7 @@ CORE_5 = ["Rice", "Egg", "Peanuts", "Sambal", "Cucumber"]
 
 def create_gold_deck():
     # 3 Nasi Lemak cards (1 pack each) + original 8x1 + 7x2
-    deck = [1] * 11 + [2] * 7
+    deck = [1] * 20 + [2] * 10
     random.shuffle(deck)
     return deck
 
