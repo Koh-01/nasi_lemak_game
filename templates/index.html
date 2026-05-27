@@ -210,9 +210,65 @@
         a.disabled-card { pointer-events: none; opacity: .7; }
         .lobby-restart-btn { margin-top: 10px; background: transparent; color: #64748b; border: 1px solid #334155; border-radius: 6px; padding: 4px 12px; font-size: 11px; cursor: pointer; transition: .2s; width: 100%; }
         .lobby-restart-btn:hover { color: #ef4444; border-color: #ef4444; }
+
+        /* ===== 全屏按钮 ===== */
+        .fullscreen-btn {
+            position: absolute; left: 6px; top: 50%; transform: translateY(-50%);
+            background: rgba(30,41,59,0.8); color: #94a3b8; border: 1px solid #334155;
+            border-radius: 5px; padding: 1px 6px; font-size: 11px; cursor: pointer;
+            transition: .2s; white-space: nowrap;
+        }
+        .fullscreen-btn:hover { color: #e2e8f0; border-color: #475569; }
+
+        /* ===== 中指特效 ===== */
+        #finger-overlay {
+            display: none; position: fixed; inset: 0; z-index: 99999;
+            pointer-events: none; overflow: hidden;
+        }
+        .finger-emoji {
+            position: absolute; font-size: 80px; animation: fingerfly 1.8s cubic-bezier(.22,.61,.36,1) forwards;
+            filter: drop-shadow(0 0 20px rgba(239,68,68,0.8));
+        }
+        @keyframes fingerfly {
+            0%   { transform: translateY(110vh) rotate(-15deg) scale(0.5); opacity: 1; }
+            60%  { transform: translateY(-10vh) rotate(10deg) scale(1.3); opacity: 1; }
+            100% { transform: translateY(-15vh) rotate(5deg) scale(1.1); opacity: 0; }
+        }
+        .finger-banner {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+            background: rgba(239,68,68,0.95); color: white; font-weight: bold;
+            font-size: 18px; padding: 12px 28px; border-radius: 16px;
+            border: 3px solid #fca5a5; z-index: 100000; pointer-events: none;
+            animation: bannerpop 1.8s cubic-bezier(.22,.61,.36,1) forwards;
+            white-space: nowrap; box-shadow: 0 0 40px rgba(239,68,68,.6);
+        }
+        @keyframes bannerpop {
+            0%   { transform: translate(-50%,-50%) scale(0.3); opacity: 0; }
+            20%  { transform: translate(-50%,-50%) scale(1.2); opacity: 1; }
+            70%  { transform: translate(-50%,-50%) scale(1.0); opacity: 1; }
+            100% { transform: translate(-50%,-50%) scale(0.8); opacity: 0; }
+        }
+
+        /* ===== 乌鸦状态（手牌右侧） ===== */
+        .crow-status-panel {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(234,179,8,0.15); border: 2px solid #eab308; border-radius: 8px;
+            padding: 4px 6px; margin-left: 6px; min-width: 52px; max-width: 70px;
+            font-size: 9px; color: #fde047; flex-shrink: 0; align-self: center;
+            box-shadow: 0 0 10px rgba(234,179,8,.3); text-align: center;
+        }
+        .crow-status-panel .crow-title { font-size: 18px; line-height: 1; }
+        .crow-ing-list { display: flex; flex-wrap: wrap; gap: 1px; justify-content: center; margin-top: 2px; }
+        .crow-ing-chip { font-size: 13px; }
+
+        /* ===== 快捷按钮中指 ===== */
+        .qc-btn.finger { border-color: #ef4444; background: rgba(127,29,29,0.5); }
+        .qc-btn.finger:hover { background: rgba(239,68,68,0.3); }
     </style>
 </head>
 <body>
+
+<div id="finger-overlay"></div>
 
 <div id="restart-confirm-modal">
     <div class="restart-modal-box">
@@ -375,6 +431,7 @@
         </span>
         <a href="/action/end_turn_manual" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2" style="font-size:10px;">结束回合</a>
         <button onclick="openRestartModal()" class="restart-btn">⚡重启</button>
+        <button onclick="toggleFullscreen()" class="fullscreen-btn" id="fs-btn">⛶</button>
     </div>
 
     {% if g.pending_trade %}
@@ -483,13 +540,6 @@
     <div class="bottom-console">
         <div class="my-stall-zone">
             {% if my_player %}
-                {% if my_player.placed_crow is not none %}
-                <div style="background:rgba(234,179,8,0.2);border:2px solid #eab308;border-radius:8px;padding:6px 12px;font-size:11px;color:#fde047;width:100%;text-align:center;position:relative;z-index:120;margin-bottom:6px;box-shadow: 0 0 12px rgba(234,179,8,.35);">
-                    🐦‍⬛ 乌鸦在你面前！你无法包Nasi Lemak。
-                    携带食材：{% if my_player.placed_crow.ingredients %}[{{ my_player.placed_crow.ingredients | join(', ') }}]（共{{ my_player.placed_crow.ingredients|length }}张）{% else %}无{% endif %}
-                    — 点击对手赶走乌鸦！
-                </div>
-                {% endif %}
                 {% for val in my_player.scored_cards %}{% set f_idx = loop.index0 %}
                 <div class="my-nasi {% if my_player.flies[f_idx] %}infected{% endif %}" onclick="openDefenseModal({{ f_idx }},{{ my_player.flies[f_idx]|lower }})">
                     📦{{ val }}包{% if my_player.flies[f_idx] %} 🪰{% endif %}
