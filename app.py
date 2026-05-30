@@ -304,24 +304,43 @@ def play_action(action_type):
     # ── 大妈代工 ───────────────────────────────────────────────────────
     elif action_type == 'pack_makcik':
         if p.get("placed_crow"):
-            g.log.append("❌ 你被乌鸦骚扰，无法包Nasi Lemak！先赶走乌鸦。")
+            g.log.append("❌ Crow is blocking you! / 你被乌鸦骚扰，无法包Nasi Lemak！先赶走乌鸦。")
             return redirect(url_for('index'))
         if "Mak Cik" not in p["hand"]: return redirect(url_for('index'))
         
-        valid_ings = [i for i in p["hand"] if i in CORE_5 or i == "Rendang"]
-        if len(valid_ings) >= 3:
+        # Mak Cik requires 3 DIFFERENT core ingredients.
+        # Rendang can be used alongside core ingredients (counts as a wildcard slot),
+        # but multiple Rendangs do NOT satisfy the "different" requirement.
+        # So: count distinct CORE_5 types in hand. Rendang can fill one missing slot.
+        core_in_hand = [i for i in p["hand"] if i in CORE_5]
+        distinct_core = list(dict.fromkeys(core_in_hand))  # unique core ingredients, preserving order
+        rendang_count = p["hand"].count("Rendang")
+        
+        # We need 3 different ingredients total. Rendang can substitute for at most
+        # as many as rendang_count missing distinct core slots, but all 3 must differ.
+        # Rule: Rendang can be used simultaneously with others (no limit on number used),
+        # but it counts as ONE unique type ("Rendang") for the 3-different requirement.
+        # So effective unique types = distinct_core types + (1 if rendang_count > 0 else 0)
+        unique_types = distinct_core + (["Rendang"] if rendang_count > 0 else [])
+        
+        if len(unique_types) >= 3:
             p["hand"].remove("Mak Cik")
-            g.discard.append("Mak Cik") # 【修复：大妈用完进弃牌堆】
-            
-            valid_ings.sort(key=lambda x: 1 if x == "Rendang" else 0)
-            for i in valid_ings[:3]:
+            g.discard.append("Mak Cik")
+            # Pick 3 different ingredients to use: prefer distinct core, fill with Rendang last
+            used = []
+            for ing in distinct_core:
+                if len(used) >= 3: break
+                used.append(ing)
+            if len(used) < 3 and rendang_count > 0:
+                used.append("Rendang")
+            for i in used:
                 p["hand"].remove(i)
-                g.discard.append(i) # 【修复：食材加入弃牌堆】
-                
+                g.discard.append(i)
+            used_str = ", ".join(used)
             if g.gold_deck:
                 p["scored_cards"].append(g.gold_deck.pop()); p["flies"].append(False)
-                g.spend_move(f"【{p['name']}】 使用大妈代工速成了椰浆饭")
-        else: g.log.append("❌ 基础食材/Rendang不足3张，大妈无法开工！")
+                g.spend_move(f"【{p['name']}】 使用大妈代工速成了椰浆饭（用了：{used_str}）/ Mak Cik packed Nasi Lemak with: {used_str}")
+        else: g.log.append(f"❌ Mak Cik needs 3 different ingredients! / 大妈需要3种不同食材才能开工！（目前只有 {len(unique_types)} 种）")
 
     # ── 官员 ─────────────────────────────────────────────────────────
     elif action_type == 'officer':
